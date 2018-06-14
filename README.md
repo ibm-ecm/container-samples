@@ -34,8 +34,7 @@ Instructions and sample files for deploying with Kubernetes.
     o CMIS Product deployment file. (cmis-deploy.yml)
 
 
-
-Deployment of ECM product containers in K8s
+# Deployment of ECM product containers in K8s
 
 Requirements
 
