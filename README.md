@@ -126,8 +126,8 @@ Deployment of CPE in to K8s.
 
 1.  Download the provided ldap xml file and modify the parameters to match with your existing LDAP server.
 
-For Microsoft Active Directory
---
+ For Microsoft Active Directory
+ --
 
 Modify ldap_AD.xml file with your LDAP host , baseDN , port , bindDN ,bindPassword. 
 
