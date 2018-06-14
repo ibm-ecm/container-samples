@@ -64,22 +64,22 @@ Pull ECM product images and push in to your private registry.
 1.  Pull the image from docker store and upload to kubernetes private registry.
 CPE:
  docker pull <docker store>/cpe:latest
- docker tag <docker store>/ cpe:latest <private registry>/cpe:latest
+ docker tag <docker store>/cpe:latest <private registry>/cpe:latest
  docker push <private registry>/cpe:latest
 
 Navigator:
  docker pull <docker store>/navigator:latest
- docker tag <docker store>/ navigator:latest <private registry>/navigator:latest
+ docker tag <docker store>/navigator:latest <private registry>/navigator:latest
  docker push <private registry>/navigator:latest
 
 CSS:
  docker pull <docker store>/css:latest
- docker tag <docker store>/ css:latest <private registry>/css:latest
+ docker tag <docker store>/css:latest <private registry>/css:latest
  docker push <private registry>/css:latest
 
 CMIS:
  docker pull <docker store>/cmis:latest
- docker tag <docker store>/ cmis:latest <private registry>/cmis:latest
+ docker tag <docker store>/cmis:latest <private registry>/cmis:latest
  docker push <private registry>/cmis:latest
 
 Storage Provisioning
@@ -89,12 +89,12 @@ Storage Provisioning
 1.  Prepare persistence volume & Volume Claim for shared configuration.
 
 CPE Configuration Volume --> for example cpe-icp-cfgstore
-CPE Logs Volume -->          for example cpe-logstore 
-CPE Filestore Volume -->     for example cpe-filestore
-CPE ICMRULES Volume -->      for example cpe-icmrulesstore
-CPE TEXTEXT Volume -->       for example cpe-textextstore
-CPE BOOTSTRAP Volume -->     for example cpe-bootstrapstore
-CPE FileNet Logs Volume -->  for example cpe-fnlogstore
+CPE Logs Volume          --> for example cpe-logstore 
+CPE Filestore Volume     --> for example cpe-filestore
+CPE ICMRULES Volume      --> for example cpe-icmrulesstore
+CPE TEXTEXT Volume       --> for example cpe-textextstore
+CPE BOOTSTRAP Volume     --> for example cpe-bootstrapstore
+CPE FileNet Logs Volume  --> for example cpe-fnlogstore
 
 Refer to kubernetes document to setup persistence volumes
 https://kubernetes.io/docs/concepts/storage/persistent-volumes/
