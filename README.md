@@ -572,6 +572,11 @@ Deployment of CSS in to K8s
 
 1. Prepare persistence volume & Volume Claim for shared configuration.
 
+  
+    o CPE Configuration Volume --> for example cpe-cfgstore
+    o CPE Logs Volume          --> for example cpe-logstore
+    o CPE Configuration Volume --> for example cpe-cfgstore
+    o CPE Logs Volume          --> for example cpe-logstore  
 
     
     o CSS Configuration Volume --> for example css-cfgstore
