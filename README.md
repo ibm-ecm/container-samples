@@ -572,12 +572,11 @@ Deployment of CSS in to K8s
 
 1. Prepare persistence volume & Volume Claim for shared configuration.
 
-
     o CSS Configuration Volume --> for example css-cfgstore
-    o CSS  Logs Volume         --> for example css-logstore
+    o CSS Logs Volume          --> for example css-logstore
     o CSS Temp Volume          --> for example css-tempstore
     o CSS Index Volume         --> for example css-indexstore
-  
+
 
 Refer to kubernetes document to setup persistence volumes
 https://kubernetes.io/docs/concepts/storage/persistent-volumes/
@@ -731,7 +730,7 @@ Deployment of CMIS in to K8s
 
 
     o CMIS Configuration Volume --> for example cmis-cfgstore
-    o CMIS  Logs Volume         --> for example cmis-logstore
+    o CMIS Logs Volume          --> for example cmis-logstore
 
 
 Refer to kubernetes document to setup persistence volumes
@@ -741,8 +740,9 @@ https://kubernetes.io/docs/concepts/storage/persistent-volumes/
 
    Example  
 
-    o /cmiscfgstore/cmis/configDriopins/overrides
+    o /cmiscfgstore/cmis/configDropins/overrides
     o /cmislogstore/cmis/logs
+
 
 3. Make sure you set the ownership on these folders to 501:500 
  
