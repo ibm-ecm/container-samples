@@ -602,7 +602,12 @@ For example  chown –Rf 501:500 /csscfgstore
 3.  Download the cssSelfsignedServerStore file and copy to CSS Configuration Store.
 (Example: css-cfgstore  /csscfgstore/css/CSS_Server_data/ sslkeystone
 
+https://github.com/ibm-ecm/container-samples/tree/master/CSS/CSS_Server_data/sslkeystone
+
 4.  Download the sample CSS Search deployment file. (css-search-deploy.yml)
+
+https://github.com/ibm-ecm/container-samples/blob/master/css-deploy.yml
+
           
 5.  Modify the “image” name depending on your private repository.
 
@@ -725,9 +730,9 @@ Deployment of CMIS in to K8s
 
 1. Prepare persistence volume & Volume Claim for shared configuration.
 
-CMIS Configuration Volume  --> for example cmis-cfgstore  Configuration files for Liberty
 
-CMIS  Logs Volume          --> for example cmis-logstore  Navigator and liberty logs
+    o CMIS Configuration Volume --> for example cmis-cfgstore
+    o CMIS  Logs Volume         --> for example cmis-logstore
 
 
 Refer to kubernetes document to setup persistence volumes
@@ -736,8 +741,9 @@ https://kubernetes.io/docs/concepts/storage/persistent-volumes/
 2. Create necessary folders inside those volumes.
 
    Example  
-    /cmiscfgstore/cmis/configDriopins/overrides
-    /cmislogstore/cmis/logs
+
+    o /cmiscfgstore/cmis/configDriopins/overrides
+    o /cmislogstore/cmis/logs
 
 3. Make sure you set the ownership on these folders to 501:500 
  
@@ -749,6 +755,8 @@ For example  chown –Rf 501:500 /cmiscfgstore
 For Microsoft Active Directory
 --
 
+https://github.com/ibm-ecm/container-samples/blob/master/CMIS/configDropins/overrides/ldap_AD.xml
+
 Modify ldap_AD.xml file with your LDAP host , baseDN , port , bindDN ,bindPassword. 
 
 If your LDAP server uses SSL port use that port and change sslEnabled=”true”
@@ -757,6 +765,8 @@ If you have the different userFilter & groupFilter , modify those as well
 
 For IBM Tivoli Directory Server
 --
+
+https://github.com/ibm-ecm/container-samples/blob/master/CMIS/configDropins/overrides/ldap_TDS.xml
 
 Modify ldap_TDS.xml with your LDAP host , baseDN , port , bindDN,bindPassword.
 
@@ -771,6 +781,8 @@ If you have different userFillter and groupFilter , please update those as well
 
 3.  Download the sample CMIS product deployment yml. (cmis-deploy.yml)
 
+
+https://github.com/ibm-ecm/container-samples/blob/master/cmis-deploy.yml
 
 4.  Modify the “image” name depending on your private repository.
 
