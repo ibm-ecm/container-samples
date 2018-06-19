@@ -303,15 +303,24 @@ https://github.com/ibm-ecm/container-samples/blob/master/cpe-deploy.yml
             claimName: "cpe-fnlogstore"
 ---
 10. The sample deployment yml is configured with minimum required JVM Heap.
+
                 JVM_HEAP_XMS: 512m
+
                 JVM_HEAP_XMS: 1024m
 
+
 11. The sample deployment yml is configured with minimum k8s resources like below. 
+
                  CPU_REQUEST: “500m”
+
                  CPU_LIMIT: “1”
+
                  MEMORY_REQUEST: “512Mi”
+
                  MEMORY_LIMIT: “1024Mi” 
+
                  REPLICAS: 1 
+                 
 Please see below link for more details ..
 
 https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
@@ -464,6 +473,7 @@ https://github.com/ibm-ecm/container-samples/blob/master/ICN/configDropins/overr
 5. Copy the corresponding database JDBC driver files to created configuration store for CPE. 
 
 For DB2  & DB2HADR  --> db2jcc4.jar , db2jcc_license_cu.jar
+
 For Oracle          --> ojdbc8.jar
 
 (Example  cpe-cfgstore). /cpecfgstore/cpe/configDropins/overrides
@@ -515,15 +525,24 @@ https://github.com/ibm-ecm/container-samples/blob/master/icn-deploy.yml
             claimName: "icn-vwlogstore"
 
 9.  The sample deployment yml is configured with minimum required JVM Heap.
+
                 JVM_HEAP_XMS: 512m
+
                 JVM_HEAP_XMS: 1024m
 
+
 10. The sample deployment yml is configured with minimum k8s resources like below. 
+
                  CPU_REQUEST: “500m”
+
                  CPU_LIMIT: “1”
+
                  MEMORY_REQUEST: “512Mi”
+
                  MEMORY_LIMIT: “1024Mi” 
+
                  REPLICAS: 1 
+
 Please see below link for more details ..
 
 https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
@@ -645,13 +664,18 @@ https://github.com/ibm-ecm/container-samples/blob/master/css-deploy.yml
             claimName: "css-indexstore"
 
 7.  The sample deployment yml is configured with minimum required JVM Heap.
+
         JVM_HEAP_XMX: 3072
 
 8.  The sample deployment yml is configured with minimum k8s resources like 
+
                  CPU_REQUEST: “500m”
-                 CPU_LIMIT: “1”
+
+
                  MEMORY_REQUEST: “512Mi”
+
                  MEMORY_LIMIT: “1024Mi” 
+
 
 Please see below link for more details ..
 
@@ -715,16 +739,26 @@ The authentication token is printed below. This token is used to communicate wit
 
 
 4. Create the Content Search Service server in the Administration Console for Content Platform Engine:
+
 •   Log in to the Administration Console and navigate to Domain > Global Configuration > Administration > Text Search Servers > New.
+
 •   Define the Text Search Server property values as follows:
+
 •   Mode: Dual: Index and Search
+
 •   Status: Enabled
+
 •   Host name: { csssearch-cluster }
+
 •   Port: {8199 }
+
 •   Authentication token: {The CSS authentication token, "RNUNEWc=" for the example}
+
 •   Set the Is SSL Enabled field value to True.
+
 •   Set the Validate Server Certificate and the Validate Certificate Host field  
-•   .  values to False.
+
+•   values to False.
 
 
 
@@ -734,6 +768,7 @@ Deployment of CMIS in to K8s
 
 
     o CMIS Configuration Volume --> for example cmis-cfgstore
+
     o CMIS Logs Volume          --> for example cmis-logstore
 
 
@@ -745,6 +780,7 @@ https://kubernetes.io/docs/concepts/storage/persistent-volumes/
    Example  
 
     o /cmiscfgstore/cmis/configDropins/overrides
+
     o /cmislogstore/cmis/logs
 
 
@@ -837,14 +873,20 @@ https://github.com/ibm-ecm/container-samples/blob/master/cmis-deploy.yml
 
 8.  The sample deployment yml is configured with minimum required JVM Heap.
                 JVM_HEAP_XMS: 512m
+
                 JVM_HEAP_XMS: 1024m
 
 9.  The sample deployment yml is configured with minimum k8s resources like below. 
                  CPU_REQUEST: “500m”
+
                  CPU_LIMIT: “1”
+
                  MEMORY_REQUEST: “512Mi”
+
                  MEMORY_LIMIT: “1024Mi” 
+
                  REPLICAS: 1 
+
 Please see below link for more details ..
 
 https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
