@@ -94,26 +94,29 @@ Storage Provisioning
 
 1.  Prepare persistence volume & Volume Claim for shared configuration.
 
-CPE Configuration Volume --> for example cpe-icp-cfgstore
-CPE Logs Volume          --> for example cpe-logstore 
-CPE Filestore Volume     --> for example cpe-filestore
-CPE ICMRULES Volume      --> for example cpe-icmrulesstore
-CPE TEXTEXT Volume       --> for example cpe-textextstore
-CPE BOOTSTRAP Volume     --> for example cpe-bootstrapstore
-CPE FileNet Logs Volume  --> for example cpe-fnlogstore
 
+    o CPE Configuration Volume --> for example cpe-cfgstore
+    o CPE Logs Volume          --> for example cpe-logstore 
+    o CPE Filestore Volume     --> for example cpe-filestore
+    o CPE ICMRULES Volume      --> for example cpe-icmrulesstore
+    o CPE FileNet Logs Volume  --> for example cpe-fnlogstore
+    o CPE TEXTEXT Volume       --> for example cpe-textextstore
+    o CPE BOOTSTRAP Volume     --> for example cpe-bootstrapstore
+    
 Refer to kubernetes document to setup persistence volumes
 https://kubernetes.io/docs/concepts/storage/persistent-volumes/
 
 Create necessary folders inside those volumes.
 Example  
-/cpecfgstore/cpe/configDropins/overrides  -->  Configuration files for Liberty
-/cpelogstore/cpe/logs -->                      Content Platform Engine & Liberty logs
-/cpefilestore/asa  -->                         Content storage volume for advanced storage area
-/cpetextextstore/textext -->                   Text extraction volume used by CSS
-/cpebootstrapstore/bootstrap -->               Content Platform Engine bootstrap file location (Upgrade)
-/cpefnlogstore/FileNet  -->                    FileNet logs
-/cpeicmrulesstore/icmrules -->                 Rules for ICM
+
+    o /cpecfgstore/cpe/configDropins/overrides
+    o /cpelogstore/cpe/logs 
+    o /cpefilestore/asa
+    o /cpetextextstore/textext
+    o /cpebootstrapstore/bootstrap
+    o /cpefnlogstore/FileNet
+    o /cpeicmrulesstore/icmrules
+
 
 Make sure you set the ownership on all these folders to 501:500 
  
@@ -133,8 +136,10 @@ Deployment of CPE in to K8s.
 
 1.  Download the provided ldap xml file and modify the parameters to match with your existing LDAP server.
 
+
  For Microsoft Active Directory
  --
+  https://github.com/ibm-ecm/container-samples/blob/master/CPE/configDropins/overrides/ldap_AD.xml
 
 Modify ldap_AD.xml file with your LDAP host , baseDN , port , bindDN ,bindPassword. 
 
@@ -144,6 +149,8 @@ If you have the different userFilter & groupFilter , modify those as well
 
 For IBM Tivoli Directory Server
 --
+
+https://github.com/ibm-ecm/container-samples/blob/master/CPE/configDropins/overrides/ldap_TDS.xml
 
 Modify ldap_TDS.xml with your LDAP host , baseDN , port , bindDN,bindPassword.
 
@@ -160,11 +167,15 @@ If you have different userFillter and groupFilter , please update those as well
 GCD.xml
 --
 
+https://github.com/ibm-ecm/container-samples/blob/master/CPE/configDropins/overrides/GCD.xml
+
 Modify GCD.xml file with your database serverName , GCD databaseName , portNumber , user & password.
 
 
 OBJSTORE.xml
 ---
+
+https://github.com/ibm-ecm/container-samples/blob/master/CPE/configDropins/overrides/OBJSTORE.xml
 
 Modify OBJSTORE.xml with your database serverName , Objectstore databaseName , portNumber , user & password.
 
@@ -176,9 +187,15 @@ GCD_HADR.xml
 
 --
 
+https://github.com/ibm-ecm/container-samples/blob/master/CPE/configDropins/overrides/GCD_HADR.xml
+
+
 Modify GCD_HADR.xml file with your database serverName , GCD databaseName , portNumber , user , password, clientRerouteAlternateServerName, clientRerouteAlternatePortNumber
 
+OBJSTORE_HADR.xml
 --
+
+https://github.com/ibm-ecm/container-samples/blob/master/CPE/configDropins/overrides/OBJSTORE_HADR.xml
 
 Modify OBJSTORE_HADR.xml file with your database serverName , Objectstore databaseName , portNumber , user , password, clientRerouteAlternateServerName, clientRerouteAlternatePortNumber.
 
@@ -189,10 +206,14 @@ If you have more than 1 objectstore , you can copy above and modify jndiName , j
 GCD_Oracle.xml
 --
 
+https://github.com/ibm-ecm/container-samples/blob/master/CPE/configDropins/overrides/GCD_Oracle.xml
+
 Modify GCD_Oracle.xml file with your database URL , user , password.
 
 OBJSTORE_Oracle.xml
 --
+
+https://github.com/ibm-ecm/container-samples/blob/master/CPE/configDropins/overrides/OBJSTORE_Oracle.xml
 
  Modify the OBJSTORE_Oracle.xml file with your Objectstore database JDBC URL , user & password.
  If you have more than 1 objectstore , you can copy above and modify jndiName , jndiXAName , database URL, user & password.
@@ -203,7 +224,12 @@ OBJSTORE_Oracle.xml
     (Example  cpe-cfgstore). /cpecfgstore/cpe/configDropins/overrides
 
     For DB2 & DB2_HADR -->  DB2JCCDriver.xml
+
+    https://github.com/ibm-ecm/container-samples/blob/master/CPE/configDropins/overrides/DB2JCCDriver.xml
+
     For Oracle         -->  OraJDBCDriver.xml
+
+    https://github.com/ibm-ecm/container-samples/blob/master/CPE/configDropins/overrides/OraJDBCDriver.xml
 
 
 5.  CPE product deployment has default SSL keystore files as part of deployment. If the user need to have your own SSL keystore and certificate files , they will need put the files (keystore.jks & trustore.jks) in the overrides folder.
@@ -220,6 +246,8 @@ For Oracle          --> ojdbc8.jar
 (Example  cpe-cfgstore). /cpecfgstore/cpe/configDropins/overrides
 
 7.  Download CPE product deployment yml. (cpe-deploy.yml)
+
+https://github.com/ibm-ecm/container-samples/blob/master/cpe-deploy.yml
 
 
 8.  Modify the “image” name depending on your private repository.
@@ -339,15 +367,13 @@ Deployment of ICN in to K8s.
 
 4.  Prepare persistence volume & Volume Claim for shared configuration.
 
-ICN Configuration Volume --> for example icn-cfgstore  Configuration files for navigator
+  
+    o ICN Configuration Volume --> for example icn-cfgstore
+    o ICN Logs Volume          --> for example icn-logstore 
+    o ICN Plugins   Volume     --> for example icn-pluginstore
+    o ICN Viewer Cache Volume  --> for example icn-vwcachestore
+    o ICN Viewer Logs Volume   --> for example icn-vwlogstore
 
-ICN Logs Volume          --> for example icn-logstore  Navigator and liberty logs
-
-ICN Plugin Volume        --> for example icn-pluginstore  Custom Plugins for navigator
-
-ICN Viewer Cache Volume  --> for example icn-vwcachestore  Daeja VieweONE logs
-
-ICN Viewer Logs Volume   --> for example icn-vwlogstore  Daeja VieweONE cache
 
 
 Refer to kubernetes document to setup persistence volumes
@@ -355,11 +381,14 @@ https://kubernetes.io/docs/concepts/storage/persistent-volumes/
 
 Create necessary folders inside those volumes.
 Example  
-/icncfgstore/icn/configDropins/overrides
-/icnlogstore/icn/logs
-/icnpluginstore/plugins
-/icnvwcachestore/viewercache
-/icnvwlogstore/viewerlogs
+
+   
+    o /icncfgstore/icn/configDropins/overrides
+    o /icnlogstore/icn/logs
+    o /icnpluginstore/plugins
+    o /icnvwcachestore/viewercache
+    o /icnvwlogstore/viewerlogs
+
 
 Make sure you set the ownership on these folders to 501:500 
  
@@ -370,6 +399,7 @@ For example  chown –Rf 501:500 /icncfgstore
 
 For Microsoft Active Directory
 --
+https://github.com/ibm-ecm/container-samples/blob/master/ICN/configDropins/overrides/ldap_AD.xml
 
 Modify ldap_AD.xml file with your LDAP host , baseDN , port , bindDN ,bindPassword. 
 
@@ -379,6 +409,8 @@ If you have the different userFilter & groupFilter , modify those as well
 
 For IBM Tivoli Directory Server
 --
+
+https://github.com/ibm-ecm/container-samples/blob/master/ICN/configDropins/overrides/ldap_TDS.xml
 
 Modify ldap_TDS.xml with your LDAP host , baseDN , port , bindDN,bindPassword.
 
@@ -392,16 +424,22 @@ If you have different userFillter and groupFilter , please update those as well
 For Database DB2  ICNDS.xml
 --
 
+https://github.com/ibm-ecm/container-samples/blob/master/ICN/configDropins/overrides/ICNDS.xml
+
 Modify the ICNDS.xml file with your database serverName , portNumber , user & password.
 
 For Database DB2 HADR  ICNDS_HADR.xml
 --
+
+https://github.com/ibm-ecm/container-samples/blob/master/ICN/configDropins/overrides/ICNDS_HADR.xml
 
 
 Modify the ICNDS_HADR.xml file with your database serverName ,portNumber , user , password , database clientRerouteAlternateServerName , clientRerouteAlternatePortNumber. 
 
 For Database Oracle  ICNDS_Oracle.xml
 --
+
+https://github.com/ibm-ecm/container-samples/blob/master/ICN/configDropins/overrides/ICNDS_Oracle.xml
 
 Modify the  ICNDS_Oracle file for the URL , database user and password.
 
@@ -416,7 +454,13 @@ Modify the  ICNDS_Oracle file for the URL , database user and password.
 (Example  icn-cfgstore). /icncfgstore/icn/configDropins/overrides
 
 For DB2 & DB2_HADR -->  DB2JCCDriver.xml
+
+https://github.com/ibm-ecm/container-samples/blob/master/ICN/configDropins/overrides/DB2JCCDriver.xml
+
+
 For Oracle         -->  OraJDBCDriver.xml
+
+https://github.com/ibm-ecm/container-samples/blob/master/ICN/configDropins/overrides/OraJDBCDriver.xml
 
 5. Copy the corresponding database JDBC driver files to created configuration store for CPE. 
 
@@ -426,6 +470,8 @@ For Oracle          --> ojdbc8.jar
 (Example  cpe-cfgstore). /cpecfgstore/cpe/configDropins/overrides
                 
 6.  Download the sample Navigator product deployment yml. (icn-deploy.yml)
+
+https://github.com/ibm-ecm/container-samples/blob/master/icn-deploy.yml
 
 
 7.  Modify the “image” name depending on your private repository.
@@ -527,13 +573,12 @@ Deployment of CSS in to K8s
 
 1. Prepare persistence volume & Volume Claim for shared configuration.
 
-CSS Configuration Volume --> for example css-cfgstore  Data persistence for CSS config data and SSL sample keystore
 
-CSS  Logs Volume         --> for example css-logstore   Data persistence for CSS log files
-
-CSS Temp Volume          --> for example css-tempstore  Data persistence for CSS temp files
-
-CSS Index Volume         --> for example css-indexstore  Data persistence for content index data
+    
+    o CSS Configuration Volume --> for example css-cfgstore
+    o CSS  Logs Volume         --> for example css-logstore
+    o CSS Temp Volume          --> for example css-tempstore
+    o CSS Index Volume         --> for example css-indexstore
 
 
 Refer to kubernetes document to setup persistence volumes
@@ -543,10 +588,12 @@ https://kubernetes.io/docs/concepts/storage/persistent-volumes/
     
     Example  
 
-    /csscfgstore/css/CSS_Server_data/ sslkeystone
-    /csstempstore/CSS_Server_temp
-    /cssindexstore/CSS_Indexes
-    /csslogstore/CSS_Server_log
+
+    o /csscfgstore/css/CSS_Server_data/ sslkeystone
+    o /csstempstore/CSS_Server_temp
+    o /cssindexstore/CSS_Indexes
+    o /csslogstore/CSS_Server_log
+    
 
 Make sure you set the ownership on these folders to 501:500 
  
