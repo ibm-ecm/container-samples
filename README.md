@@ -572,6 +572,12 @@ Deployment of CSS in to K8s
 
 1. Prepare persistence volume & Volume Claim for shared configuration.
 
+   
+    o CSS Configuration Volume --> for example css-cfgstore
+    o CSS Logs Volume --> for example css-logstore
+    o CSS Temp Volume --> for example css-tempstore
+    o CSS Index Volume --> for example css-indexstore
+    
 
     o CSS Configuration Volume --> for example css-cfgstore 
     o CSS Logs Volume --> for example css-logstore
