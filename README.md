@@ -572,18 +572,12 @@ Deployment of CSS in to K8s
 
 1. Prepare persistence volume & Volume Claim for shared configuration.
 
-  
-    o CPE Configuration Volume --> for example cpe-cfgstore
-    o CPE Logs Volume          --> for example cpe-logstore
-    o CPE Configuration Volume --> for example cpe-cfgstore
-    o CPE Logs Volume          --> for example cpe-logstore  
 
-    
     o CSS Configuration Volume --> for example css-cfgstore
     o CSS  Logs Volume         --> for example css-logstore
     o CSS Temp Volume          --> for example css-tempstore
     o CSS Index Volume         --> for example css-indexstore
-
+  
 
 Refer to kubernetes document to setup persistence volumes
 https://kubernetes.io/docs/concepts/storage/persistent-volumes/
@@ -592,12 +586,10 @@ https://kubernetes.io/docs/concepts/storage/persistent-volumes/
     
     Example  
 
-
     o /csscfgstore/css/CSS_Server_data/ sslkeystone
     o /csstempstore/CSS_Server_temp
     o /cssindexstore/CSS_Indexes
     o /csslogstore/CSS_Server_log
-    
 
 Make sure you set the ownership on these folders to 501:500 
  
