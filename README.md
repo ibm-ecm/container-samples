@@ -584,12 +584,14 @@ https://kubernetes.io/docs/concepts/storage/persistent-volumes/
 
 2. Create necessary folders inside those volumes.
     
-    Example  
+Example:
 
-    o /csscfgstore/css/CSS_Server_data/ sslkeystone
+   
+    o /csscfgstore/css/CSS_Server_data/sslkeystone
     o /csstempstore/CSS_Server_temp
     o /cssindexstore/CSS_Indexes
     o /csslogstore/CSS_Server_log
+    
 
 Make sure you set the ownership on these folders to 501:500 
  
