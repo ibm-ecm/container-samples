@@ -63,24 +63,30 @@ Pull ECM product images and push in to your private registry.
 1.  Pull the image from docker store and upload to kubernetes private registry.
 
 CPE:
- 		docker pull <docker store>/cpe:latest
- 		docker tag <docker store>/cpe:latest <private registry>/cpe:latest
- 		docker push <private registry>/cpe:latest
+    
+    o docker pull <docker store>/cpe:latest
+    o docker tag <docker store>/cpe:latest <private registry>/cpe:latest
+    o docker push <private registry>/cpe:latest
+    
 
 Navigator:
- 		docker pull <docker store>/navigator:latest
- 		docker tag <docker store>/navigator:latest <private registry>/navigator:latest
- 		docker push <private registry>/navigator:latest
+
+    o docker pull <docker store>/navigator:latest
+    o docker tag <docker store>/navigator:latest <private registry>/navigator:latest
+    o docker push <private registry>/navigator:latest
 
 CSS:
- 		docker pull <docker store>/css:latest
- 		docker tag <docker store>/css:latest <private registry>/css:latest
- 		docker push <private registry>/css:latest
+
+    o docker pull <docker store>/css:latest
+    o docker tag <docker store>/css:latest <private registry>/css:latest
+    o docker push <private registry>/css:latest
+ 	
 
 CMIS:
- 		docker pull <docker store>/cmis:latest
- 		docker tag <docker store>/cmis:latest <private registry>/cmis:latest
- 		docker push <private registry>/cmis:latest
+
+    o docker pull <docker store>/cmis:latest
+    o docker tag <docker store>/cmis:latest <private registry>/cmis:latest
+    o docker push <private registry>/cmis:latest
 
 Storage Provisioning
 
