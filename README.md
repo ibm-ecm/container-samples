@@ -88,9 +88,8 @@ CMIS:
     o docker tag <docker store>/cmis:latest <private registry>/cmis:latest
     o docker push <private registry>/cmis:latest
 
-Storage Provisioning
 
- Content Engine Platform
+ Content Engine Platform 
 
 1.  Prepare persistence volume & Volume Claim for shared configuration.
 
