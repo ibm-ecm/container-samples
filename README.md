@@ -1138,10 +1138,12 @@ https://github.ibm.com/ecm-container-service/ecm-container-monitoring
 
 12. Execute the deployment file to deploy ES.
 
-Kubectl apply –f es-deploy.yml
+        Kubectl apply –f es-deploy.yml
+
 13. This deployment will create a service along with CPE and ICN deployment. 
 
 14. Execute following command to get the Public IP and port to access ES
+
          kubectl get svc | grep ecm-es
 
 
