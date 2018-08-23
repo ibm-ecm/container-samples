@@ -1006,9 +1006,9 @@ For ldapExt.xml
 --
 In the on-premises configuration, you add the external user LDAP server in the Administration Console for Content Platform Engine and in IBM Content Navigator. In the container environment, you add the external server as an additional ldapExt.xml file in the configuration overrides directory for each component.
 
-    . The 2 LDAP XML files must be present in the /configDropins/override directory for Content Platform Engine, IBM Content Navigator, and for the external share container
+. The 2 LDAP XML files must be present in the /configDropins/override directory for Content Platform Engine, IBM Content Navigator, and for the external share container
     
-    . The realm name in the LDAPext.xml file must be the same in each copy, and must be different from the realm name in the original ldap_AD.xml or ldap_TDS.xm file.
+. The realm name in the LDAPext.xml file must be the same in each copy, and must be different from the realm name in the original ldap_AD.xml or ldap_TDS.xm file.
 
 
 2.  Download the corresponding datasource XML files to the configuration store which created for ES.
