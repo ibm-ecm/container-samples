@@ -959,6 +959,7 @@ Deployment of External Share in to K8s.
 
   
     o ES Configuration Volume --> for example es-cfgstore
+    
     o ES Logs Volume          --> for example es-logstore 
    
 
