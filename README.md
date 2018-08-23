@@ -955,8 +955,6 @@ Deployment of External Share in to K8s.
 1.  IBM FileNet P8 Content Platform Engine (CPE) container, deployed and configured
 2.  IBM Content Navigator (ICN) container, deployed and configured
 3.  Supported LDAP provider (Microsoft Active Directory or IBM Security Directory Server)
-4.  Prepare the ICN database using provided script. (createICNDB.sh)
-
 4.  Prepare persistence volume & Volume Claim for shared configuration.
 
   
@@ -1054,18 +1052,25 @@ For DB2  & DB2HADR  --> db2jcc4.jar , db2jcc_license_cu.jar
 For Oracle          --> ojdbc8.jar
 
 (Example  es-cfgstore). /escfgstore/es/configDropins/overrides
-                
-6.  Download the sample External Share product deployment yml. (es-deploy.yml)
+
+For Cross-Origin Resource Sharing cors.xml
+--
+
+6.  Copy the Cross-Origin Resource Sharing cors.xml file to create configuration store for ES
+
+(Example  es-cfgstore). /escfgstore/es/configDropins/overrides
+
+7.  Download the sample External Share product deployment yml. (es-deploy.yml)
 
 https://github.com/ibm-ecm/container-samples/blob/master/es-deploy.yml
 
 
-7.  Modify the “image” name depending on your private repository.
+8.  Modify the “image” name depending on your private repository.
 
 (Example:  - image: mycluster:8500/default/extshare:latest)
 
 
-8.  Modify the yml to match with the environment with PVC names and subPath.
+9.  Modify the yml to match with the environment with PVC names and subPath.
 
         volumeMounts:
           - name: icncfgstore-pvc
@@ -1083,14 +1088,14 @@ https://github.com/ibm-ecm/container-samples/blob/master/es-deploy.yml
           persistentVolumeClaim:
             claimName: "es-logstore"
        
-9.  The sample deployment yml is configured with minimum required JVM Heap.
+10.  The sample deployment yml is configured with minimum required JVM Heap.
 
                 JVM_HEAP_XMS: 512m
 
                 JVM_HEAP_XMS: 1024m
 
 
-10. The sample deployment yml is configured with minimum k8s resources like below. 
+11. The sample deployment yml is configured with minimum k8s resources like below. 
 
                  CPU_REQUEST: “500m”
 
@@ -1106,7 +1111,7 @@ Please see below link for more details ..
 
 https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
 
-11. If you want ICN product to be monitored from grafana dashboard and forward the logs to kibana dashboard specify the following as a environment variables inside icn-deploy.yml
+12. If you want ES product to be monitored from grafana dashboard and forward the logs to kibana dashboard specify the following as a environment variables inside es-deploy.yml
 
           - name: MON_METRICS_WRITER_OPTION
             value: "0”
@@ -1136,13 +1141,13 @@ For more information on monitoring and logging options , please see below link .
 https://github.ibm.com/ecm-container-service/ecm-container-monitoring
 
 
-12. Execute the deployment file to deploy ES.
+13. Execute the deployment file to deploy ES.
 
         Kubectl apply –f es-deploy.yml
 
-13. This deployment will create a service along with CPE and ICN deployment. 
+14. This deployment will create a service along with CPE and ICN deployment. 
 
-14. Execute following command to get the Public IP and port to access ES
+15. Execute following command to get the Public IP and port to access ES
 
          kubectl get svc | grep ecm-es
 
