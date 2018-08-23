@@ -1002,6 +1002,15 @@ If your LDAP server uses SSL port use that port and change sslEnabled=”true”
 
 If you have different userFillter and groupFilter , please update those as well
 
+For ldapExt.xml
+--
+In the on-premises configuration, you add the external user LDAP server in the Administration Console for Content Platform Engine and in IBM Content Navigator. In the container environment, you add the external server as an additional ldapExt.xml file in the configuration overrides directory for each component.
+
+    . The 2 LDAP XML files must be present in the /configDropins/override directory for Content Platform Engine, IBM Content Navigator, and for the external share container
+    
+    . The realm name in the LDAPext.xml file must be the same in each copy, and must be different from the realm name in the original ldap_AD.xml or ldap_TDS.xm file.
+
+
 2.  Download the corresponding datasource XML files to the configuration store which created for ES.
 
 
@@ -1028,9 +1037,11 @@ https://github.com/ibm-ecm/container-samples/blob/master/extShare/configDropins/
 Modify the  ICNDS_Oracle file for the URL , database user and password.
 
 
-3.  Copy these configuration files (ldap_AD.xml , ldap_TDS.xml) to created PVC for External Share Configuration Store. (es-cfgstore)
+3.  Copy these configuration files (ldap_AD.xml , ldap_TDS.xml, ldapExt.xml) to created PVC for External Share Configuration Store. (es-cfgstore)
 
     (Example  es-cfgstore). /escfgstore/es/configDropins/overrides
+    
+    Copy ldapExt.xml to cpe-cfgstore and icn-cfgstore
 
 
 4.  Copy corresponding database JCCDriver xmll file to created configuratore store for ES
