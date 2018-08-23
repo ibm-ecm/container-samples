@@ -5,7 +5,7 @@ Instructions and sample files for deploying with Kubernetes.
 
 • Use the below sample configuration files depending on your Directory Server & Database provider.
 
-    o XML configuration file for LDAP (ldap_AD.xml & ldap_LDAP.xml)
+    o XML configuration file for LDAP (ldap_AD.xml & ldap_TDS.xml)
     o XML configuration file for Db2 & Oracle JDBC Driver (DB2JCCDriver.xml  & OraJDBCDriver.xml )
     o XML configuration file for GCD data source (GCD.xml & GCD_HADR.xml & GCD_Oracle.xml)
     o XML configuration file for Object Store data source (OBJSTORE.xml & OBJSTORE_HADR.xml & OBJSTORE_Oracle.xml)
@@ -16,7 +16,7 @@ Instructions and sample files for deploying with Kubernetes.
 
 • Use the below sample configuration files depending on your Directory Server & Database provider.
 
-    o XML configuration file for LDAP (ldap_AD.xml & ldap_LDAP.xml)
+    o XML configuration file for LDAP (ldap_AD.xml & ldap_TDS.xml)
     o XML configuration file for Db2 & Oracle JDBC Driver (DB2JCCDriver.xml  & OraJDBCDriver.xml )
     o XML configuration file for ICN data source (ICNDS.xml & ICNDS_HADR.xml & ICNDS_Oracle.xml)
     o ICN Product deployment file (icn-deploy.yml)
@@ -30,9 +30,18 @@ Instructions and sample files for deploying with Kubernetes.
 
 • Use the below sample configuration files depending on your Directory Server 
 
-    o XML configuration file for LDAP (ldap_AD.xml & ldap_LDAP.xml)
+    o XML configuration file for LDAP (ldap_AD.xml & ldap_TDS.xml)
     o CMIS Product deployment file. (cmis-deploy.yml)
 
+5. Sample ES configuration files.
+
+• Use the below sample configuration files depending on your Directory Server & Database provider.
+
+    o XML configuration file for LDAP (ldap_AD.xml & ldap_TDS.xml)
+    o XML configuration file for Db2 & Oracle JDBC Driver (DB2JCCDriver.xml  & OraJDBCDriver.xml )
+    o XML configuration file for ICN data source (ICNDS.xml & ICNDS_HADR.xml & ICNDS_Oracle.xml)
+    o XML configuration file for Cross-Origin Resource Sharing (cors.xml)
+    o Share Product deployment file (es-deploy.yml)
 
 # Deployment of ECM product containers in K8s
 
@@ -87,6 +96,12 @@ CMIS:
     o docker pull <docker store>/cmis:latest
     o docker tag <docker store>/cmis:latest <private registry>/cmis:latest
     o docker push <private registry>/cmis:latest
+    
+ES:
+
+    o docker pull <docker store>/extshare:latest
+    o docker tag <docker store>/extshare:latest <private registry>/extshare:latest
+    o docker push <private registry>/extshare:latest
 
 
  Content Engine Platform 
@@ -470,7 +485,7 @@ For Oracle         -->  OraJDBCDriver.xml
 
 https://github.com/ibm-ecm/container-samples/blob/master/ICN/configDropins/overrides/OraJDBCDriver.xml
 
-5. Copy the corresponding database JDBC driver files to created configuration store for CPE. 
+5. Copy the corresponding database JDBC driver files to created configuration store for ICN. 
 
 For DB2  & DB2HADR  --> db2jcc4.jar , db2jcc_license_cu.jar
 
@@ -921,7 +936,7 @@ For more information on monitoring and logging options , please see below link .
 https://github.ibm.com/ecm-container-service/ecm-container-monitoring
 
 
-11. Execute the deployment file to deploy ICN.
+11. Execute the deployment file to deploy CMIS.
 
     kubectl apply –f cmis-deploy.yml
 
@@ -929,6 +944,202 @@ https://github.ibm.com/ecm-container-service/ecm-container-monitoring
 13. Execute following command to get the Public IP and port to access CMIS
 
     kubectl get svc | grep cmis
+    
+    
+Deployment of External Share in to K8s.
+
+1.  IBM FileNet P8 Content Platform Engine (CPE) container, deployed and configured
+2.  IBM Content Navigator (ICN) container, deployed and configured
+3.  Supported LDAP provider (Microsoft Active Directory or IBM Security Directory Server)
+4.  Prepare the ICN database using provided script. (createICNDB.sh)
+
+4.  Prepare persistence volume & Volume Claim for shared configuration.
+
+  
+    o ES Configuration Volume --> for example es-cfgstore
+    o ES Logs Volume          --> for example es-logstore 
+   
+
+Refer to kubernetes document to setup persistence volumes
+https://kubernetes.io/docs/concepts/storage/persistent-volumes/
+
+Create necessary folders inside those volumes.
+Example  
+
+   
+    o /escfgstore/es/configDropins/overrides
+    o /eslogstore/es/logs
+   
+
+Make sure you set the ownership on these folders to 501:500 
+ 
+For example  chown –Rf 501:500 /escfgstore
+
+
+1.  Download the provided ldap xml file and modify the parameters to match with your existing LDAP server.
+
+For Microsoft Active Directory
+--
+https://github.com/ibm-ecm/container-samples/blob/master/extShare/configDropins/overrides/ldap_AD.xml
+
+Modify ldap_AD.xml file with your LDAP host , baseDN , port , bindDN ,bindPassword. 
+
+If your LDAP server uses SSL port use that port and change sslEnabled=”true”
+
+If you have the different userFilter & groupFilter , modify those as well
+
+For IBM Tivoli Directory Server
+--
+
+https://github.com/ibm-ecm/container-samples/blob/master/extShare/configDropins/overrides/ldap_TDS.xml
+
+Modify ldap_TDS.xml with your LDAP host , baseDN , port , bindDN,bindPassword.
+
+If your LDAP server uses SSL port use that port and change sslEnabled=”true”
+
+If you have different userFillter and groupFilter , please update those as well
+
+2.  Download the corresponding datasource XML files to the configuration store which created for ES.
+
+
+For Database DB2  ICNDS.xml
+--
+
+https://github.com/ibm-ecm/container-samples/blob/master/extShare/configDropins/overrides/ICNDS.xml
+
+Modify the ICNDS.xml file with your database serverName , portNumber , user & password.
+
+For Database DB2 HADR  ICNDS_HADR.xml
+--
+
+https://github.com/ibm-ecm/container-samples/blob/master/extShare/configDropins/overrides/ICNDS_HADR.xml
+
+
+Modify the ICNDS_HADR.xml file with your database serverName ,portNumber , user , password , database clientRerouteAlternateServerName , clientRerouteAlternatePortNumber. 
+
+For Database Oracle  ICNDS_Oracle.xml
+--
+
+https://github.com/ibm-ecm/container-samples/blob/master/extShare/configDropins/overrides/ICNDS_Oracle.xml
+
+Modify the  ICNDS_Oracle file for the URL , database user and password.
+
+
+3.  Copy these configuration files (ldap_AD.xml , ldap_TDS.xml) to created PVC for External Share Configuration Store. (es-cfgstore)
+
+    (Example  es-cfgstore). /escfgstore/es/configDropins/overrides
+
+
+4.  Copy corresponding database JCCDriver xmll file to created configuratore store for ES
+
+(Example  es-cfgstore). /escfgstore/es/configDropins/overrides
+
+For DB2 & DB2_HADR -->  DB2JCCDriver.xml
+
+https://github.com/ibm-ecm/container-samples/blob/master/extShare/configDropins/overrides/DB2JCCDriver.xml
+
+
+For Oracle         -->  OraJDBCDriver.xml
+
+https://github.com/ibm-ecm/container-samples/blob/master/extShare/configDropins/overrides/OraJDBCDriver.xml
+
+5. Copy the corresponding database JDBC driver files to created configuration store for ES. 
+
+For DB2  & DB2HADR  --> db2jcc4.jar , db2jcc_license_cu.jar
+
+For Oracle          --> ojdbc8.jar
+
+(Example  es-cfgstore). /escfgstore/es/configDropins/overrides
+                
+6.  Download the sample External Share product deployment yml. (es-deploy.yml)
+
+https://github.com/ibm-ecm/container-samples/blob/master/es-deploy.yml
+
+
+7.  Modify the “image” name depending on your private repository.
+
+(Example:  - image: mycluster:8500/default/extshare:latest)
+
+
+8.  Modify the yml to match with the environment with PVC names and subPath.
+
+        volumeMounts:
+          - name: icncfgstore-pvc
+            mountPath: "/opt/ibm/wlp/usr/servers/defaultServer/configDropins/overrides"
+            subPath: es/configDropins/overrides
+          - name: eslogstore-pvc
+            mountPath: "/opt/ibm/wlp/usr/servers/defaultServer/logs"
+            subPath: es/logs
+         
+      volumes:
+        - name: escfgstore-pvc
+          persistentVolumeClaim:
+            claimName: "es-cfgstore"
+        - name: eslogstore-pvc
+          persistentVolumeClaim:
+            claimName: "es-logstore"
+       
+9.  The sample deployment yml is configured with minimum required JVM Heap.
+
+                JVM_HEAP_XMS: 512m
+
+                JVM_HEAP_XMS: 1024m
+
+
+10. The sample deployment yml is configured with minimum k8s resources like below. 
+
+                 CPU_REQUEST: “500m”
+
+                 CPU_LIMIT: “1”
+
+                 MEMORY_REQUEST: “512Mi”
+
+                 MEMORY_LIMIT: “1024Mi” 
+
+                 REPLICAS: 1 
+
+Please see below link for more details ..
+
+https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
+
+11. If you want ICN product to be monitored from grafana dashboard and forward the logs to kibana dashboard specify the following as a environment variables inside icn-deploy.yml
+
+          - name: MON_METRICS_WRITER_OPTION
+            value: "0”
+          - name: MON_METRICS_SERVICE_ENDPOINT
+            value: troop1.ibm.com:2003
+          - name: MON_BMX_GROUP
+            value: 
+          - name: MON_BMX_METRICS_SCOPE_ID
+            value: 
+          - name: MON_BMX_API_KEY
+            value: 
+          - name: MON_ECM_METRICS_COLLECT_INTERVAL
+            value: 
+          - name: MON_ECM_METRICS_FLUSH_INTERVAL
+            value: 
+          - name: MON_LOG_SHIPPER_OPTION
+            value: “0”
+          - name: MON_LOG_SERVICE_ENDPOINT
+            value: troop1.ibm.com:5000
+          - name: MON_BMX_LOGS_LOGGING_TOKEN
+            value: 
+          - name: MON_BMX_SPACE_ID
+            value: 
+
+For more information on monitoring and logging options , please see below link ..
+
+https://github.ibm.com/ecm-container-service/ecm-container-monitoring
+
+
+12. Execute the deployment file to deploy ES.
+
+Kubectl apply –f es-deploy.yml
+13. This deployment will create a service along with CPE and ICN deployment. 
+
+14. Execute following command to get the Public IP and port to access ES
+         kubectl get svc | grep ecm-es
+
 
 
 Troubleshooting & Tips
