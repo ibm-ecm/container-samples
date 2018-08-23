@@ -147,6 +147,7 @@ https://www.ibm.com/support/knowledgecenter/en/SSNW2F_5.5.0/com.ibm.p8.planprepa
 
 
 Deployment of CPE in to K8s.
+--
 
 1.  Download the provided ldap xml file and modify the parameters to match with your existing LDAP server.
 
@@ -198,7 +199,6 @@ If you have more than 1 objectstore , you can copy above and modify jndiName , j
 •   For DB2 HADR database
 
 GCD_HADR.xml
-
 --
 
 https://github.com/ibm-ecm/container-samples/blob/master/CPE/configDropins/overrides/GCD_HADR.xml
@@ -383,6 +383,7 @@ https://github.ibm.com/ecm-container-service/ecm-container-monitoring
 
 
 Deployment of ICN in to K8s.
+--
 
 1.  IBM FileNet P8 Content Platform Engine (CPE) container, deployed and configured
 2.  Supported LDAP provider (Microsoft Active Directory or IBM Security Directory Server)
