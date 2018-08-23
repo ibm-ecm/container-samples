@@ -1147,6 +1147,7 @@ Kubectl apply –f es-deploy.yml
 
 
 Troubleshooting & Tips
+---
 
 1   How to list pods after executing product YML ?
 
