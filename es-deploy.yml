@@ -46,7 +46,7 @@ spec:
                   - esserver-cluster1
               topologyKey: "kubernetes.io/hostname"
       containers:
-      - image: mycluster.icp:8500/default/navigator:latest
+      - image: mycluster.icp:8500/default/extshare:latest
         imagePullPolicy: Always
         name: ecm-es
         resources:
