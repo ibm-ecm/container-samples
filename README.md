@@ -604,6 +604,7 @@ Kubectl apply –f icn-deploy.yml
 
 
 Deployment of CSS in to K8s
+--
 
 1. Prepare persistence volume & Volume Claim for shared configuration.
 
@@ -779,6 +780,7 @@ The authentication token is printed below. This token is used to communicate wit
 
 
 Deployment of CMIS in to K8s
+--
 
 1. Prepare persistence volume & Volume Claim for shared configuration.
 
@@ -948,6 +950,7 @@ https://github.ibm.com/ecm-container-service/ecm-container-monitoring
     
     
 Deployment of External Share in to K8s.
+--
 
 1.  IBM FileNet P8 Content Platform Engine (CPE) container, deployed and configured
 2.  IBM Content Navigator (ICN) container, deployed and configured
