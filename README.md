@@ -65,41 +65,44 @@ Install Kube CLI
 
 https://kubernetes.io/docs/tasks/tools/install-kubectl/
 
-Download the required images
-Pull ECM product images and push in to your private registry.
+Download the ECM Product images from Passport Advantage. Here is the link which have the required product numbers.
+
+    https://www-01.ibm.com/support/docview.wss?uid=swg24044874
+
+From Passport Advantage, download the Docker images for the content services component containers:
+
+    CPE-container-part-number.tar
+    ICN-container-part-number.tar
+    CSS-container-part-number.tar
+    CMIS-container-part-number.tar
 
 
-1.  Pull the image from docker store and upload to kubernetes private registry.
+1.   Tag the product image from docker store and upload to kubernetes private registry.
 
 CPE:
     
-    o docker pull <docker store>/cpe:latest
     o docker tag <docker store>/cpe:latest <private registry>/cpe:latest
     o docker push <private registry>/cpe:latest
     
 
 Navigator:
 
-    o docker pull <docker store>/navigator:latest
     o docker tag <docker store>/navigator:latest <private registry>/navigator:latest
     o docker push <private registry>/navigator:latest
 
 CSS:
 
-    o docker pull <docker store>/css:latest
     o docker tag <docker store>/css:latest <private registry>/css:latest
     o docker push <private registry>/css:latest
  	
 
 CMIS:
 
-    o docker pull <docker store>/cmis:latest
     o docker tag <docker store>/cmis:latest <private registry>/cmis:latest
     o docker push <private registry>/cmis:latest
     
 ES:
 
-    o docker pull <docker store>/extshare:latest
     o docker tag <docker store>/extshare:latest <private registry>/extshare:latest
     o docker push <private registry>/extshare:latest
 
