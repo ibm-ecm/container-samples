@@ -63,7 +63,7 @@ spec:
           name: https
         env:
           - name: LICENSE
-            value: "Accept"
+            value: "accept"
           - name: JVM_HEAP_XMS
             value: "512m"
           - name: JVM_HEAP_XMX
