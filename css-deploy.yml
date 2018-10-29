@@ -84,6 +84,8 @@ spec:
           initialDelaySeconds: 120
           periodSeconds: 5
         env:
+          - name: LICENSE
+            value: "accept"
           - name: JVM_HEAP_XMX
             value: "4096"
           - name: TZ
