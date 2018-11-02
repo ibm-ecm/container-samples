@@ -10,6 +10,7 @@ Instructions and sample files for deploying with Kubernetes.
     o XML configuration file for GCD data source (GCD.xml & GCD_HADR.xml & GCD_Oracle.xml)
     o XML configuration file for Object Store data source (OBJSTORE.xml & OBJSTORE_HADR.xml & OBJSTORE_Oracle.xml)
     o CPE Product deployment file (cpe-deploy.yml)
+    o Make sure the datasource name matches in GCD.xml with the GCDJNDINAME & GCDJNDIXANAME in deployment file (cpe-deploy.yml)
 
 
 2. Sample ICN configuration files.
