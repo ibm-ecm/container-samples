@@ -598,13 +598,12 @@ https://github.ibm.com/ecm-container-service/ecm-container-monitoring
 
 
 12. Execute the deployment file to deploy ICN.
-
-Kubectl apply –f icn-deploy.yml
+         Kubectl apply –f icn-deploy.yml
+         
 11. This deployment will create a service along with CPE deployment. 
 
 12. Execute following command to get the Public IP and port to access ICN
          kubectl get svc | grep ecm-icn
-
 
 
 Deployment of CSS in to K8s
@@ -950,7 +949,7 @@ https://github.ibm.com/ecm-container-service/ecm-container-monitoring
 12. This deployment will create a service along with CPE deployment. 
 13. Execute following command to get the Public IP and port to access CMIS
 
-    kubectl get svc | grep cmis
+    kubectl get svc | grep ecm-cmis
     
     
 Deployment of External Share in to K8s.
