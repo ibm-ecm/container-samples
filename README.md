@@ -370,10 +370,6 @@ If you want CPE product to be monitored from grafana dashboard and forward the l
           - name: MON_BMX_SPACE_ID
             value: 
 
-For more information on monitoring and logging options , please see below link ..
-
-https://github.ibm.com/ecm-container-service/ecm-container-monitoring
-
 
 12.  Execute the deployment file to deploy CPE.
 
@@ -592,10 +588,6 @@ https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-conta
           - name: MON_BMX_SPACE_ID
             value: 
 
-For more information on monitoring and logging options , please see below link ..
-
-https://github.ibm.com/ecm-container-service/ecm-container-monitoring
-
 
 12. Execute the deployment file to deploy ICN.
          Kubectl apply –f icn-deploy.yml
@@ -725,10 +717,6 @@ https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-conta
             value: 
           - name: MON_BMX_SPACE_ID
             value: 
-
-For more information on monitoring and logging options , please see below link ..
-
-https://github.ibm.com/ecm-container-service/ecm-container-monitoring
 
 
 10.  Execute CSS Search deployment in to Kubernetes
@@ -936,10 +924,6 @@ https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-conta
             value: 
           - name: MON_BMX_SPACE_ID
             value: 
-
-For more information on monitoring and logging options , please see below link ..
-
-https://github.ibm.com/ecm-container-service/ecm-container-monitoring
 
 
 11. Execute the deployment file to deploy CMIS.
@@ -1150,10 +1134,6 @@ https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-conta
             value: 
           - name: MON_BMX_SPACE_ID
             value: 
-
-For more information on monitoring and logging options , please see below link ..
-
-https://github.ibm.com/ecm-container-service/ecm-container-monitoring
 
 
 13. Execute the deployment file to deploy ES.
