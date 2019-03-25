@@ -76,34 +76,40 @@ From Passport Advantage, download the Docker images for the content services com
     ICN-container-part-number.tar
     CSS-container-part-number.tar
     CMIS-container-part-number.tar
+    ES-container-part-number.tar
 
 
 1.   Tag the product image from docker store and upload to kubernetes private registry.
 
 CPE:
     
+    o docker image load -i <CPE-container-part-number.tar>
     o docker tag <docker store>/cpe:latest <private registry>/cpe:latest
     o docker push <private registry>/cpe:latest
     
 
 Navigator:
 
+    o docker image load -i <ICN-container-part-number.tar>
     o docker tag <docker store>/navigator:latest <private registry>/navigator:latest
     o docker push <private registry>/navigator:latest
 
 CSS:
 
+    o docker image load -i <CSS-container-part-number.tar>
     o docker tag <docker store>/css:latest <private registry>/css:latest
     o docker push <private registry>/css:latest
  	
 
 CMIS:
 
+    o docker image load -i <CMIS-container-part-number.tar>
     o docker tag <docker store>/cmis:latest <private registry>/cmis:latest
     o docker push <private registry>/cmis:latest
     
 ES:
 
+    o docker image load -i <ES-container-part-number.tar>
     o docker tag <docker store>/extshare:latest <private registry>/extshare:latest
     o docker push <private registry>/extshare:latest
 
