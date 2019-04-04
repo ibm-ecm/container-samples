@@ -79,37 +79,42 @@ From Passport Advantage, download the Docker images for the content services com
     ES-container-part-number.tar
 
 
-1.   Tag the product image from docker store and upload to kubernetes private registry.
+1.   Extract the product image from part number and upload the image to kubernetes private registry.
 
 CPE:
     
-    o docker image load -i <CPE-container-part-number.tar>
+    o Extract image from part number --> tar xvf <CPE-container-part-number.tar>
+    o docker load -i <image.tgz>
     o docker tag <docker store>/cpe:latest <private registry>/cpe:latest
     o docker push <private registry>/cpe:latest
     
 
 Navigator:
 
-    o docker image load -i <ICN-container-part-number.tar>
+    o Extract image from part number --> tar xvf <ICN-container-part-number.tar> . This will give 2 tgz files. 1) Navigator SSO 2) Navigator non-SSO
+    o docker load <image.tgz>
     o docker tag <docker store>/navigator:latest <private registry>/navigator:latest
     o docker push <private registry>/navigator:latest
 
 CSS:
 
-    o docker image load -i <CSS-container-part-number.tar>
+    o Extract image from part number --> tar xvf <CSS-container-part-number.tar>
+    o docker load <image.tgz>
     o docker tag <docker store>/css:latest <private registry>/css:latest
     o docker push <private registry>/css:latest
  	
 
 CMIS:
 
-    o docker image load -i <CMIS-container-part-number.tar>
+    o Extract image from part number --> tar xvf <CMIS-container-part-number.tar>
+    o docker load  <image.tgz>
     o docker tag <docker store>/cmis:latest <private registry>/cmis:latest
     o docker push <private registry>/cmis:latest
     
 ES:
 
-    o docker image load -i <ES-container-part-number.tar>
+    o Extract image from part number --> tar xvf <ES-container-part-number.tar>
+    o docker load  <image.tgz>
     o docker tag <docker store>/extshare:latest <private registry>/extshare:latest
     o docker push <private registry>/extshare:latest
 
