@@ -1,0 +1,132 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: csssearch-cluster
+spec:
+  ports:
+    - name: cssdefault
+      protocol: TCP
+      port: 8191
+      targetPort: 8191
+    - name: ccsssl
+      protocol: TCP
+      port: 8199
+      targetPort: 8199
+  selector:
+    app: csssearch-cluster
+  type: ClusterIP
+  sessionAffinity: ClientIP
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: csssearch-cluster
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: csssearch-cluster
+    spec:
+      imagePullSecrets:
+        - name: admin.registrykey
+      annotations:
+        scheduler.alpha.kubernetes.io/affinity: |
+          {
+             "podAntiAffinity": {
+               "preferredDuringSchedulingIgnoredDuringExecution": [
+                 {
+                     "weight":100,
+                     "podAffinityTerm":{
+                       "labelSelector": {
+                         "matchExpressions": [
+                           {
+                             "key": "app",
+                             "operator": "In",
+                             "values": ["csssearch-cluster"]
+                           }
+                         ]
+                       },
+                     "topologyKey": "kubernetes.io/hostname"
+                     }
+                 }
+               ]
+             }
+          }
+
+    spec:
+      containers:
+      - image: mycluster.icp:8500/default/css:latest
+        imagePullPolicy: Always
+        name: csssearch-cluster
+        resources:
+          requests:
+            memory: 512Mi
+            cpu: 500m
+          limits:
+            memory: 1024Mi
+            cpu: 1
+        ports:
+        - containerPort: 8191
+          name: cssdefault
+        - containerPort: 8199
+          name: cssssl
+        readinessProbe:
+          tcpSocket:
+            port: 8199
+          initialDelaySeconds: 60 
+          periodSeconds: 5
+        livenessProbe:
+          tcpSocket:
+            port: 8199
+          initialDelaySeconds: 120
+          periodSeconds: 5
+        env:
+          - name: LICENSE
+            value: "accept"
+          - name: JVM_HEAP_XMX
+            value: "4096"
+          - name: TZ
+            value: "Etc/UTC"
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: MY_POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: MY_POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+        volumeMounts:
+          - name: csscfgstore-pvc
+            mountPath: "/opt/IBM/ContentSearchServices/CSS_Server/data"  
+            subPath: css/CSS_Server_data/sslkeystone
+          - name: csslogstore-pvc
+            mountPath: "/opt/IBM/ContentSearchServices/CSS_Server/log"  
+            subPath: CSS_Server_log/csssearch_logs
+          - name: csstempstore-pvc
+            mountPath: "/opt/IBM/ContentSearchServices/CSS_Server/temp"  
+            subPath: CSS_Server_temp
+          - name: cssindexstore-pvc
+            mountPath: "/CSSIndex1_OS1"  
+            subPath: CSS_Indexes/CSSIndexArea1_OS1
+
+      volumes:
+        - name: csscfgstore-pvc 
+          persistentVolumeClaim: 
+            claimName: "css-icp-cfgstore"
+        - name: csslogstore-pvc 
+          persistentVolumeClaim: 
+            claimName: "css-icp-logstore"
+        - name: csstempstore-pvc 
+          persistentVolumeClaim: 
+            claimName: "css-icp-tempstore"
+        - name: cssindexstore-pvc 
+          persistentVolumeClaim: 
+            claimName: "css-icp-indexstore"
+
