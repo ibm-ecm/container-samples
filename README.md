@@ -1083,7 +1083,7 @@ https://github.com/ibm-ecm/container-samples/blob/master/es-deploy.yml
 9.  Modify the yml to match with the environment with PVC names and subPath.
 
         volumeMounts:
-          - name: icncfgstore-pvc
+          - name: escfgstore-pvc
             mountPath: "/opt/ibm/wlp/usr/servers/defaultServer/configDropins/overrides"
             subPath: es/configDropins/overrides
           - name: eslogstore-pvc
@@ -1157,6 +1157,92 @@ https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-conta
 
          kubectl get svc | grep ecm-es
 
+
+Deployment of ContentGraphQL in to K8s.
+--
+
+1.  IBM FileNet P8 Content Platform Engine (CPE) container, deployed and configured.
+2.  Prepare persistence volume & Volume Claim for shared configuration.
+
+  
+    o CRS Configuration Volume --> for example crs-cfgstore
+    
+    o CRS Logs Volume          --> for example crs-logstore 
+   
+
+Refer to kubernetes document to setup persistence volumes
+https://kubernetes.io/docs/concepts/storage/persistent-volumes/
+
+Create necessary folders inside those volumes.
+Example  
+
+   
+    o /crscfgstore/crs/configDropins/overrides
+    o /crslogstore/crs/logs
+   
+
+Make sure you set the ownership on these folders to 50001:50000
+ 
+For example  chown –Rf 50001:50000 /crscfgstore
+
+For Cross-Origin Resource Sharing cors.xml
+--
+
+3. Copy the Cross-Origin Resource Sharing cors.xml file to create configuration store for ES
+
+(Example  es-cfgstore). /crscfgstore/crs/configDropins/overrides
+
+Download the sample External Share product deployment yml. (es-deploy.yml)
+
+https://github.com/ibm-ecm/container-samples/blob/master/crs-deploy.yml
+
+
+4.  Modify the “image” name depending on your private repository.
+
+(Example:  - image: mycluster:8500/default/crs:5.5.3)
+
+5. Modify the "CPE_URL" value with your existing deployed URL.
+
+6.  Modify the yml to match with the environment with PVC names and subPath.
+
+        volumeMounts:
+          - name: crscfgstore-pvc
+            mountPath: "/opt/ibm/wlp/usr/servers/defaultServer/configDropins/overrides"
+            subPath: crs/configDropins/overrides
+          - name: crslogstore-pvc
+            mountPath: "/opt/ibm/wlp/usr/servers/defaultServer/logs"
+            subPath: crs/logs
+         
+      volumes:
+        - name:crscfgstore-pvc
+          persistentVolumeClaim:
+            claimName: "crs-cfgstore"
+        - name: crslogstore-pvc
+          persistentVolumeClaim:
+            claimName: "crs-logstore"
+       
+7.  The sample deployment yml is configured with minimum required JVM Heap.
+
+                JVM_HEAP_XMS: 512m
+
+                JVM_HEAP_XMS: 1024m
+
+
+8. The sample deployment yml is configured with minimum k8s resources like below. 
+
+                 CPU_REQUEST: “500m”
+
+                 CPU_LIMIT: “1”
+
+                 MEMORY_REQUEST: “512Mi”
+
+                 MEMORY_LIMIT: “1024Mi” 
+
+                 REPLICAS: 1 
+
+Please see below link for more details ..
+
+https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
 
 
 Troubleshooting & Tips
