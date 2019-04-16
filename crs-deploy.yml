@@ -49,6 +49,9 @@ spec:
       - image: <Repository for Docker Container Image>/default/crs:latest
         imagePullPolicy: Always
         name: ecm-crs
+        securityContext:
+          runAsUser: 50001
+          allowPrivilegeEscalation: false
         resources:
           requests:
             memory: 512Mi
