@@ -1167,6 +1167,8 @@ Deployment of ContentGraphQL in to K8s.
   
     o CRS Configuration Volume --> for example crs-cfgstore
     
+    o CRS Lib Volume --> for example crs-libstore
+    
     o CRS Logs Volume          --> for example crs-logstore 
    
 
@@ -1178,6 +1180,7 @@ Example
 
    
     o /crscfgstore/crs/configDropins/overrides
+    o /crscfgstore/crs/lib
     o /crslogstore/crs/logs
    
 

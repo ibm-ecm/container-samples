@@ -115,6 +115,9 @@ spec:
           - name: crscfgstore-pvc
             mountPath: "/opt/ibm/wlp/usr/servers/defaultServer/configDropins/overrides"
             subPath: crs/configDropins/overrides
+          - name: crslibstore-pvc
+            mountPath: "/opt/ibm/wlp/usr/servers/defaultServer/lib"
+            subPath: crs/lib"
           - name: crslogstore-pvc
             mountPath: "/opt/ibm/wlp/usr/servers/defaultServer/logs"
             subPath: crs/logs
@@ -122,7 +125,10 @@ spec:
       volumes:
         - name: crscfgstore-pvc
           persistentVolumeClaim:
-            claimName: "crs-icp-cfgstore"
+            claimName: "crs-cfgstore"
+        - name: crslibstore-pvc
+          persistentVolumeClaim:
+            claimName: "crs-libstore"
         - name: crslogstore-pvc
           persistentVolumeClaim:
-            claimName: "crs-icp-logstore"
+            claimName: "crs-logstore"
