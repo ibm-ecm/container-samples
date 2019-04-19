@@ -75,7 +75,7 @@ spec:
             value: "1024m"
           - name: TZ
             value: "Etc/UTC"
-          - name: CPE_URL
+          - name: CPE_URI
             value: "http://cpeurl:30540/wsi/FNCEWS40MTOM"
           - name: CPE_USER
             value: "ceadmin"
