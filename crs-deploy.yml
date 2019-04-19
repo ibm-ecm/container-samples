@@ -77,6 +77,10 @@ spec:
             value: "Etc/UTC"
           - name: CPE_URL
             value: "http://cpeurl:30540/wsi/FNCEWS40MTOM"
+          - name: CPE_USER
+            value: "ceadmin"
+          - name: CPE_PASSWORD
+            value: "password"
           - name: CPESTATICPORT
             value: "false"
           - name: CONTAINERTYPE
