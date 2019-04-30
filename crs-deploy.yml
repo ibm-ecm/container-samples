@@ -97,24 +97,6 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: status.podIP
-        readinessProbe:
-          httpGet:
-            path: /contentapi/rest/share/v1/info
-            port: 9080
-            httpHeaders:
-              - name: Content-Encoding
-                value: gzip
-          initialDelaySeconds: 180
-          periodSeconds: 5
-        livenessProbe:
-          httpGet:
-            path: /contentapi/rest/share/v1/info
-            port: 9080
-            httpHeaders:
-              - name: Content-Encoding
-                value: gzip
-          initialDelaySeconds: 600
-          periodSeconds: 5
         volumeMounts:
           - name: crscfgstore-pvc
             mountPath: "/opt/ibm/wlp/usr/servers/defaultServer/configDropins/overrides"
