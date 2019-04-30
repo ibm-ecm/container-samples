@@ -1188,6 +1188,35 @@ Make sure you set the ownership on these folders to 50001:50000
  
 For example  chown –Rf 50001:50000 /crscfgstore
 
+1.  Download the provided ldap xml file and modify the parameters to match with your existing LDAP server.
+
+For Microsoft Active Directory
+--
+https://github.com/ibm-ecm/container-samples/blob/master/extShare/configDropins/overrides/ldap_AD.xml
+
+Modify ldap_AD.xml file with your LDAP host , baseDN , port , bindDN ,bindPassword. 
+
+If your LDAP server uses SSL port use that port and change sslEnabled=”true”
+
+If you have the different userFilter & groupFilter , modify those as well
+
+For IBM Tivoli Directory Server
+--
+
+https://github.com/ibm-ecm/container-samples/blob/master/extShare/configDropins/overrides/ldap_TDS.xml
+
+Modify ldap_TDS.xml with your LDAP host , baseDN , port , bindDN,bindPassword.
+
+If your LDAP server uses SSL port use that port and change sslEnabled=”true”
+
+If you have different userFillter and groupFilter , please update those as well
+
+Copy Content Process Engine datasource xml files from the configuration dropins folder (CPE/configDropins/overrides) to ContentGraphQL/configDropins/overrides
+--
+
+GCD.xml , OBJSTORE.xml for DB2 Database Server.
+GCD_Oracle.xml , OBJSTORE_Oracle.xml for Oracle Database Server.
+
 For Cross-Origin Resource Sharing cors.xml
 --
 
