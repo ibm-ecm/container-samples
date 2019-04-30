@@ -1190,9 +1190,9 @@ For example  chown –Rf 50001:50000 /crscfgstore
 
 1.  Download the provided ldap xml file and modify the parameters to match with your existing LDAP server.
 
-For Microsoft Active Directory
+Copy ldap_AD.xml for MS Active Directory from configuration dropins folder (CPE/configDropins/overrides) to ContentGraphQL/configDropins/overrides                                                     --
 --
-https://github.com/ibm-ecm/container-samples/blob/master/extShare/configDropins/overrides/ldap_AD.xml
+https://github.com/ibm-ecm/container-samples/blob/master/cpe/configDropins/overrides/ldap_AD.xml
 
 Modify ldap_AD.xml file with your LDAP host , baseDN , port , bindDN ,bindPassword. 
 
@@ -1200,10 +1200,10 @@ If your LDAP server uses SSL port use that port and change sslEnabled=”true”
 
 If you have the different userFilter & groupFilter , modify those as well
 
-For IBM Tivoli Directory Server
+Copy ldap_tds.xml for IBM Tivoli Directory Server from configuration dropins folder (CPE/configDropins/overrides) to ContentGraphQL/configDropins/overrides                                                     --
 --
 
-https://github.com/ibm-ecm/container-samples/blob/master/extShare/configDropins/overrides/ldap_TDS.xml
+https://github.com/ibm-ecm/container-samples/blob/master/cpe/configDropins/overrides/ldap_TDS.xml
 
 Modify ldap_TDS.xml with your LDAP host , baseDN , port , bindDN,bindPassword.
 
@@ -1216,6 +1216,14 @@ Copy Content Process Engine datasource xml files from the configuration dropins 
 
 GCD.xml , OBJSTORE.xml for DB2 Database Server.
 GCD_Oracle.xml , OBJSTORE_Oracle.xml for Oracle Database Server.
+GCD_HADR.xml, OBJSTORE_HADR.xml for DB2 HADR environment.
+
+
+Copy corresponding database driver file and license file to configDropis/overrides
+--
+
+DB2JCCDriver.xml
+OraJDBCDriver.xml
 
 For Cross-Origin Resource Sharing cors.xml
 --
@@ -1233,7 +1241,7 @@ https://github.com/ibm-ecm/container-samples/blob/master/crs-deploy.yml
 
 (Example:  - image: mycluster:8500/default/crs:5.5.3)
 
-5. Modify the "CPE_URL" value with your existing deployed URL.
+5. Modify the "CPE_URI" , "CPE_USER" , "CPE_PASSWORD" values with your existing deployed URL.
 
 6.  Modify the yml to match with the environment with PVC names and subPath.
 
