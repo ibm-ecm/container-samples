@@ -20,7 +20,7 @@ spec:
 apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
-  name: ecm-es
+  name: ecm-crs
 spec:
   replicas: 1
   strategy:
