@@ -112,6 +112,8 @@ spec:
           - name: csstempstore-pvc
             mountPath: "/opt/IBM/ContentSearchServices/CSS_Server/temp"  
             subPath: CSS_Server_temp
+          - name: csscustomstore-pvc
+            mountPath: "/opt/IBM/ContentSearchServices/CSS_Server/config"  
           - name: cssindexstore-pvc
             mountPath: "/CSSIndex1_OS1"  
             subPath: CSS_Indexes/CSSIndexArea1_OS1
@@ -126,6 +128,9 @@ spec:
         - name: csstempstore-pvc 
           persistentVolumeClaim: 
             claimName: "css-icp-tempstore"
+        - name: csscustomstore-pvc 
+          persistentVolumeClaim: 
+            claimName: "css-icp-customstore"
         - name: cssindexstore-pvc 
           persistentVolumeClaim: 
             claimName: "css-icp-indexstore"
