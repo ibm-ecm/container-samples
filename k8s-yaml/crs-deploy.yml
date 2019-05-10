@@ -77,10 +77,6 @@ spec:
             value: "Etc/UTC"
           - name: CPE_URI
             value: "http://cpeurl:30540/wsi/FNCEWS40MTOM"
-          - name: CPE_USER
-            value: "ceadmin"
-          - name: CPE_PASSWORD
-            value: "password"
           - name: CPESTATICPORT
             value: "false"
           - name: CONTAINERTYPE
@@ -101,9 +97,6 @@ spec:
           - name: crscfgstore-pvc
             mountPath: "/opt/ibm/wlp/usr/servers/defaultServer/configDropins/overrides"
             subPath: crs/configDropins/overrides
-          - name: crslibstore-pvc
-            mountPath: "/opt/ibm/wlp/usr/servers/defaultServer/lib"
-            subPath: crs/lib"
           - name: crslogstore-pvc
             mountPath: "/opt/ibm/wlp/usr/servers/defaultServer/logs"
             subPath: crs/logs
@@ -112,9 +105,6 @@ spec:
         - name: crscfgstore-pvc
           persistentVolumeClaim:
             claimName: "crs-cfgstore"
-        - name: crslibstore-pvc
-          persistentVolumeClaim:
-            claimName: "crs-libstore"
         - name: crslogstore-pvc
           persistentVolumeClaim:
             claimName: "crs-logstore"
