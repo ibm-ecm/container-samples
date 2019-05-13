@@ -80,7 +80,7 @@ To deploy External Share Container:
     
      $ helm repo add local-charts https://mycluster.icp:8443/helm-repo/charts --ca-file $HELM_HOME/ca.pem --cert-file $HELM_HOME/cert.pem --key-file $HELM_HOME/key.pem
     
-     $ helm install local-charts/ibm-dba-extshare-prod --version 3.0.0 --name dbamc-es --namespace dbamc --set esProductionSetting.license=accept,esProductionSetting.jvmHeapXms=512,esProductionSetting.jvmHeapXmx=1024,dataVolume.existingPVCforESCfgstore=ecm-es-config-pvc,dataVolume.existingPVCforESLogstore=ecm-es-logs-pvc,autoscaling.enabled=False,replicaCount=1,image.repository=mycluster.icp:8500/dbamc/extshare,image.tag=3.0.6,esProductionSetting.esDBType=db2,esProductionSetting.esJNDIDSName=ECMClientDS,esProductionSetting.esSChema=ICNDB,esProductionSetting.esTableSpace=UBI_ICN,esProductionSetting.esAdmin=ceadmin --tls
+     $ helm install local-charts/ibm-dba-extshare --version 3.0.0 --name dbamc-es --namespace dbamc --set esProductionSetting.license=accept,esProductionSetting.jvmHeapXms=512,esProductionSetting.jvmHeapXmx=1024,dataVolume.existingPVCforESCfgstore=ecm-es-config-pvc,dataVolume.existingPVCforESLogstore=ecm-es-logs-pvc,autoscaling.enabled=False,replicaCount=1,image.repository=mycluster.icp:8500/dbamc/extshare,image.tag=3.0.6,esProductionSetting.esDBType=db2,esProductionSetting.esJNDIDSName=ECMClientDS,esProductionSetting.esSChema=ICNDB,esProductionSetting.esTableSpace=UBI_ICN,esProductionSetting.esAdmin=ceadmin --tls
     ```
    
    Certified Kubernetes platform
