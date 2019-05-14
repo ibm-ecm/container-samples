@@ -644,9 +644,9 @@ For example  chown –Rf 501:500 /csscfgstore
 
 
 3.  Download the cssSelfsignedServerStore file and copy to CSS Configuration Store.
-(Example: css-cfgstore  /csscfgstore/css/CSS_Server_data/ sslkeystone
+(Example: css-cfgstore  /csscfgstore/css/CSS_Server_data/sslkeystone
 
-https://github.com/ibm-ecm/container-samples/tree/master/CSS/CSS_Server_data/sslkeystone
+https://github.com/ibm-ecm/container-samples/tree/master/CSS/CSS_Server_data/sslkeystore
 
 4.  Download the sample CSS Search deployment file. (css-search-deploy.yml)
 

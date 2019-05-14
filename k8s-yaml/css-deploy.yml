@@ -105,7 +105,7 @@ spec:
         volumeMounts:
           - name: csscfgstore-pvc
             mountPath: "/opt/IBM/ContentSearchServices/CSS_Server/data"  
-            subPath: css/CSS_Server_data/sslkeystone
+            subPath: css/CSS_Server_data/sslkeystore
           - name: csslogstore-pvc
             mountPath: "/opt/IBM/ContentSearchServices/CSS_Server/log"  
             subPath: CSS_Server_log/csssearch_logs
