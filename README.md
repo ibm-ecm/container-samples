@@ -632,10 +632,11 @@ https://kubernetes.io/docs/concepts/storage/persistent-volumes/
 Example:
 
    
-    o /csscfgstore/css/CSS_Server_data/sslkeystone
+    o /csscfgstore/css/CSS_Server_data/sslkeystore
     o /csstempstore/CSS_Server_temp
     o /cssindexstore/CSS_Indexes
     o /csslogstore/CSS_Server_log
+    o /csscustomstore/css/CSS_Server_Config
     
 
 Make sure you set the ownership on these folders to 501:500 
@@ -644,7 +645,7 @@ For example  chown –Rf 501:500 /csscfgstore
 
 
 3.  Download the cssSelfsignedServerStore file and copy to CSS Configuration Store.
-(Example: css-cfgstore  /csscfgstore/css/CSS_Server_data/sslkeystone
+(Example: css-cfgstore  /csscfgstore/css/CSS_Server_data/sslkeystore
 
 https://github.com/ibm-ecm/container-samples/tree/master/CSS/CSS_Server_data/sslkeystore
 
@@ -661,7 +662,7 @@ https://github.com/ibm-ecm/container-samples/blob/master/css-deploy.yml
         volumeMounts:
           - name: csscfgstore-pvc
             mountPath: "/opt/IBM/ContentSearchServices/CSS_Server/data"
-            subPath: css/CSS_Server_data/sslkeystone
+            subPath: css/CSS_Server_data/sslkeystore
           - name: csslogstore-pvc
             mountPath: "/opt/IBM/ContentSearchServices/CSS_Server/log"
             subPath: CSS_Server_log/csssearch_logs
@@ -671,6 +672,9 @@ https://github.com/ibm-ecm/container-samples/blob/master/css-deploy.yml
           - name: cssindexstore-pvc
             mountPath: "/CSSIndex1_OS1"
             subPath: CSS_Indexes/CSSIndexArea1_OS1
+          - name: csscustomstore-pvc
+            mountPath: "/opt/IBM/ContentSearchServices/CSS_Server/config"
+            subPath: css/CSS_Server_Config
 
       volumes:
         - name: csscfgstore-pvc
@@ -685,6 +689,9 @@ https://github.com/ibm-ecm/container-samples/blob/master/css-deploy.yml
         - name: cssindexstore-pvc
           persistentVolumeClaim:
             claimName: "css-indexstore"
+        - name: csscustomstore-pvc
+          persistentVolumeClaim:
+            claimName: "css-customstore"
 
 7.  The sample deployment yml is configured with minimum required JVM Heap.
 
