@@ -3,12 +3,12 @@
 		<jdbcDriver libraryRef="DB2JCC4Lib"/>
 		<properties.db2.jcc 
 			databaseName="DOSDEMO1" 
-			serverName="9.30.146.152"
+			serverName="<hosstname>"
 			portNumber="50000"
     		user="db2inst1" 
                         password="password"
 			resultSetHoldability="HOLD_CURSORS_OVER_COMMIT"
-                        clientRerouteAlternateServerName="oclv0462.svl.ibm.com"
+                        clientRerouteAlternateServerName="<backup_hostname>"
                         clientRerouteAlternatePortNumber="50000"
                         retryIntervalForClientReroute="3" maxRetriesForClientReroute="3"/>
                 <connectionManager globalConnectionTypeOverride="unshared" maxPoolSize="0" purgePolicy="FailingConnectionOnly" reapTime="30s"/>
@@ -19,11 +19,11 @@
 		<jdbcDriver libraryRef="DB2JCC4Lib"/>
 		<properties.db2.jcc 
 			databaseName="DOSDEMO1" 
-			serverName="9.30.146.152"
+			serverName="<hostname>"
 			portNumber="50000"
     		user="db2inst1" 
                         password="password"
-                        clientRerouteAlternateServerName="oclv0462.svl.ibm.com"
+                        clientRerouteAlternateServerName="<backup_hostname>"
                         clientRerouteAlternatePortNumber="50000"
                         retryIntervalForClientReroute="3" maxRetriesForClientReroute="3"/>
                 <connectionManager globalConnectionTypeOverride="unshared" maxPoolSize="0" purgePolicy="FailingConnectionOnly" reapTime="30s"/>

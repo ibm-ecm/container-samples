@@ -6,9 +6,9 @@ Instructions and sample files for deploying with Kubernetes.
 • Use the below sample configuration files depending on your Directory Server & Database provider.
 
     o XML configuration file for LDAP (ldap_AD.xml & ldap_TDS.xml)
-    o XML configuration file for Db2 & Oracle JDBC Driver (DB2JCCDriver.xml  & OraJDBCDriver.xml )
-    o XML configuration file for GCD data source (GCD.xml & GCD_HADR.xml & GCD_Oracle.xml)
-    o XML configuration file for Object Store data source (OBJSTORE.xml & OBJSTORE_HADR.xml & OBJSTORE_Oracle.xml)
+    o XML configuration file for Db2,Oracle JDBC Driver & SQL Server (DB2JCCDriver.xml  & OraJDBCDriver.xml & SQLJCCDriver.xml)
+    o XML configuration file for GCD data source (GCD.xml & GCD_HADR.xml & GCD_Oracle.xml & GCD_SQLServer.xml)
+    o XML configuration file for Object Store data source (OBJSTORE.xml & OBJSTORE_HADR.xml & OBJSTORE_Oracle.xml & OBJSTORE_SQLServer.xml)
     o CPE Product deployment file (cpe-deploy.yml)
     o Make sure the datasource name matches in GCD.xml with the GCDJNDINAME & GCDJNDIXANAME in deployment file (cpe-deploy.yml)
 
@@ -18,8 +18,8 @@ Instructions and sample files for deploying with Kubernetes.
 • Use the below sample configuration files depending on your Directory Server & Database provider.
 
     o XML configuration file for LDAP (ldap_AD.xml & ldap_TDS.xml)
-    o XML configuration file for Db2 & Oracle JDBC Driver (DB2JCCDriver.xml  & OraJDBCDriver.xml )
-    o XML configuration file for ICN data source (ICNDS.xml & ICNDS_HADR.xml & ICNDS_Oracle.xml)
+    o XML configuration file for Db2,Oracle JDBC Driver & SQL Server (DB2JCCDriver.xml  & OraJDBCDriver.xml & SQLJCCDriver.xml)
+    o XML configuration file for ICN data source (ICNDS.xml & ICNDS_HADR.xml & ICNDS_Oracle.xml & ICNDS_SQLServer.xml)
     o ICN Product deployment file (icn-deploy.yml)
 
 3. CSS SSL keystore.
@@ -39,8 +39,8 @@ Instructions and sample files for deploying with Kubernetes.
 • Use the below sample configuration files depending on your Directory Server & Database provider.
 
     o XML configuration file for LDAP (ldap_AD.xml & ldap_TDS.xml)
-    o XML configuration file for Db2 & Oracle JDBC Driver (DB2JCCDriver.xml  & OraJDBCDriver.xml )
-    o XML configuration file for ICN data source (ICNDS.xml & ICNDS_HADR.xml & ICNDS_Oracle.xml)
+    o XML configuration file for Db2,Oracle JDBC Driver & SQL Server (DB2JCCDriver.xml  & OraJDBCDriver.xml & SQLJCCDriver.xml )
+    o XML configuration file for ICN data source (ICNDS.xml & ICNDS_HADR.xml & ICNDS_Oracle.xml & ICNDS_SQLServer.xml)
     o XML configuration file for Cross-Origin Resource Sharing (cors.xml)
     o Share Product deployment file (es-deploy.yml)
 

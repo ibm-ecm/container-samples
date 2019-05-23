@@ -1,0 +1,21 @@
+<server>
+	<dataSource id="icnDs" isolationLevel="TRANSACTION_READ_COMMITTED" jndiName="jdbc/CIWEBDS">
+		<jdbcDriver libraryRef="3ptLibrary"/>
+		<properties.microsoft.sqlserver
+                        serverName="<hostname>"
+                        portNumber="1433"
+                        databaseName="OSDB"
+                        user="sa"
+                        password="password"/>
+	</dataSource>
+	<dataSource id="icnDsXA" jndiName="icnDsXA"  isolationLevel="TRANSACTION_READ_COMMITTED"  type="javax.sql.XADataSource" supplementalJDBCTrace="true">
+		<properties.microsoft.sqlserver
+		serverName="<hostname>"
+                        portNumber="1433"
+                        databaseName="OSDB"
+                        user="sa"
+                        password="password"/>
+                <connectionManager enableSharingForDirectLookups="true" />
+		<jdbcDriver libraryRef="3ptLibrary"/>
+	</dataSource>
+</server>
