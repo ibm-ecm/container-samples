@@ -61,6 +61,9 @@ spec:
       - image: mycluster.icp:8500/default/css:latest
         imagePullPolicy: Always
         name: csssearch-cluster
+        securityContext:
+          runAsUser: 50001
+          allowPrivilegeEscalation: false
         resources:
           requests:
             memory: 512Mi
