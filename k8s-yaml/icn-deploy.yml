@@ -49,6 +49,9 @@ spec:
       - image: mycluster.icp:8500/default/navigator:latest
         imagePullPolicy: Always
         name: ecm-icn
+        securityContext:
+          runAsUser: 50001
+          allowPrivilegeEscalation: false
         resources:
           requests:
             memory: 512Mi
