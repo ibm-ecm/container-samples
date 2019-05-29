@@ -49,6 +49,9 @@ spec:
       - image: mycluster.icp:8500/default/cmis:latest
         imagePullPolicy: Always
         name: ecm-cmis
+        securityContext:
+          runAsUser: 50001
+          allowPrivilegeEscalation: false
         resources:
           requests:
             memory: 256Mi
