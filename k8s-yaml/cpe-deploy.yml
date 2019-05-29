@@ -49,6 +49,9 @@ spec:
       - image: mycluster.icp:8500/default/cpe:latest
         imagePullPolicy: Always
         name: ecm-cpe
+        securityContext:
+          runAsUser: 50001
+          allowPrivilegeEscalation: false
         resources:
           requests:
             memory: 512Mi
