@@ -18,6 +18,8 @@ The Helm commands for deploying the FileNet Content Manager images include a num
 
 - [Content Management Interoperability Services Helm command parameters](https://www.ibm.com/support/knowledgecenter/en/SSYHZ8_18.0.x/com.ibm.dba.ref/k8s_topics/ref_cm_cmisparamsk8s_helm.html)
 
+- To upgrade External Share container you must fist upgrade to chart version 2.1.0.
+
 ## Tips: 
 
 - On Openshift, an expired docker secret can cause errors during deployment. If an admin.registry key already exists and has expired, delete the key with the following command:
@@ -56,28 +58,29 @@ Provide the parameter values for your environment and run the command to deploy 
 To deploy Content Platform Engine:
 
    ```console
-   $ helm install ibm-dba-contentservices-3.0.0.tgz --name dbamc-cpe --namespace dbamc --set cpeProductionSetting.license=accept,cpeProductionSetting.jvmHeapXms=512,cpeProductionSetting.jvmHeapXmx=1024,cpeProductionSetting.licenseModel=FNCM.CU,dataVolume.existingPVCforCPECfgstore=cpe-cfgstore,dataVolume.existingPVCforCPELogstore=cpe-logstore,dataVolume.existingPVCforFilestore=cpe-filestore,dataVolume.existingPVCforICMrulestore=cpe-icmrulesstore,dataVolume.existingPVCforTextextstore=cpe-textextstore,dataVolume.existingPVCforBootstrapstore=cpe-bootstrapstore,dataVolume.existingPVCforFNLogstore=cpe-fnlogstore,autoscaling.enabled=False,resources.requests.cpu=1,replicaCount=1,image.repository=<cluster.registry.repo>/dbamc/cpe,image.tag=5.5.3,cpeProductionSetting.gcdJNDIName=FNGCDDS,cpeProductionSetting.gcdJNDIXAName=FNGCDDSXA 
+   $ helm install ibm-dba-contentservices-3.0.0.tgz --name dbamc-cpe --namespace dbamc --set cpeProductionSetting.license=accept,cpeProductionSetting.jvmHeapXms=512,cpeProductionSetting.jvmHeapXmx=1024,cpeProductionSetting.licenseModel=FNCM.CU,dataVolume.existingPVCforCPECfgstore=cpe-cfgstore,dataVolume.existingPVCforCPELogstore=cpe-logstore,dataVolume.existingPVCforFilestore=cpe-filestore,dataVolume.existingPVCforICMrulestore=cpe-icmrulesstore,dataVolume.existingPVCforTextextstore=cpe-textextstore,dataVolume.existingPVCforBootstrapstore=cpe-bootstrapstore,dataVolume.existingPVCforFNLogstore=cpe-fnlogstore,autoscaling.enabled=False,resources.requests.cpu=1,replicaCount=1,image.repository=<cluster.registry.repo>/dbamc/cpe,image.tag=ga-553-p8cpe,cpeProductionSetting.gcdJNDIName=FNGCDDS,cpeProductionSetting.gcdJNDIXAName=FNGCDDSXA 
    ```
 
 To deploy Content Search Services:
 
    ```console     
-     $ helm install ibm-dba-contentsearch-3.0.0.tgz --name dbamc-css1 --namespace dbamc --set cssProductionSetting.license=accept,service.externalSSLPort=8199,service.name=csssvc1,cssProductionSetting.jvmHeapXmx=3072,dataVolume.existingPVCforCSSCfgstore=css-cfgstore,dataVolume.existingPVCforCSSLogstore=css-logstore,dataVolume.existingPVCforCSSTmpstore=css-tempstore,dataVolume.existingPVCforIndex=css-indexstore,dataVolume.existingPVCforCSSCustomstore=css-customstore,resources.limits.memory=7Gi,cssProductionSetting.jvmHeapXmx=4096,image.repository=<image_repository_url>:5000/dbamc/css,image.tag=5.5.3
+     $ helm install ibm-dba-contentsearch-3.0.0.tgz --name dbamc-css1 --namespace dbamc --set cssProductionSetting.license=accept,service.externalSSLPort=8199,service.name=csssvc1,cssProductionSetting.jvmHeapXmx=3072,dataVolume.existingPVCforCSSCfgstore=css-cfgstore,dataVolume.existingPVCforCSSLogstore=css-logstore,dataVolume.existingPVCforCSSTmpstore=css-tempstore,dataVolume.existingPVCforIndex=css-indexstore,dataVolume.existingPVCforCSSCustomstore=css-customstore,resources.limits.memory=7Gi,cssProductionSetting.jvmHeapXmx=4096,image.repository=<image_repository_url>:5000/dbamc/css,image.tag=ga-553-p8css
    ```     
+ Replace <image_repository_url> with correct registry url. For example --> docker-registry.default.svc
  
  Note:  To deploy multiple Content Search Services deployments, please make sure you specify a unique release name, service name, and a new set of persistent volumes (PVs and PVCs).  The example below shows a deployment using a new release name `dbamc-css2`, a new service name `csssvc2`, and a new set of persistent volumes `css2-cfgstore`, `css2-logstore`, `css2-tempstore`, `css2-indexstore`, and `css2-customstore`.  You may reuse the same persistent volume for indexstore if you wish to have multiple Content Search Services deployments accessing the same set of index collections.  However, it is recommended that the other persistent volumes should be unique.
  
    ```console     
-     $ helm install ibm-dba-contentsearch-3.0.0.tgz --name dbamc-css2 --namespace dbamc --set cssProductionSetting.license=accept,service.externalSSLPort=8199,service.name=csssvc2,cssProductionSetting.jvmHeapXmx=3072,dataVolume.existingPVCforCSSCfgstore=css2-cfgstore,dataVolume.existingPVCforCSSLogstore=css2-logstore,dataVolume.existingPVCforCSSTmpstore=css2-tempstore,dataVolume.existingPVCforIndex=css2-indexstore,dataVolume.existingPVCforCSSCustomstore=css2-customstore,resources.limits.memory=7Gi,cssProductionSetting.jvmHeapXmx=4096,image.repository=<image_repository_url>:5000/dbamc/css,image.tag=5.5.3
+     $ helm install ibm-dba-contentsearch-3.0.0.tgz --name dbamc-css2 --namespace dbamc --set cssProductionSetting.license=accept,service.externalSSLPort=8199,service.name=csssvc2,cssProductionSetting.jvmHeapXmx=3072,dataVolume.existingPVCforCSSCfgstore=css2-cfgstore,dataVolume.existingPVCforCSSLogstore=css2-logstore,dataVolume.existingPVCforCSSTmpstore=css2-tempstore,dataVolume.existingPVCforIndex=css2-indexstore,dataVolume.existingPVCforCSSCustomstore=css2-customstore,resources.limits.memory=7Gi,cssProductionSetting.jvmHeapXmx=4096,image.repository=<image_repository_url>:5000/dbamc/css,image.tag=ga-553-p8css
    ``` 
-    
- 
+ Replace <image_repository_url> with correct registry url. For example --> docker-registry.default.svc  
  
  To deploy Content Management Interoperability Service:
 
    ```console
-     $ helm install ibm-dba-cscmis-1.7.0.tgz --name dbamc-cmis --namespace dbamc --set cmisProductionSetting.license=accept,cmisProductionSetting.jvmHeapXms=512,cmisProductionSetting.jvmHeapXmx=1024,dataVolume.existingPVCforCMISCfgstore=cmis-cfgstore,dataVolume.existingPVCforCMISLogstore=cmis-logstore,autoscaling.enabled=False,replicaCount=1,image.repository=172.30.1.1:5000/dbamc/cmis,image.tag=3.0.4,cmisProductionSetting.cpeUrl=http://10.0.0.110:9080/wsi/FNCEWS40MTOM 
+     $ helm install ibm-dba-cscmis-1.7.0.tgz --name dbamc-cmis --namespace dbamc --set cmisProductionSetting.license=accept,cmisProductionSetting.jvmHeapXms=512,cmisProductionSetting.jvmHeapXmx=1024,dataVolume.existingPVCforCMISCfgstore=cmis-cfgstore,dataVolume.existingPVCforCMISLogstore=cmis-logstore,autoscaling.enabled=False,replicaCount=1,image.repository=<image_repository_url>:5000/dbamc/cmis,image.tag=ga-304-cmis-if007,cmisProductionSetting.cpeUrl=http://10.0.0.110:9080/wsi/FNCEWS40MTOM 
    ```
+Replace <image_repository_url> with correct registry url. For example --> docker-registry.default.svc
 
 To deploy External Share Container:
 
@@ -89,14 +92,15 @@ To deploy External Share Container:
     
      $ helm repo add local-charts https://mycluster.icp:8443/helm-repo/charts --ca-file $HELM_HOME/ca.pem --cert-file $HELM_HOME/cert.pem --key-file $HELM_HOME/key.pem
     
-     $ helm install local-charts/ibm-dba-extshare --version 3.0.0 --name dbamc-es --namespace dbamc --set esProductionSetting.license=accept,esProductionSetting.jvmHeapXms=512,esProductionSetting.jvmHeapXmx=1024,dataVolume.existingPVCforESCfgstore=ecm-es-config-pvc,dataVolume.existingPVCforESLogstore=ecm-es-logs-pvc,autoscaling.enabled=False,replicaCount=1,image.repository=mycluster.icp:8500/dbamc/extshare,image.tag=3.0.6,esProductionSetting.esDBType=db2,esProductionSetting.esJNDIDSName=ECMClientDS,esProductionSetting.esSChema=ICNDB,esProductionSetting.esTableSpace=UBI_ICN,esProductionSetting.esAdmin=ceadmin --tls
+     $ helm install local-charts/ibm-dba-extshare --version 3.0.0 --name dbamc-es --namespace dbamc --set esProductionSetting.license=accept,esProductionSetting.jvmHeapXms=512,esProductionSetting.jvmHeapXmx=1024,dataVolume.existingPVCforESCfgstore=ecm-es-config-pvc,dataVolume.existingPVCforESLogstore=ecm-es-logs-pvc,autoscaling.enabled=False,replicaCount=1,image.repository=mycluster.icp:8500/dbamc/extshare,image.tag=ga-306-es,esProductionSetting.esDBType=db2,esProductionSetting.esJNDIDSName=ECMClientDS,esProductionSetting.esSChema=ICNDB,esProductionSetting.esTableSpace=UBI_ICN,esProductionSetting.esAdmin=ceadmin --tls
     ```
    
    Certified Kubernetes platform
    
     ```
-     $ helm install ibm-dba-extshare-prod-3.0.0.tgz --name dbamc-es --namespace dbamc --set esProductionSetting.license=accept,esProductionSetting.jvmHeapXms=512,esProductionSetting.jvmHeapXmx=1024,dataVolume.existingPVCforESCfgstore=es-cfgstore,dataVolume.existingPVCforESLogstore=es-logstore,autoscaling.enabled=False,replicaCount=1,image.repository=172.30.1.1:5000/dbamc/extshare,image.tag=3.0.6,esProductionSetting.esDBType=db2,esProductionSetting.esJNDIDSName=ECMClientDS,esProductionSetting.esSChema=ICNDB,esProductionSetting.esTableSpace=ICNDBTS,esProductionSetting.esAdmin=ceadmin
+     $ helm install ibm-dba-extshare-prod-3.0.0.tgz --name dbamc-es --namespace dbamc --set esProductionSetting.license=accept,esProductionSetting.jvmHeapXms=512,esProductionSetting.jvmHeapXmx=1024,dataVolume.existingPVCforESCfgstore=es-cfgstore,dataVolume.existingPVCforESLogstore=es-logstore,autoscaling.enabled=False,replicaCount=1,image.repository=<image_repository_url>:5000/dbamc/extshare,image.tag=ga-306-es,esProductionSetting.esDBType=db2,esProductionSetting.esJNDIDSName=ECMClientDS,esProductionSetting.esSChema=ICNDB,esProductionSetting.esTableSpace=ICNDBTS,esProductionSetting.esAdmin=ceadmin
     ```
+Replace <image_repository_url> with correct registry url. For example --> docker-registry.default.svc
 
 To deploy ContentGraphQL Container:
 
@@ -113,10 +117,11 @@ To deploy ContentGraphQL Container:
    Certified Kubernetes platform 
 
    ```
-     $ helm install ibm-dba-contentrestservice-dev-3.0.0.tgz --name dbamc-crs --namespace dbamc --set crsProductionSetting.license=accept,crsProductionSetting.jvmHeapXms=512,crsProductionSetting.jvmHeapXmx=1024,dataVolume.existingPVCforCfgstore=crs-icp-cfgstore,dataVolume.existingPVCforCfglogs=crs-icp-logs,autoscaling.enabled=False,replicaCount=1,image.repository=172.30.1.1:5000/dbamc/crs,image.tag=5.5.3
+     $ helm install ibm-dba-contentrestservice-dev-3.0.0.tgz --name dbamc-crs --namespace dbamc --set crsProductionSetting.license=accept,crsProductionSetting.jvmHeapXms=512,crsProductionSetting.jvmHeapXmx=1024,dataVolume.existingPVCforCfgstore=crs-icp-cfgstore,dataVolume.existingPVCforCfglogs=crs-icp-logs,autoscaling.enabled=False,replicaCount=1,image.repository=<image_repository_url>:5000/dbamc/crs,image.tag=5.5.3
    ```
-> **Reminder**: After you deploy, return to the instructions in the Knowledge Center, [Completing post deployment tasks for IBM FileNet Content Manager](https://www.ibm.com/support/knowledgecenter/en/SSYHZ8_18.0.x/com.ibm.dba.install/k8s_topics/tsk_deploy_postecmdeployk8s.html), to get your FileNet Content Manager environment up and running
+Replace <image_repository_url> with correct registry url. For example --> docker-registry.default.svc
 
+> **Reminder**: After you deploy, return to the instructions in the Knowledge Center, [Completing post deployment tasks for IBM FileNet Content Manager](https://www.ibm.com/support/knowledgecenter/en/SSYHZ8_18.0.x/com.ibm.dba.install/k8s_topics/tsk_deploy_postecmdeployk8s.html), to get your FileNet Content Manager environment up and running
 
 
 ## Upgrade deployments
@@ -165,6 +170,17 @@ To upgrade Content Management Interoperability Service:
 
 Replace <image_repository_url> with correct registry url. For example --> docker-registry.default.svc
 
+To upgrade External Share connector:
+
+   IBM Cloud Private 3.1.2
+
+```
+  $ helm upgrade dbamc-es ibm-dba-extshare-prod-3.0.0.tgz --tls --reuse-values --set image.repository=mycluster.icp:8500/apprentice/extshare,image.tag=stable-ubi,resources.requests.cpu=125m,resources.requests.memory=128Mi,resources.limits.cpu=1,resources.limits.memory=1024Mi,log.format=json,imagePullSecrets.name=admin.registrykey
+```
+   Certified Kubernetes platform
+```
+   $ helm upgrade dbamc-es ibm-dba-extshare-prod-3.0.0.tgz --reuse-values --set image.repository=mycluster.icp:8500/apprentice/extshare,image.tag=stable-ubi,resources.requests.cpu=125m,resources.requests.memory=128Mi,resources.limits.cpu=1,resources.limits.memory=1024Mi,log.format=json,imagePullSecrets.name=admin.registrykey
+```
 
 ## Uninstalling a Kubernetes release of FileNet Content Manager
 
