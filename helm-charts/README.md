@@ -51,6 +51,7 @@ Use the following commands to initialize the command line interface:
 ## Deploying images
 Provide the parameter values for your environment and run the command to deploy the image.
   > **Tip**: Copy the sample command to a file, edit the parameter values, and use the updated command for deployment.
+  > **Tip**: The values for 'resources' inside helm commands are just suggestions only. Each deployment must take into account the demands their particular workload will place on the system.
 
 To deploy Content Platform Engine:
 
@@ -115,6 +116,55 @@ To deploy ContentGraphQL Container:
      $ helm install ibm-dba-contentrestservice-dev-3.0.0.tgz --name dbamc-crs --namespace dbamc --set crsProductionSetting.license=accept,crsProductionSetting.jvmHeapXms=512,crsProductionSetting.jvmHeapXmx=1024,dataVolume.existingPVCforCfgstore=crs-icp-cfgstore,dataVolume.existingPVCforCfglogs=crs-icp-logs,autoscaling.enabled=False,replicaCount=1,image.repository=172.30.1.1:5000/dbamc/crs,image.tag=5.5.3
    ```
 > **Reminder**: After you deploy, return to the instructions in the Knowledge Center, [Completing post deployment tasks for IBM FileNet Content Manager](https://www.ibm.com/support/knowledgecenter/en/SSYHZ8_18.0.x/com.ibm.dba.install/k8s_topics/tsk_deploy_postecmdeployk8s.html), to get your FileNet Content Manager environment up and running
+
+
+
+## Upgrade deployments
+
+To upgrade Content Platform Engine:
+
+IBM Cloud Private 3.1.2
+
+```
+   $ helm upgrade dbamc-cpe /helm-charts/ibm-dba-contentservices-3.0.0.tgz --tls --reuse-values --set image.repository=mycluster.icp:8500/dbamc/cpe,image.tag=ga-553-p8cpe,imagePullSecrets.name=admin.registrykey,resources.requests.cpu=500m,resources.requests.memory=512Mi,resources.limits.cpu=1,resources.limits.memory=2048Mi,log.format=json   
+```
+Certified Kubernetes platform
+
+```
+   helm upgrade dbamc-cpe /helm-charts/ibm-dba-contentservices-3.0.0.tgz --reuse-values --set image.repository=<image_repository_url>:5000/dbamc/cpe,image.tag=ga-553-p8cpe,imagePullSecrets.name=admin.registrykey,resources.requests.cpu=500m,resources.requests.memory=512Mi,resources.limits.cpu=1,resources.limits.memory=2048Mi,log.format=json
+```   
+Replace <image_repository_url> with correct registry url. For example --> docker-registry.default.svc
+
+To upgrade Content Search Services:
+
+   IBM Cloud Private 3.1.2
+
+```
+   $ helm upgrade dbamc-css /helm-charts/ibm-dba-contentsearch-3.0.0.tgz --tls --reuse-values --set image.repository=mycluster.icp:8500/dbamc/css,image.tag=ga-553-p8css,imagePullSecrets.name=admin.registrykey,resources.requests.cpu=500m,resources.requests.memory=512Mi,resources.limits.cpu=8,resources.limits.memory=8192Mi,log.format=json,dataVolume.nameforCSSCustomstore=custom-stor,dataVolume.existingPVCforCSSCustomstore=css-icp-customstore
+```
+   Certified Kubernetes platform
+
+```
+   $ helm upgrade dbamc-css /helm-charts/ibm-dba-contentsearch-3.0.0.tgz  --reuse-values --set image.repository=<image_repository_url>:5000/dbamc/css,image.tag=ga-553-p8css,imagePullSecrets.name=admin.registrykey,resources.requests.cpu=500m,resources.requests.memory=512Mi,resources.limits.cpu=8,resources.limits.memory=8192Mi,log.format=json,dataVolume.nameforCSSCustomstore=custom-stor,dataVolume.existingPVCforCSSCustomstore=css-icp-customstore
+```
+
+Replace <image_repository_url> with correct registry url. For example --> docker-registry.default.svc
+
+To upgrade Content Management Interoperability Service:
+   
+   IBM Cloud Private 3.1.2
+
+```
+  $ helm upgrade dbamc-cmis /helm-charts/ibm-dba-cscmis-1.7.0.tgz --tls --reuse-values --set image.repository=mycluster.icp:8500/dbamc/cmis,image.tag=ga-304-cmis-if007,imagePullSecrets.name=admin.registrykey,resources.requests.cpu=500m,resources.requests.memory=512Mi,resources.limits.cpu=1,resources.limits.memory=1024Mi,log.format=json
+```
+   Certified Kubernetes platform
+   
+```
+   $ helm upgrade dbamc-cmis /helm-charts/ibm-dba-cscmis-1.7.0.tgz  --reuse-values --set image.repository=<image_repository_url>:5000/dbamc/cmis,image.tag=ga-304-cmis-if007,imagePullSecrets.name=admin.registrykey,resources.requests.cpu=500m,resources.requests.memory=512Mi,resources.limits.cpu=1,resources.limits.memory=1024Mi,log.format=json
+```   
+
+Replace <image_repository_url> with correct registry url. For example --> docker-registry.default.svc
+
 
 ## Uninstalling a Kubernetes release of FileNet Content Manager
 
