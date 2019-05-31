@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <server>
-	<ldapRegistry id="9.30.123.456" realm="ExternalRealm" host="9.30.123.456" baseDN="ou=test1OU,dc=external,dc=com" port="50002" ldapType="Microsoft Active Directory" bindDN="cn=vanUser1,ou=test1OU,dc=external,dc=com" sslEnabled="false" bindPassword="WFQA20zz!">
+	<ldapRegistry id="<hostname>" realm="ExternalRealm" host="<hostname>" baseDN="ou=test1OU,dc=external,dc=com" port="50002" ldapType="Microsoft Active Directory" bindDN="cn=vanUser1,ou=test1OU,dc=external,dc=com" sslEnabled="false" bindPassword="password">
         <activedFilters userFilter="(&amp;(objectClass=person)(cn=%v))" groupFilter="(&amp;(objectClass=group)(cn=%v))" userIdMap="person:cn" groupIdMap="*:cn">
         </activedFilters>
     </ldapRegistry>
