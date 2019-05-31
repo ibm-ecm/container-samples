@@ -3,12 +3,12 @@
                <jdbcDriver libraryRef="DB2JCC4Lib"/>
                <properties.db2.jcc
                        databaseName="GCDDEMO1"
-                       serverName="9.30.146.152"
+                       serverName="<hostname>"
                        portNumber="50000"
                user="db2inst1"
                        password="password"
                        resultSetHoldability="HOLD_CURSORS_OVER_COMMIT"
-           clientRerouteAlternateServerName="oclv0462.ibm.com"
+           clientRerouteAlternateServerName="<hostname>"
            clientRerouteAlternatePortNumber="50000"
            retryIntervalForClientReroute="15"
            maxRetriesForClientReroute="3"
@@ -19,11 +19,11 @@
        <dataSource id="FNGDDSXA" jndiName="FNGDDSXA"  validationTimeout="15" isolationLevel="TRANSACTION_READ_COMMITTED"  type="javax.sql.XADataSource" supplementalJDBCTrace="true">
                <properties.db2.jcc
                        databaseName="GCDDEMO1"
-                       serverName="9.30.146.152"
+                       serverName="<hostname>"
                        portNumber="50000"
                user="db2inst1"
                        password="password"
-           clientRerouteAlternateServerName="oclv0462.ibm.com"
+           clientRerouteAlternateServerName="<hostname>"
            clientRerouteAlternatePortNumber="50000"
            retryIntervalForClientReroute="15"
            maxRetriesForClientReroute="3"
