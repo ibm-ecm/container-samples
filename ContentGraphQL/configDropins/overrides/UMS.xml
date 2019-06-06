@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<server>
+  
+ <openidConnectClient id="ContentServicesUms"
+                         mapIdentityToRegistryUser="true"
+                         scope="openid profile email"
+                         responseType="id_token token"
+                         clientId="contentServicesUms"
+                         clientSecret="password"
+                         issuerIdentifier="https://<CPE-Hostname>:9443/oidc/endpoint/ums"
+                         audiences="contentServicesUms"
+                         validationMethod="introspect"
+                         inboundPropagation="supported"
+                         validationEndpointUrl="https://<CPE-Hostname>:9443/oidc/endpoint/ums/introspect"
+                         authorizationEndpointUrl="https://<CPE-Hostname>:9443/oidc/endpoint/ums/authorize"
+                         tokenEndpointUrl="https://<CPE-Hostname>:9443/oidc/endpoint/ums/token">
+    </openidConnectClient>
+
+</server>
