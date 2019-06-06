@@ -46,7 +46,7 @@ spec:
                   - crsserver-cluster1
               topologyKey: "kubernetes.io/hostname"
       containers:
-      - image: <Repository for Docker Container Image>/default/crs:latest
+      - image: <Repository for Docker Container Image>/default/crs:553
         imagePullPolicy: Always
         name: ecm-crs
         securityContext:
@@ -96,10 +96,10 @@ spec:
         volumeMounts:
           - name: crscfgstore-pvc
             mountPath: "/opt/ibm/wlp/usr/servers/defaultServer/configDropins/overrides"
-            subPath: crs/configDropins/overrides
+            subPath: configDropins/overrides
           - name: crslogstore-pvc
             mountPath: "/opt/ibm/wlp/usr/servers/defaultServer/logs"
-            subPath: crs/logs
+            subPath: logs
 
       volumes:
         - name: crscfgstore-pvc

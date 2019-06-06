@@ -117,7 +117,7 @@ spec:
             subPath: icn/configDropins/overrides
           - name: icnlogstore-pvc
             mountPath: "/opt/ibm/wlp/usr/servers/defaultServer/logs"  
-            subPath: icn/logs
+            subPath: logs
           - name: icnpluginstore-pvc
             mountPath: "/opt/ibm/plugins"  
             subPath: plugins
