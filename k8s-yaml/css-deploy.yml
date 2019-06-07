@@ -140,7 +140,4 @@ spec:
         - name: cssindexstore-pvc 
           persistentVolumeClaim: 
             claimName: "css-icp-indexstore"
-        - name: csscustomstore-pvc 
-          persistentVolumeClaim: 
-            claimName: "css-icp-customstore"
-
+   
