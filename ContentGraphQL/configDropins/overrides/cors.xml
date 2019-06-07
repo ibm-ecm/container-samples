@@ -1,6 +1,6 @@
 <server>
 <!-- https://www.ibm.com/support/knowledgecenter/en/SSEQTP_liberty/com.ibm.websphere.liberty.autogen.nd.doc/ae/rwlp_config_cors.html -->
-  <cors domain="/content-services/"
+  <cors domain="/content-services-graphql/"
         allowedOrigins="*"
         allowedMethods="GET, DELETE, PUT, POST, OPTIONS"
         allowedHeaders="Connection,Pragma,Cache-Control,Navigator-Client-Build,XSRFtoken,Origin,User-Agent,Content-Type,Content-Length,Navigator-Client-Identity,Accept-Control-Request-Method,Accept-Control-Request-Headers,Accept,Referer,Accept-Encoding,Accept-Language,DNT,Host,Content-Length,Cache-control,Cookie"
