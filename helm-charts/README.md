@@ -132,6 +132,14 @@ To upgrade Content Search Services:
 
 Replace <image_repository_url> with correct registry URL, for example, docker-registry.default.svc.
 
+To upgrade Content Navigator:
+
+```
+  $ helm upgrade dbamc-icn /helm-charts/ibm-dba-navigator-3.0.0.tgz  --reuse-values --set image.repository=mycluster.icp:8500/apprentice/navigator,image.tag=stable-ubi,resources.requests.cpu=500m,resources.requests.memory=512Mi,imagePullSecrets.name=admin.registrykey,resources.limits.cpu=1,resources.limits.memory=1024Mi,log.format=json --tls
+```   
+
+Replace <image_repository_url> with correct registry URL, for example, docker-registry.default.svc.
+
 To upgrade Content Management Interoperability Services:
 
 ```
