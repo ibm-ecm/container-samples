@@ -25,16 +25,8 @@ To deploy Content Search Services:
     
     ```kubectl apply -f css-deploy.yml```
  2. Run the following command to get the Public IP and port to access Content Search Services:
-   
-   ```kubectl get svc | grep ecm-css```
-
-To deploy Content Navigator:
- 1. Use the deployment file to deploy Content Navigator:
     
-    ```kubectl apply -f icn-deploy.yml```
- 2. Run the following command to get the Public IP and port to access Content Navigator:
-   
-   ```kubectl get svc | grep ecm-icn```
+    ```kubectl get svc | grep ecm-css```
 
 To deploy Content Management Interoperability Services:
  1. Use the deployment file to deploy Content Management Interoperability Services:
@@ -44,23 +36,31 @@ To deploy Content Management Interoperability Services:
     
     ```kubectl get svc | ecm-cmis```
 
-To deploy External Share Container:
- 1. Use the deployment file to deploy External Share container:
+> **Reminder**: After you deploy, return to the instructions in the Knowledge Center, [Completing post deployment tasks for IBM FileNet Content Manager](https://www.ibm.com/support/knowledgecenter/en/SSYHZ8_18.0.x/com.ibm.dba.install/k8s_topics/tsk_deploy_postecmdeployk8s.html), to get your FileNet Content Manager environment up and running
+
+## Deploying the External Share container
+
+If you want to optionally include the external share capability in your environment, you also configure and deploy the External Share container. 
+
+Ensure that you have completed the all of the preparation steps for deploying the External Share container: [Configuring external share for containers](https://www.ibm.com/support/knowledgecenter/en/SSYHZ8_19.0.x/com.ibm.dba.install/k8s_topics/tsk_ecmexternalsharek8s.html)
+
+ 1. Use the deployment file to deploy the External Share container:
     
     ```kubectl apply -f es-deploy.yml```
- 2. Run the following command to get the Public IP and port to access Content Management Interoperability Services:
+ 2. Run the following command to get the Public IP and port to access External Share:
     
     ```kubectl get svc | ecm-es```
 
-To deploy ContentGraphQL Container:
- 1. Use the deployment file to deploy ContentGraphQL container:
+## Deploying the Technology Preview: Content Services GraphQL API container
+If you want to use the Content Services GraphQL API container, follow the instructions in the Getting Started technical notice: [Technology Preview: Getting started with Content Services GraphQL API](http://www.ibm.com/support/docview.wss?uid=ibm10883630)
+
+ 1. Use the deployment file to deploy the Content Services GraphQL API container:
     
     ```kubectl apply -f crs-deploy.yml```
- 2. Run the following command to get the Public IP and port to access Content Management Interoperability Services:
+ 2. Run the following command to get the Public IP and port to access the Content Services GraphQL API:
     
     ```kubectl get svc | ecm-crs```
 
-> **Reminder**: After you deploy, return to the instructions in the Knowledge Center, [Completing post deployment tasks for IBM FileNet Content Manager](https://www.ibm.com/support/knowledgecenter/en/SSYHZ8_18.0.x/com.ibm.dba.install/k8s_topics/tsk_deploy_postecmdeployk8s.html), to get your FileNet Content Manager environment up and running
 
 ## Uninstalling a Kubernetes release of FileNet Content Manager
 
@@ -76,3 +76,4 @@ The command removes all the Kubernetes components associated with the release, e
 $ kubectl delete pvc my-cpe-prod-release-cpe-pvclaim
 ```
 Repeat the process for any other deployments that you want to delete.
+
