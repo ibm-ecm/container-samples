@@ -20,11 +20,11 @@ Perform the following tasks to prepare to deploy your FileNet Content Manager im
 
 1. Use the information in the [download document for FileNet Content Manager](https://www-01.ibm.com/support/docview.wss?uid=swg24044874) to download the product images from Passport Advantage: 
 
-- CPE-container-part-number.tar
-- ICN-container-part-number.tar
-- CSS-container-part-number.tar
-- CMIS-container-part-number.tar
-- ES-container-part-number.tar
+  - CPE-container-part-number.tar
+  - ICN-container-part-number.tar
+  - CSS-container-part-number.tar
+  - CMIS-container-part-number.tar
+  - ES-container-part-number.tar
 
 
 2. Use the following commands to extract the product image from the part number archive and upload the image to the Kubernetes private registry:
