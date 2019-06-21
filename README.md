@@ -6,9 +6,11 @@ IBM FileNet Content Manager offers enterprise-level scalability and flexibility 
 
 Perform the following tasks to prepare to deploy your FileNet Content Manager images on Kubernetes:
 
-- Prepare your FileNet Content Manager environment. These procedures include setting up databases, LDAP, storage, and configuration files that are required for use and operation. If you plan to use the YAML file method, you also create YAML files that include the applicable parameter values for your deployment. You must complete all of the [preparation steps for FileNet Content Manager](https://www.ibm.com/support/knowledgecenter/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_prepare.htm) before you are ready to deploy the container images. 
+- Prepare your FileNet Content Manager environment. These procedures include setting up databases, LDAP, storage, and configuration files that are required for use and operation. You must complete all of the [preparation steps for FileNet Content Manager](https://www.ibm.com/support/knowledgecenter/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_prepare.htm) before you are ready to deploy the container images. 
 
 - Prepare your Kubernetes environment. See [Preparing to install automation containers on Kubernetes](https://www.ibm.com/support/knowledgecenter/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_prepare_env_k8s.htm)
+
+- If you plan to use the YAML file method, you also create YAML files that include the applicable parameter values for your deployment. See [Preparing the YAML files](https://www.ibm.com/support/knowledgecenter/SSNW2F_5.5.0/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_k8syaml.htm)
 
 - If you want to deploy additional optional containers, prepare the requirements that are specific to those containers. For details see the following information:
   - [Configuring external share for containers](https://www.ibm.com/support/knowledgecenter/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_externalshare.htm)
@@ -18,11 +20,11 @@ Perform the following tasks to prepare to deploy your FileNet Content Manager im
 
 1. Use the information in the [download document for FileNet Content Manager](https://www-01.ibm.com/support/docview.wss?uid=swg24044874) to download the product images from Passport Advantage: 
 
-    CPE-container-part-number.tar
-    ICN-container-part-number.tar
-    CSS-container-part-number.tar
-    CMIS-container-part-number.tar
-    ES-container-part-number.tar
+- CPE-container-part-number.tar
+- ICN-container-part-number.tar
+- CSS-container-part-number.tar
+- CMIS-container-part-number.tar
+- ES-container-part-number.tar
 
 
 2. Use the following commands to extract the product image from the part number archive and upload the image to the Kubernetes private registry:
