@@ -13,11 +13,13 @@ Ensure that you have completed the following tasks:
 
 The Helm commands for deploying the FileNet Content Manager images include a number of required command parameters for specific environment and configuration settings. Review the reference topics for these parameters and determine the values for your environment as part of your preparation:
 
-- [Content Platform Engine Helm command parameters](https://www.ibm.com/support/knowledgecenter/en/SSYHZ8_19.0.x/com.ibm.dba.ref/k8s_topics/ref_cm_cpeparamsk8s_helm.html)
+- [Content Platform Engine Helm command parameters](https://www.ibm.com/support/knowledgecenter/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_configcperef.htm)
 
-- [Content Search Services Helm command parameters](https://www.ibm.com/support/knowledgecenter/en/SSYHZ8_19.0.x/com.ibm.dba.ref/k8s_topics/ref_cm_cssparamsk8s_helm.html)
+- [IBM Content Navigator command parameters](https://www.ibm.com/support/knowledgecenter/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_configicnref.htm)
 
-- [Content Management Interoperability Services Helm command parameters](https://www.ibm.com/support/knowledgecenter/en/SSYHZ8_19.0.x/com.ibm.dba.ref/k8s_topics/ref_cm_cmisparamsk8s_helm.html)
+- [Content Search Services Helm command parameters](https://www.ibm.com/support/knowledgecenter/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_configcssref.htm)
+
+- [Content Management Interoperability Services Helm command parameters](https://www.ibm.com/support/knowledgecenter/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_configcmisref.htm)
 
 ## Tips: 
 
@@ -77,7 +79,7 @@ Some environments require multiple Content Search Services deployments. To deplo
      $ helm install ibm-dba-contentsearch-3.0.0.tgz --name dbamc-css2 --namespace dbamc --set cssProductionSetting.license=accept,service.externalSSLPort=8199,service.name=csssvc2,cssProductionSetting.jvmHeapXmx=3072,dataVolume.existingPVCforCSSCfgstore=css2-cfgstore,dataVolume.existingPVCforCSSLogstore=css2-logstore,dataVolume.existingPVCforCSSTmpstore=css2-tempstore,dataVolume.existingPVCforIndex=css2-indexstore,dataVolume.existingPVCforCSSCustomstore=css2-customstore,resources.limits.memory=7Gi,cssProductionSetting.jvmHeapXmx=4096,image.repository=<image_repository_url>:5000/dbamc/css,image.tag=ga-553-p8css,imagePullSecrets.name=admin.registrykey
    ```
  
- Replace <image_repository_url> with correct registry URL, for example, docker-registry.default.svc.
+ Replace <image_repository_url> with the correct registry URL, for example, docker-registry.default.svc.
  
  
  To deploy Content Management Interoperability Services:
@@ -85,7 +87,7 @@ Some environments require multiple Content Search Services deployments. To deplo
    ```console
      $ helm install ibm-dba-cscmis-1.7.0.tgz --name dbamc-cmis --namespace dbamc --set cmisProductionSetting.license=accept,cmisProductionSetting.jvmHeapXms=512,cmisProductionSetting.jvmHeapXmx=1024,dataVolume.existingPVCforCMISCfgstore=cmis-cfgstore,dataVolume.existingPVCforCMISLogstore=cmis-logstore,autoscaling.enabled=False,replicaCount=1,imagePullSecrets.name=admin.registrykey,image.repository=<image_repository_url>:5000/dbamc/cmis,image.tag=ga-304-cmis-if007,cmisProductionSetting.cpeUrl=http://10.0.0.110:9080/wsi/FNCEWS40MTOM 
    ```
-Replace <image_repository_url> with correct registry URL, for example, docker-registry.default.svc.
+Replace <image_repository_url> with the correct registry URL, for example, docker-registry.default.svc.
 
 > **Reminder**: After you deploy, return to the instructions in the Knowledge Center, [Completing post deployment tasks for IBM FileNet Content Manager](https://www.ibm.com/support/knowledgecenter//SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_postdeploy.htm), to get your FileNet Content Manager environment up and running
 
@@ -101,7 +103,7 @@ To deploy the External Share container:
      $ helm install ibm-dba-extshare-prod-3.0.0.tgz --name dbamc-es --namespace dbamc --set esProductionSetting.license=accept,esProductionSetting.jvmHeapXms=512,esProductionSetting.jvmHeapXmx=1024,dataVolume.existingPVCforESCfgstore=es-cfgstore,dataVolume.existingPVCforESLogstore=es-logstore,autoscaling.enabled=False,replicaCount=1,imagePullSecrets.name=admin.registrykey,image.repository=<image_repository_url>:5000/dbamc/extshare,image.tag=ga-306-es,esProductionSetting.esDBType=db2,esProductionSetting.esJNDIDSName=ECMClientDS,esProductionSetting.esSChema=ICNDB,esProductionSetting.esTableSpace=ICNDBTS,esProductionSetting.esAdmin=ceadmin
    ```
     
-  Replace <image_repository_url> with correct registry URL, for example, docker-registry.default.svc.
+  Replace <image_repository_url> with the correct registry URL, for example, docker-registry.default.svc.
  
 ## Deploying the Technology Preview: Content Services GraphQL API container
 If you want to use the Content Services GraphQL API container, follow the instructions in the Getting Started technical notice: [Technology Preview: Getting started with Content Services GraphQL API](http://www.ibm.com/support/docview.wss?uid=ibm10883630)
@@ -126,17 +128,9 @@ To upgrade Content Platform Engine:
 ```
    helm upgrade dbamc-cpe /helm-charts/ibm-dba-contentservices-3.0.0.tgz --reuse-values --set image.repository=<image_repository_url>:5000/dbamc/cpe,image.tag=ga-553-p8cpe,imagePullSecrets.name=admin.registrykey,resources.requests.cpu=500m,resources.requests.memory=512Mi,resources.limits.cpu=1,resources.limits.memory=2048Mi,log.format=json
 ```   
-Replace <image_repository_url> with correct registry URL, for example, docker-registry.default.svc
+Replace <image_repository_url> with the correct registry URL, for example, docker-registry.default.svc
 
-To upgrade Content Search Services:
-
-```
-   $ helm upgrade dbamc-css /helm-charts/ibm-dba-contentsearch-3.0.0.tgz  --reuse-values --set image.repository=<image_repository_url>:5000/dbamc/css,image.tag=ga-553-p8css,imagePullSecrets.name=admin.registrykey,resources.requests.cpu=500m,resources.requests.memory=512Mi,resources.limits.cpu=8,resources.limits.memory=8192Mi,log.format=json,dataVolume.nameforCSSCustomstore=custom-stor,dataVolume.existingPVCforCSSCustomstore=css-icp-customstore
-```
-
-Replace <image_repository_url> with correct registry URL, for example, docker-registry.default.svc.
-
-To upgrade Content Navigator:
+To upgrade IBM Content Navigator:
 
 ```
   $ helm upgrade dbamc-icn /helm-charts/ibm-dba-navigator-3.0.0.tgz  --reuse-values --set image.repository=mycluster.icp:8500/apprentice/navigator,image.tag=stable-ubi,resources.requests.cpu=500m,resources.requests.memory=512Mi,imagePullSecrets.name=admin.registrykey,resources.limits.cpu=1,resources.limits.memory=1024Mi,log.format=json --tls
@@ -144,13 +138,22 @@ To upgrade Content Navigator:
 
 Replace <image_repository_url> with correct registry URL, for example, docker-registry.default.svc.
 
+To upgrade Content Search Services:
+
+```
+   $ helm upgrade dbamc-css /helm-charts/ibm-dba-contentsearch-3.0.0.tgz  --reuse-values --set image.repository=<image_repository_url>:5000/dbamc/css,image.tag=ga-553-p8css,imagePullSecrets.name=admin.registrykey,resources.requests.cpu=500m,resources.requests.memory=512Mi,resources.limits.cpu=8,resources.limits.memory=8192Mi,log.format=json,dataVolume.nameforCSSCustomstore=custom-stor,dataVolume.existingPVCforCSSCustomstore=css-icp-customstore
+```
+
+Replace <image_repository_url> with the correct registry URL, for example, docker-registry.default.svc.
+
+
 To upgrade Content Management Interoperability Services:
 
 ```
    $ helm upgrade dbamc-cmis /helm-charts/ibm-dba-cscmis-1.7.0.tgz  --reuse-values --set image.repository=<image_repository_url>:5000/dbamc/cmis,image.tag=ga-304-cmis-if007,imagePullSecrets.name=admin.registrykey,resources.requests.cpu=500m,resources.requests.memory=512Mi,resources.limits.cpu=1,resources.limits.memory=1024Mi,log.format=json
 ```   
 
-Replace <image_repository_url> with correct registry URL, for example, docker-registry.default.svc.
+Replace <image_repository_url> with the correct registry URL, for example, docker-registry.default.svc.
 
 ## Uninstalling a Kubernetes release of FileNet Content Manager
 
