@@ -4,11 +4,12 @@
 
 Ensure that you have completed the following tasks:
 
-- [Preparing your Kubernetes server](https://www.ibm.com/support/knowledgecenter/en/SSYHZ8_18.0.x/com.ibm.dba.install/k8s_topics/tsk_prepare_env_k8s.html)
-- [Downloading the PPA archive](../../README.md)
-- [Preparing FileNet environment](https://www.ibm.com/support/knowledgecenter/en/SSYHZ8_18.0.x/com.ibm.dba.install/k8s_topics/tsk_prepare_ecmk8s.html) 
+- [Preparing your FileNet environment](https://www.ibm.com/support/knowledgecenter/en/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_prepare.htm) 
+- [Preparing your Kubernetes server](https://www.ibm.com/support/knowledgecenter/en/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_prepare_env_k8s.htm)
+- [Downloading the product archives and loading the component images](../README.md)
 
-## Deploying component images
+
+## Deploying the component images
 
 Use the command line to deploy the image using the parameters in the appropriate YAML file. You also use the command line to determine access information for your deployed images.
 
@@ -19,6 +20,15 @@ To deploy Content Platform Engine:
  2. Run following command to get the Public IP and port to access Content Platform Engine:
     
     ```kubectl get svc | grep ecm-cpe```
+
+To deploy IBM Content Navigator:
+ 1. Use the deployment file to deploy IBM Content Navigator:
+    
+    ```kubectl apply -f navigator-deploy.yml```
+ 2. Run the following command to get the Public IP and port to access Content Management Interoperability Services:
+    
+    ```kubectl get svc | ecm-navigator```
+
 
 To deploy Content Search Services:
  1. Use the deployment file to deploy Content Search Services:
@@ -36,13 +46,14 @@ To deploy Content Management Interoperability Services:
     
     ```kubectl get svc | ecm-cmis```
 
+
 > **Reminder**: After you deploy, return to the instructions in the Knowledge Center, [Completing post deployment tasks for IBM FileNet Content Manager](https://www.ibm.com/support/knowledgecenter/en/SSYHZ8_18.0.x/com.ibm.dba.install/k8s_topics/tsk_deploy_postecmdeployk8s.html), to get your FileNet Content Manager environment up and running
 
 ## Deploying the External Share container
 
 If you want to optionally include the external share capability in your environment, you also configure and deploy the External Share container. 
 
-Ensure that you have completed the all of the preparation steps for deploying the External Share container: [Configuring external share for containers](https://www.ibm.com/support/knowledgecenter/en/SSYHZ8_19.0.x/com.ibm.dba.install/k8s_topics/tsk_ecmexternalsharek8s.html)
+Ensure that you have completed the all of the preparation steps for deploying the External Share container: [Configuring external share for containers](https://www.ibm.com/support/knowledgecenter/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_externalshare.htm)
 
  1. Use the deployment file to deploy the External Share container:
     
