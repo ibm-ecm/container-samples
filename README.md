@@ -32,36 +32,45 @@ Perform the following tasks to prepare to deploy your FileNet Content Manager im
 Content Platform Engine
 
    ```
-  tar xvf <CPE-container-part-number.tar>
-  docker load -i <image.tgz>
+  tar xvf <CPE-container-part-number>.tar
+  docker load -i <image>.tgz
   docker tag <docker store>/cpe:latest <private registry>/cpe:latest
   docker push <private registry>/cpe:latest
    ```   
 
 Navigator:
 
-tar xvf <ICN-container-part-number.tar>
-This will give 2 tgz files. 1) Navigator SSO 2) Navigator non-SSO
-docker load <image.tgz>
-docker tag <docker store>/navigator:latest <private registry>/navigator:latest
-docker push <private registry>/navigator:latest
+   ```
+  tar xvf <ICN-container-part-number.tar>
+   ```   
+   This results in two .tgz image files, Navigator SSO, and Navigator non-SSO.
+   
+   ```
+  docker load <image>.tgz
+  docker tag <docker store>/navigator:latest <private registry>/navigator:latest
+  docker push <private registry>/navigator:latest
+   ```   
 
-CSS:
+Content Search Services:
 
-    o Extract image from part number --> tar xvf <CSS-container-part-number.tar>
-    o docker load <image.tgz>
-    o docker tag <docker store>/css:latest <private registry>/css:latest
-    o docker push <private registry>/css:latest
- 	
-
-CMIS:
-
-    o Extract image from part number --> tar xvf <CMIS-container-part-number.tar>
-    o docker load  <image.tgz>
-    o docker tag <docker store>/cmis:latest <private registry>/cmis:latest
-    o docker push <private registry>/cmis:latest
+   ```
+  tar xvf <CSS-container-part-number>.tar
+  docker load <image>.tgz
+  docker tag <docker store>/navigator:latest <private registry>/navigator:latest
+  docker push <private registry>/navigator:latest
+   ```    	
     
-ES:
+
+Content Management Interoperability Services:
+
+   ```
+  tar xvf <<CMIS-container-part-number>.tar
+  docker load <image>.tgz
+  docker tag <docker store>/cmis:latest <private registry>/cmis:latest
+  docker push <private registry>/cmis:latest
+   ```
+
+External Share:
 
     o Extract image from part number --> tar xvf <ES-container-part-number.tar>
     o docker load  <image.tgz>
