@@ -22,6 +22,7 @@ To deploy Content Platform Engine:
     ```kubectl get svc | grep ecm-cpe```
 
 To deploy IBM Content Navigator:
+>**Note**: Modify ICNDBTYPE to match with your database server type. (For example: db2 , oracle & mssql)
  1. Use the deployment file to deploy IBM Content Navigator:
     
     ```kubectl apply -f navigator-deploy.yml```
