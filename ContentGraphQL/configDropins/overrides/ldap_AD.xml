@@ -1,6 +1,6 @@
 <server>
 	<ldapRegistry id="MyAD" realm="defaultRealm"
-		host="9.30.99.169" 
+		host="<Hostname>" 
 		baseDN="OU=Engineering,OU=FileNet,DC=ibm,DC=com"
 		port="389"
 		ldapType="Microsoft Active Directory"
