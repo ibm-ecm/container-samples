@@ -6,7 +6,7 @@
 		ldapType="Microsoft Active Directory"
 		bindDN="CN=CEAdmin,OU=Shared,OU=Engineering,OU=FileNet,DC=ibm,DC=com"
 		sslEnabled="False"
-		bindPassword="Genius1">
+		bindPassword="<Password>">
 		<activedFilters
 			userFilter="(&amp;(objectClass=person)(cn=%v))"
 			groupFilter="(&amp;(objectClass=group)(cn=%v))"
