@@ -1,12 +1,12 @@
 <server>
 	<ldapRegistry id="MyTDS" realm="defaultRealm"
-		host="172.16.194.107" 
+		host="<Hostname>" 
 		baseDN="dc=hqpsidcdom,dc=com"
 		port="389"
 		ldapType="IBM Tivoli Directory Server"
 		bindDN="cn=root"
 		sslEnabled="False"
-		bindPassword="{xor}GDoxNiosbg==">
+		bindPassword="<Password>">
 		<idsFilters
 			userFilter="(&amp;(cn=%v)(objectclass=person))"
 			groupFilter="(&amp;(cn=%v)(|(objectclass=groupOfNames)(objectclass=groupOfUniqueNames)(objectclass=groupOfURLs)))"
