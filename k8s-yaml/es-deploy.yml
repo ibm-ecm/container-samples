@@ -12,6 +12,10 @@ spec:
       protocol: TCP
       port: 9443
       targetPort: 9443
+    - name: metrics
+      protocol: TCP
+      port: 9103
+      targetPort: 9103      
   selector:
     app: esserver-cluster1
   type: NodePort
@@ -64,6 +68,8 @@ spec:
           name: http
         - containerPort: 9443
           name: https
+        - containerPort: 9103
+          name: metrics          
         env:
           - name: LICENSE
             value: "accept"

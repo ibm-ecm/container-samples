@@ -12,6 +12,10 @@ spec:
       protocol: TCP
       port: 8199
       targetPort: 8199
+    - name: metrics
+      protocol: TCP
+      port: 9103
+      targetPort: 9103      
   selector:
     app: csssearch-cluster
   type: ClusterIP
@@ -76,6 +80,8 @@ spec:
           name: cssdefault
         - containerPort: 8199
           name: cssssl
+        - containerPort: 9103
+          name: metrics          
         readinessProbe:
           tcpSocket:
             port: 8199
