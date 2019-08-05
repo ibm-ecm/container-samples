@@ -60,18 +60,31 @@ To deploy Content Platform Engine:
    ```console
    $ helm install ibm-dba-contentservices-3.0.0.tgz --name dbamc-cpe --namespace dbamc --set cpeProductionSetting.license=accept,cpeProductionSetting.jvmHeapXms=512,cpeProductionSetting.jvmHeapXmx=1024,cpeProductionSetting.licenseModel=FNCM.CU,dataVolume.existingPVCforCPECfgstore=cpe-cfgstore,dataVolume.existingPVCforCPELogstore=cpe-logstore,dataVolume.existingPVCforFilestore=cpe-filestore,dataVolume.existingPVCforICMrulestore=cpe-icmrulesstore,dataVolume.existingPVCforTextextstore=cpe-textextstore,dataVolume.existingPVCforBootstrapstore=cpe-bootstrapstore,dataVolume.existingPVCforFNLogstore=cpe-fnlogstore,autoscaling.enabled=False,resources.requests.cpu=1,replicaCount=1,image.repository=<cluster.registry.repo>/dbamc/cpe,image.tag=ga-553-p8cpe,cpeProductionSetting.gcdJNDIName=FNGCDDS,cpeProductionSetting.gcdJNDIXAName=FNGCDDSXA 
    ```
+
+Note:  To leverage monitoring using Prometheus, please enable monitoring and set MON_METRICS_WRITER_OPTION to 4.  The default port for Prometheus Plugin is 9103, which can be overriden by using MON_METRICS_SERVICE_ENDPOINT (i.e., monitoring.enabled=True, monitoringConfiguration.monMetricsWriterOpt=4, and monitoringConfiguration.monMetricsSvcEndpoint=9103).  Here is an example to deploy Content Platform Engine with Prometheus Plugin:
+
+  ```
+  $ helm install ibm-dba-contentservices-3.0.0.tgz --name dbamc-cpe --namespace dbamc --set cpeProductionSetting.license=accept,cpeProductionSetting.jvmHeapXms=512,cpeProductionSetting.jvmHeapXmx=1024,cpeProductionSetting.licenseModel=FNCM.CU,dataVolume.existingPVCforCPECfgstore=cpe-cfgstore,dataVolume.existingPVCforCPELogstore=cpe-logstore,dataVolume.existingPVCforFilestore=cpe-filestore,dataVolume.existingPVCforICMrulestore=cpe-icmrulesstore,dataVolume.existingPVCforTextextstore=cpe-textextstore,dataVolume.existingPVCforBootstrapstore=cpe-bootstrapstore,dataVolume.existingPVCforFNLogstore=cpe-fnlogstore,autoscaling.enabled=False,monitoring.enabled=True,monitoringConfiguration.monMetricsWriterOpt=4,monitoringConfiguration.monMetricsSvcEndpoint=9103,resources.requests.cpu=1,replicaCount=1,image.repository=<cluster.registry.repo>/dbamc/cpe,image.tag=ga-553-p8cpe,cpeProductionSetting.gcdJNDIName=FNGCDDS,cpeProductionSetting.gcdJNDIXAName=FNGCDDSXA
+  ```
+
 To deploy IBM Content Navigator:
 
    ```console
    $ helm install ibm-dba-navigator-3.0.0.tgz --name dbamc-navigator --namespace dbamc --set icnProductionSetting.license=accept,icnProductionSetting.jvmHeapXms=512,icnProductionSetting.jvmHeapXmx=1024,icnProductionSetting.icnDBType=db2,icnProductionSetting.icnJNDIDSName=ECMClientDS,icnProductionSetting.icnSChema=ICNDB,icnProductionSetting.icnTableSpace=ICNDBTS,icnProductionSetting.icnAdmin=ceadmin,icnProductionSetting.navigatorMode=3,dataVolume.existingPVCforICNCfgstore=icn-cfgstore,dataVolume.existingPVCforICNLogstore=icn-logstore,dataVolume.existingPVCforICNPluginstore=icn-pluginstore,dataVolume.existingPVCforICNVWCachestore=icn-vw-cachestore,dataVolume.existingPVCforICNVWLogstore=icn-vw-logstore,dataVolume.existingPVCforICNAsperastore=icn-asperastore,autoscaling.enabled=False,replicaCount=1,imagePullSecrets.name=admin.registrykey,image.repository=<image_repository_url>:5000/dbamc/navigator,image.tag=ga-306-icn
    ```
 
+Note:  To leverage monitoring using Prometheus, please enable monitoring and set MON_METRICS_WRITER_OPTION to 4.  The default port for Prometheus Plugin is 9103, which can be overriden by using MON_METRICS_SERVICE_ENDPOINT (i.e., monitoring.enabled=True, monitoringConfiguration.monMetricsWriterOpt=4, and monitoringConfiguration.monMetricsSvcEndpoint=9103).  Please see the Content Platform Engine example above.
+
+
 To deploy Content Search Services:
 
    ```console     
      $ helm install ibm-dba-contentsearch-3.0.0.tgz --name dbamc-css --namespace dbamc --set cssProductionSetting.license=accept,service.name=csssvc,service.externalSSLPort=8199,cssProductionSetting.jvmHeapXmx=3072,dataVolume.existingPVCforCSSCfgstore=css-cfgstore,dataVolume.existingPVCforCSSLogstore=css-logstore,dataVolume.existingPVCforCSSTmpstore=css-tempstore,dataVolume.existingPVCforIndex=css-indexstore,dataVolume.existingPVCforCSSCustomstore=css-customstore,resources.limits.memory=7Gi,cssProductionSetting.jvmHeapXmx=4096,image.repository=<image_repository_url>:5000/dbamc/css,image.tag=ga-553-p8css,imagePullSecrets.name=admin.registrykey
    ```     
- Replace <image_repository_url> with the correct registry URL, for example, docker-registry.default.svc.
+
+Note:  To leverage monitoring using Prometheus, please enable monitoring and set MON_METRICS_WRITER_OPTION to 4.  The default port for Prometheus Plugin is 9103, which can be overriden by using MON_METRICS_SERVICE_ENDPOINT (i.e., monitoring.enabled=True, monitoringConfiguration.monMetricsWriterOpt=4, and monitoringConfiguration.monMetricsSvcEndpoint=9103).  Please see the Content Platform Engine example above.
+
+Replace <image_repository_url> with the correct registry URL, for example, docker-registry.default.svc.
  
 Some environments require multiple Content Search Services deployments. To deploy multiple Content Search Services instances, specify a unique release name and service name, and a new set of persistent volumes and persistent volume claims (PVs and PVCs).  The example below shows a deployment using a new release name `dbamc-css2`, a new service name `csssvc2`, and a new set of persistent volumes `css2-cfgstore`, `css2-logstore`, `css2-tempstore`, `css2-indexstore`, and `css2-customstore`.  You can reuse the same persistent volume for the indexstore if you want to have multiple Content Search Services deployments that access the same set of index collections.  However, it is recommended that the other persistent volumes be unique.
  
@@ -89,6 +102,8 @@ Some environments require multiple Content Search Services deployments. To deplo
    ```
 Replace <image_repository_url> with the correct registry URL, for example, docker-registry.default.svc.
 
+Note:  To leverage monitoring using Prometheus, please enable monitoring and set MON_METRICS_WRITER_OPTION to 4.  The default port for Prometheus Plugin is 9103, which can be overriden by using MON_METRICS_SERVICE_ENDPOINT (i.e., monitoring.enabled=True, monitoringConfiguration.monMetricsWriterOpt=4, and monitoringConfiguration.monMetricsSvcEndpoint=9103).  Please see the Content Platform Engine example above.
+
 > **Reminder**: After you deploy, return to the instructions in the Knowledge Center, [Completing post deployment tasks for IBM FileNet Content Manager](https://www.ibm.com/support/knowledgecenter//SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_postdeploy.htm), to get your FileNet Content Manager environment up and running
 
 ## Deploying the External Share container
@@ -104,6 +119,8 @@ To deploy the External Share container:
    ```
     
   Replace <image_repository_url> with the correct registry URL, for example, docker-registry.default.svc.
+
+  Note:  To leverage monitoring using Prometheus, please enable monitoring and set MON_METRICS_WRITER_OPTION to 4.  The default port for Prometheus Plugin is 9103, which can be overriden by using MON_METRICS_SERVICE_ENDPOINT (i.e., monitoring.enabled=True, monitoringConfiguration.monMetricsWriterOpt=4, and monitoringConfiguration.monMetricsSvcEndpoint=9103).  Please see the Content Platform Engine example above.
  
 ## Deploying the Technology Preview: Content Services GraphQL API container
 If you want to use the Content Services GraphQL API container, follow the instructions in the Getting Started technical notice: [Technology Preview: Getting started with Content Services GraphQL API](http://www.ibm.com/support/docview.wss?uid=ibm10883630)
@@ -116,6 +133,7 @@ To deploy the ContentGraphQL Container:
    Replace <image_repository_url> with correct registry URL, for example, docker-registry.default.svc.
    Replace <CPE_Hostname>:<port> with the FileNet Content Engine application host and Port.
    
+   Note:  To leverage monitoring using Prometheus, please enable monitoring and set MON_METRICS_WRITER_OPTION to 4.  The default port for Prometheus Plugin is 9103, which can be overriden by using MON_METRICS_SERVICE_ENDPOINT (i.e., monitoring.enabled=True, monitoringConfiguration.monMetricsWriterOpt=4, and monitoringConfiguration.monMetricsSvcEndpoint=9103).  Please see the Content Platform Engine example above.
 
 
 ## Upgrading deployments
@@ -130,6 +148,8 @@ To upgrade Content Platform Engine:
 ```   
 Replace <image_repository_url> with the correct registry URL, for example, docker-registry.default.svc
 
+Note:  To leverage monitoring using Prometheus, please enable monitoring and set MON_METRICS_WRITER_OPTION to 4.  The default port for Prometheus Plugin is 9103, which can be overriden by using MON_METRICS_SERVICE_ENDPOINT (i.e., monitoring.enabled=True, monitoringConfiguration.monMetricsWriterOpt=4, and monitoringConfiguration.monMetricsSvcEndpoint=9103).  Please see the Content Platform Engine example above.
+
 To upgrade IBM Content Navigator:
 
 ```
@@ -137,6 +157,9 @@ To upgrade IBM Content Navigator:
 ```   
 
 Replace <image_repository_url> with correct registry URL, for example, docker-registry.default.svc.
+
+Note:  To leverage monitoring using Prometheus, please enable monitoring and set MON_METRICS_WRITER_OPTION to 4.  The default port for Prometheus Plugin is 9103, which can be overriden by using MON_METRICS_SERVICE_ENDPOINT (i.e., monitoring.enabled=True, monitoringConfiguration.monMetricsWriterOpt=4, and monitoringConfiguration.monMetricsSvcEndpoint=9103).  Please see the Content Platform Engine example above.
+
 
 To upgrade Content Search Services:
 
@@ -146,6 +169,8 @@ To upgrade Content Search Services:
 
 Replace <image_repository_url> with the correct registry URL, for example, docker-registry.default.svc.
 
+Note:  To leverage monitoring using Prometheus, please enable monitoring and set MON_METRICS_WRITER_OPTION to 4.  The default port for Prometheus Plugin is 9103, which can be overriden by using MON_METRICS_SERVICE_ENDPOINT (i.e., monitoring.enabled=True, monitoringConfiguration.monMetricsWriterOpt=4, and monitoringConfiguration.monMetricsSvcEndpoint=9103).  Please see the Content Platform Engine example above.
+
 
 To upgrade Content Management Interoperability Services:
 
@@ -154,6 +179,9 @@ To upgrade Content Management Interoperability Services:
 ```   
 
 Replace <image_repository_url> with the correct registry URL, for example, docker-registry.default.svc.
+
+Note:  To leverage monitoring using Prometheus, please enable monitoring and set MON_METRICS_WRITER_OPTION to 4.  The default port for Prometheus Plugin is 9103, which can be overriden by using MON_METRICS_SERVICE_ENDPOINT (i.e., monitoring.enabled=True, monitoringConfiguration.monMetricsWriterOpt=4, and monitoringConfiguration.monMetricsSvcEndpoint=9103).  Please see the Content Platform Engine example above.
+
 
 ## Uninstalling a Kubernetes release of FileNet Content Manager
 

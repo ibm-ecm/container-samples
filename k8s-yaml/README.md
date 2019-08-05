@@ -17,15 +17,21 @@ To deploy Content Platform Engine:
  1. Use the deployment file to deploy Content Platform Engine:
     
     ```kubectl apply -f cpe-deploy.yml```
+
+   Note:  To leverage monitoring using Prometheus, update the cpe-deploy.yml and set a new environment variable MON_METRICS_WRITER_OPTION to 4 to enable the Prometheus plugin (i.e., name: MON_METRICS_WRITER_OPTION and value: "4").  The default port for Prometheus Plugin is 9103, which can be overriden by using MON_METRICS_SERVICE_ENDPOINT.
+
+
  2. Run following command to get the Public IP and port to access Content Platform Engine:
     
     ```kubectl get svc | grep ecm-cpe```
 
 To deploy IBM Content Navigator:
->**Note**: Modify ICNDBTYPE to match with your database server type. (For example: db2 , oracle & mssql)
  1. Use the deployment file to deploy IBM Content Navigator:
     
     ```kubectl apply -f navigator-deploy.yml```
+
+   Note:  To leverage monitoring using Prometheus, update the navigator-deploy.yml and set a new environment variable MON_METRICS_WRITER_OPTION to 4 to enable the Prometheus plugin (i.e., name: MON_METRICS_WRITER_OPTION and value: "4").  The default port for Prometheus Plugin is 9103, which can be overriden by using MON_METRICS_SERVICE_ENDPOINT.
+
  2. Run the following command to get the Public IP and port to access Content Management Interoperability Services:
     
     ```kubectl get svc | ecm-navigator```
@@ -35,6 +41,9 @@ To deploy Content Search Services:
  1. Use the deployment file to deploy Content Search Services:
     
     ```kubectl apply -f css-deploy.yml```
+
+   Note:  To leverage monitoring using Prometheus, update the css-deploy.yml and set a new environment variable MON_METRICS_WRITER_OPTION to 4 to enable the Prometheus plugin (i.e., name: MON_METRICS_WRITER_OPTION and value: "4").  The default port for Prometheus Plugin is 9103, which can be overriden by using MON_METRICS_SERVICE_ENDPOINT.
+
  2. Run the following command to get the Public IP and port to access Content Search Services:
     
     ```kubectl get svc | grep ecm-css```
@@ -43,6 +52,9 @@ To deploy Content Management Interoperability Services:
  1. Use the deployment file to deploy Content Management Interoperability Services:
     
     ```kubectl apply -f cmis-deploy.yml```
+
+   Note:  To leverage monitoring using Prometheus, update the cmis-deploy.yml and set a new environment variable MON_METRICS_WRITER_OPTION to 4 to enable the Prometheus plugin (i.e., name: MON_METRICS_WRITER_OPTION and value: "4").  The default port for Prometheus Plugin is 9103, which can be overriden by using MON_METRICS_SERVICE_ENDPOINT.
+
  2. Run the following command to get the Public IP and port to access Content Management Interoperability Services:
     
     ```kubectl get svc | ecm-cmis```
@@ -59,6 +71,9 @@ Ensure that you have completed the all of the preparation steps for deploying th
  1. Use the deployment file to deploy the External Share container:
     
     ```kubectl apply -f es-deploy.yml```
+
+   Note:  To leverage monitoring using Prometheus, update the es-deploy.yml and set a new environment variable MON_METRICS_WRITER_OPTION to 4 to enable the Prometheus plugin (i.e., name: MON_METRICS_WRITER_OPTION and value: "4").  The default port for Prometheus Plugin is 9103, which can be overriden by using MON_METRICS_SERVICE_ENDPOINT.
+
  2. Run the following command to get the Public IP and port to access External Share:
     
     ```kubectl get svc | ecm-es```
@@ -69,6 +84,9 @@ If you want to use the Content Services GraphQL API container, follow the instru
  1. Use the deployment file to deploy the Content Services GraphQL API container:
     
     ```kubectl apply -f crs-deploy.yml```
+
+   Note:  To leverage monitoring using Prometheus, update the crs-deploy.yml and set a new environment variable MON_METRICS_WRITER_OPTION to 4 to enable the Prometheus plugin (i.e., name: MON_METRICS_WRITER_OPTION and value: "4").  The default port for Prometheus Plugin is 9103, which can be overriden by using MON_METRICS_SERVICE_ENDPOINT.
+
  2. Run the following command to get the Public IP and port to access the Content Services GraphQL API:
     
     ```kubectl get svc | ecm-crs```
