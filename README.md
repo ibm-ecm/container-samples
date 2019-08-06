@@ -169,7 +169,7 @@ Deployment of CPE in to K8s.
 
  For Microsoft Active Directory
  --
-  https://github.com/ibm-ecm/container-samples/blob/master/CPE/configDropins/overrides/ldap_AD.xml
+  https://github.com/ibm-ecm/container-samples/blob/5.5.1/CPE/configDropins/overrides/ldap_AD.xml
 
 Modify ldap_AD.xml file with your LDAP host , baseDN , port , bindDN ,bindPassword. 
 
@@ -180,7 +180,7 @@ If you have the different userFilter & groupFilter , modify those as well
 For IBM Tivoli Directory Server
 --
 
-https://github.com/ibm-ecm/container-samples/blob/master/CPE/configDropins/overrides/ldap_TDS.xml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/CPE/configDropins/overrides/ldap_TDS.xml
 
 Modify ldap_TDS.xml with your LDAP host , baseDN , port , bindDN,bindPassword.
 
@@ -197,7 +197,7 @@ If you have different userFillter and groupFilter , please update those as well
 GCD.xml
 --
 
-https://github.com/ibm-ecm/container-samples/blob/master/CPE/configDropins/overrides/GCD.xml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/CPE/configDropins/overrides/GCD.xml
 
 Modify GCD.xml file with your database serverName , GCD databaseName , portNumber , user & password.
 
@@ -205,7 +205,7 @@ Modify GCD.xml file with your database serverName , GCD databaseName , portNumbe
 OBJSTORE.xml
 ---
 
-https://github.com/ibm-ecm/container-samples/blob/master/CPE/configDropins/overrides/OBJSTORE.xml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/CPE/configDropins/overrides/OBJSTORE.xml
 
 Modify OBJSTORE.xml with your database serverName , Objectstore databaseName , portNumber , user & password.
 
@@ -216,7 +216,7 @@ If you have more than 1 objectstore , you can copy above and modify jndiName , j
 GCD_HADR.xml
 --
 
-https://github.com/ibm-ecm/container-samples/blob/master/CPE/configDropins/overrides/GCD_HADR.xml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/CPE/configDropins/overrides/GCD_HADR.xml
 
 
 Modify GCD_HADR.xml file with your database serverName , GCD databaseName , portNumber , user , password, clientRerouteAlternateServerName, clientRerouteAlternatePortNumber
@@ -224,7 +224,7 @@ Modify GCD_HADR.xml file with your database serverName , GCD databaseName , port
 OBJSTORE_HADR.xml
 --
 
-https://github.com/ibm-ecm/container-samples/blob/master/CPE/configDropins/overrides/OBJSTORE_HADR.xml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/CPE/configDropins/overrides/OBJSTORE_HADR.xml
 
 Modify OBJSTORE_HADR.xml file with your database serverName , Objectstore databaseName , portNumber , user , password, clientRerouteAlternateServerName, clientRerouteAlternatePortNumber.
 
@@ -235,14 +235,14 @@ If you have more than 1 objectstore , you can copy above and modify jndiName , j
 GCD_Oracle.xml
 --
 
-https://github.com/ibm-ecm/container-samples/blob/master/CPE/configDropins/overrides/GCD_Oracle.xml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/CPE/configDropins/overrides/GCD_Oracle.xml
 
 Modify GCD_Oracle.xml file with your database URL , user , password.
 
 OBJSTORE_Oracle.xml
 --
 
-https://github.com/ibm-ecm/container-samples/blob/master/CPE/configDropins/overrides/OBJSTORE_Oracle.xml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/CPE/configDropins/overrides/OBJSTORE_Oracle.xml
 
  Modify the OBJSTORE_Oracle.xml file with your Objectstore database JDBC URL , user & password.
  If you have more than 1 objectstore , you can copy above and modify jndiName , jndiXAName , database URL, user & password.
@@ -254,11 +254,11 @@ https://github.com/ibm-ecm/container-samples/blob/master/CPE/configDropins/overr
 
     For DB2 & DB2_HADR -->  DB2JCCDriver.xml
 
-    https://github.com/ibm-ecm/container-samples/blob/master/CPE/configDropins/overrides/DB2JCCDriver.xml
+    https://github.com/ibm-ecm/container-samples/blob/5.5.1/CPE/configDropins/overrides/DB2JCCDriver.xml
 
     For Oracle         -->  OraJDBCDriver.xml
 
-    https://github.com/ibm-ecm/container-samples/blob/master/CPE/configDropins/overrides/OraJDBCDriver.xml
+    https://github.com/ibm-ecm/container-samples/blob/5.5.1/CPE/configDropins/overrides/OraJDBCDriver.xml
 
 
 5.  CPE product deployment has default SSL keystore files as part of deployment. If the user need to have your own SSL keystore and certificate files , they will need put the files (keystore.jks & trustore.jks) in the overrides folder.
@@ -276,7 +276,7 @@ For Oracle          --> ojdbc8.jar
 
 7.  Download CPE product deployment yml. (cpe-deploy.yml)
 
-https://github.com/ibm-ecm/container-samples/blob/master/cpe-deploy.yml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/cpe-deploy.yml
 
 
 8.  Modify the “image” name depending on your private repository.
@@ -434,7 +434,7 @@ For example  chown –Rf 501:500 /icncfgstore
 
 For Microsoft Active Directory
 --
-https://github.com/ibm-ecm/container-samples/blob/master/ICN/configDropins/overrides/ldap_AD.xml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/ICN/configDropins/overrides/ldap_AD.xml
 
 Modify ldap_AD.xml file with your LDAP host , baseDN , port , bindDN ,bindPassword. 
 
@@ -445,7 +445,7 @@ If you have the different userFilter & groupFilter , modify those as well
 For IBM Tivoli Directory Server
 --
 
-https://github.com/ibm-ecm/container-samples/blob/master/ICN/configDropins/overrides/ldap_TDS.xml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/ICN/configDropins/overrides/ldap_TDS.xml
 
 Modify ldap_TDS.xml with your LDAP host , baseDN , port , bindDN,bindPassword.
 
@@ -459,14 +459,14 @@ If you have different userFillter and groupFilter , please update those as well
 For Database DB2  ICNDS.xml
 --
 
-https://github.com/ibm-ecm/container-samples/blob/master/ICN/configDropins/overrides/ICNDS.xml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/ICN/configDropins/overrides/ICNDS.xml
 
 Modify the ICNDS.xml file with your database serverName , portNumber , user & password.
 
 For Database DB2 HADR  ICNDS_HADR.xml
 --
 
-https://github.com/ibm-ecm/container-samples/blob/master/ICN/configDropins/overrides/ICNDS_HADR.xml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/ICN/configDropins/overrides/ICNDS_HADR.xml
 
 
 Modify the ICNDS_HADR.xml file with your database serverName ,portNumber , user , password , database clientRerouteAlternateServerName , clientRerouteAlternatePortNumber. 
@@ -474,7 +474,7 @@ Modify the ICNDS_HADR.xml file with your database serverName ,portNumber , user 
 For Database Oracle  ICNDS_Oracle.xml
 --
 
-https://github.com/ibm-ecm/container-samples/blob/master/ICN/configDropins/overrides/ICNDS_Oracle.xml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/ICN/configDropins/overrides/ICNDS_Oracle.xml
 
 Modify the  ICNDS_Oracle file for the URL , database user and password.
 
@@ -490,12 +490,12 @@ Modify the  ICNDS_Oracle file for the URL , database user and password.
 
 For DB2 & DB2_HADR -->  DB2JCCDriver.xml
 
-https://github.com/ibm-ecm/container-samples/blob/master/ICN/configDropins/overrides/DB2JCCDriver.xml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/ICN/configDropins/overrides/DB2JCCDriver.xml
 
 
 For Oracle         -->  OraJDBCDriver.xml
 
-https://github.com/ibm-ecm/container-samples/blob/master/ICN/configDropins/overrides/OraJDBCDriver.xml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/ICN/configDropins/overrides/OraJDBCDriver.xml
 
 5. Copy the corresponding database JDBC driver files to created configuration store for ICN. 
 
@@ -507,7 +507,7 @@ For Oracle          --> ojdbc8.jar
                 
 6.  Download the sample Navigator product deployment yml. (icn-deploy.yml)
 
-https://github.com/ibm-ecm/container-samples/blob/master/icn-deploy.yml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/icn-deploy.yml
 
 
 7.  Modify the “image” name depending on your private repository.
@@ -646,11 +646,11 @@ For example  chown –Rf 501:500 /csscfgstore
 3.  Download the cssSelfsignedServerStore file and copy to CSS Configuration Store.
 (Example: css-cfgstore  /csscfgstore/css/CSS_Server_data/ sslkeystone
 
-https://github.com/ibm-ecm/container-samples/tree/master/CSS/CSS_Server_data/sslkeystone
+https://github.com/ibm-ecm/container-samples/tree/5.5.1/CSS/CSS_Server_data/sslkeystone
 
 4.  Download the sample CSS Search deployment file. (css-search-deploy.yml)
 
-https://github.com/ibm-ecm/container-samples/blob/master/css-deploy.yml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/css-deploy.yml
 
           
 5.  Modify the “image” name depending on your private repository.
@@ -814,7 +814,7 @@ For example  chown –Rf 501:500 /cmiscfgstore
 For Microsoft Active Directory
 --
 
-https://github.com/ibm-ecm/container-samples/blob/master/CMIS/configDropins/overrides/ldap_AD.xml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/CMIS/configDropins/overrides/ldap_AD.xml
 
 Modify ldap_AD.xml file with your LDAP host , baseDN , port , bindDN ,bindPassword. 
 
@@ -825,7 +825,7 @@ If you have the different userFilter & groupFilter , modify those as well
 For IBM Tivoli Directory Server
 --
 
-https://github.com/ibm-ecm/container-samples/blob/master/CMIS/configDropins/overrides/ldap_TDS.xml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/CMIS/configDropins/overrides/ldap_TDS.xml
 
 Modify ldap_TDS.xml with your LDAP host , baseDN , port , bindDN,bindPassword.
 
@@ -840,8 +840,7 @@ If you have different userFillter and groupFilter , please update those as well
 
 3.  Download the sample CMIS product deployment yml. (cmis-deploy.yml)
 
-
-https://github.com/ibm-ecm/container-samples/blob/master/cmis-deploy.yml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/cmis-deploy.yml
 
 4.  Modify the “image” name depending on your private repository.
 
@@ -981,7 +980,7 @@ For example  chown –Rf 501:500 /escfgstore
 
 For Microsoft Active Directory
 --
-https://github.com/ibm-ecm/container-samples/blob/master/extShare/configDropins/overrides/ldap_AD.xml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/extShare/configDropins/overrides/ldap_AD.xml
 
 Modify ldap_AD.xml file with your LDAP host , baseDN , port , bindDN ,bindPassword. 
 
@@ -992,7 +991,7 @@ If you have the different userFilter & groupFilter , modify those as well
 For IBM Tivoli Directory Server
 --
 
-https://github.com/ibm-ecm/container-samples/blob/master/extShare/configDropins/overrides/ldap_TDS.xml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/extShare/configDropins/overrides/ldap_TDS.xml
 
 Modify ldap_TDS.xml with your LDAP host , baseDN , port , bindDN,bindPassword.
 
@@ -1015,14 +1014,14 @@ In the on-premises configuration, you add the external user LDAP server in the A
 For Database DB2  ICNDS.xml
 --
 
-https://github.com/ibm-ecm/container-samples/blob/master/extShare/configDropins/overrides/ICNDS.xml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/extShare/configDropins/overrides/ICNDS.xml
 
 Modify the ICNDS.xml file with your database serverName , portNumber , user & password.
 
 For Database DB2 HADR  ICNDS_HADR.xml
 --
 
-https://github.com/ibm-ecm/container-samples/blob/master/extShare/configDropins/overrides/ICNDS_HADR.xml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/extShare/configDropins/overrides/ICNDS_HADR.xml
 
 
 Modify the ICNDS_HADR.xml file with your database serverName ,portNumber , user , password , database clientRerouteAlternateServerName , clientRerouteAlternatePortNumber. 
@@ -1030,7 +1029,7 @@ Modify the ICNDS_HADR.xml file with your database serverName ,portNumber , user 
 For Database Oracle  ICNDS_Oracle.xml
 --
 
-https://github.com/ibm-ecm/container-samples/blob/master/extShare/configDropins/overrides/ICNDS_Oracle.xml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/extShare/configDropins/overrides/ICNDS_Oracle.xml
 
 Modify the  ICNDS_Oracle file for the URL , database user and password.
 
@@ -1048,12 +1047,12 @@ Modify the  ICNDS_Oracle file for the URL , database user and password.
 
 For DB2 & DB2_HADR -->  DB2JCCDriver.xml
 
-https://github.com/ibm-ecm/container-samples/blob/master/extShare/configDropins/overrides/DB2JCCDriver.xml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/extShare/configDropins/overrides/DB2JCCDriver.xml
 
 
 For Oracle         -->  OraJDBCDriver.xml
 
-https://github.com/ibm-ecm/container-samples/blob/master/extShare/configDropins/overrides/OraJDBCDriver.xml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/extShare/configDropins/overrides/OraJDBCDriver.xml
 
 5. Copy the corresponding database JDBC driver files to created configuration store for ES. 
 
@@ -1072,7 +1071,7 @@ For Cross-Origin Resource Sharing cors.xml
 
 7.  Download the sample External Share product deployment yml. (es-deploy.yml)
 
-https://github.com/ibm-ecm/container-samples/blob/master/es-deploy.yml
+https://github.com/ibm-ecm/container-samples/blob/5.5.1/es-deploy.yml
 
 
 8.  Modify the “image” name depending on your private repository.
