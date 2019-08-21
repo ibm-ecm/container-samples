@@ -18,7 +18,7 @@ Perform the following tasks to prepare to deploy your FileNet Content Manager im
 
 ## Downloading packages and loading the images into the registry
 
-1. Use the information in the [download document for FileNet Content Manager](https://www-01.ibm.com/support/docview.wss?uid=swg24044874) to download the product images from Passport Advantage: 
+1. Use the information in the [download document for FileNet Content Manager](https://www-01.ibm.com/support/docview.wss?uid=ibm10878709) to download the product images from Passport Advantage: 
 
   - CPE-container-part-number.tar
   - ICN-container-part-number.tar
