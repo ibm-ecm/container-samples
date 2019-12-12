@@ -2,9 +2,8 @@ NOTICE
 
 This document includes License Information documents below for multiple Programs. Each License Information document identifies the Program(s) to which it applies. Only those License Information documents for the Program(s) for which Licensee has acquired entitlements apply.
 
-The translated license terms can be viewed here: [License and Copyright](https://www-03.ibm.com/software/sla/sladb.nsf/search?OpenForm) and search for FileNet Content Manager v5.5.3
-==============================================
 
+==============================================
 
 
 LICENSE INFORMATION
@@ -12,14 +11,14 @@ LICENSE INFORMATION
 The Programs listed below are licensed under the following License Information terms and conditions in addition to the Program license terms previously agreed to by Client and IBM. If Client does not have previously agreed to license terms in effect for the Program, the International Program License Agreement (Z125-3301-14) applies.
 
 Program Name (Program Number):
-IBM FileNet Content Manager Authorized v5.5.3 (5724-R81)
-IBM FileNet Content Manager Employee v5.5.3 (5724-R81)
-IBM FileNet Content Manager Eligible Participant v5.5.3 (5724-R81)
-IBM FileNet Content Manager Starter Pack Authorized v5.5.3 (5724-R81)
-IBM FileNet Content Manager Authorized User Term v5.5.3 (5724-R81)
-IBM FileNet Content Manager v5.5.3 (5724-R81)
-IBM FileNet Content Manager for Non-Production Environment v5.5.3 (5724-R81)
-IBM FileNet Content Manager Concurrent User v5.5.3 (5724-R81)
+IBM FileNet Content Manager Authorized v5.5.4 (5724-R81)
+IBM FileNet Content Manager Employee v5.5.4 (5724-R81)
+IBM FileNet Content Manager Eligible Participant v5.5.4 (5724-R81)
+IBM FileNet Content Manager Starter Pack Authorized v5.5.4 (5724-R81)
+IBM FileNet Content Manager Authorized User Term v5.5.4 (5724-R81)
+IBM FileNet Content Manager v5.5.4 (5724-R81)
+IBM FileNet Content Manager for Non-Production Environment v5.5.4 (5724-R81)
+IBM FileNet Content Manager Concurrent User v5.5.4 (5724-R81)
 
 The following standard terms apply to Licensee's use of the Program.
 
@@ -288,9 +287,140 @@ Content Platform Engine
 
 A Content Operation is each access to a document within the Program as measured in the Program's usage tracking.
 
-L/N:  L-VSAY-BB4SM7
-D/N:  L-VSAY-BB4SM7
-P/N:  L-VSAY-BB4SM7
+L/N:  L-VSAY-BGJUMT
+D/N:  L-VSAY-BGJUMT
+P/N:  L-VSAY-BGJUMT
+
+
+
+==============================================
+
+
+LICENSE INFORMATION
+
+The Programs listed below are licensed under the following License Information terms and conditions in addition to the Program license terms previously agreed to by Client and IBM. If Client does not have previously agreed to license terms in effect for the Program, the International Program License Agreement (Z125-3301-14) applies.
+
+Program Name (Program Number):
+IBM Content Engine Bulk Import Tool v5.5.4 (5724-R81)
+IBM Content Engine Bulk Import Tool for Non-Production Environment v5.5.4 (5724-R81)
+
+The following standard terms apply to Licensee's use of the Program.
+
+Limited use right
+
+As described in the International Program License Agreement ("IPLA") and this License Information, IBM grants Licensee a limited right to use the Program. This right is limited to the level of Authorized Use, such as a Processor Value Unit ("PVU"), a Resource Value Unit ("RVU"), a Value Unit ("VU"), or other specified level of use, paid for by Licensee as evidenced in the Proof of Entitlement. Licensee's use may also be limited to a specified machine, or only as a Supporting Program, or subject to other restrictions. As Licensee has not paid for all of the economic value of the Program, no other use is permitted without the payment of additional fees. In addition, Licensee is not authorized to use the Program to provide commercial IT services to any third party, to provide commercial hosting or timesharing, or to sublicense, rent, or lease the Program unless expressly provided for in the applicable agreements under which Licensee obtains authorizations to use the Program. Additional rights may be available to Licensee subject to the payment of additional fees or under different or supplementary terms. IBM reserves the right to determine whether to make such additional rights available to Licensee.
+
+Specifications
+
+Program's specifications can be found in the collective Description and Technical Information sections of the Program's Announcement Letters.
+
+Prohibited Uses
+
+Licensee may not use or authorize others to use the Program if failure of the Program could lead to death, bodily injury, or property or environmental damage.
+
+Multi-Product Install Image
+
+The Program is provided as part of a multi-product install image. Licensee is authorized to install and use only the Program (and its Bundled or Supporting Programs, if any) for which a valid entitlement is obtained and may not install or use any of the other software included in the image unless Licensee has acquired separate entitlements for that other software.
+
+Non-Production Limitation
+
+If the Program is designated as "Non-Production", the Program can only be deployed as part of the Licensee's internal development and test environment for internal non-production activities, including but not limited to testing, performance tuning, fault diagnosis, internal benchmarking, staging, quality assurance activity and/or developing internally used additions or extensions to the Program using published application programming interfaces. Licensee is not authorized to use any part of the Program for any other purposes without acquiring the appropriate production entitlements.
+
+The following units of measure may apply to Licensee's use of the Program.
+
+Virtual Server
+
+Virtual Server is a unit of measure by which the Program can be licensed. A server is a physical computer that is comprised of processing units, memory, and input/output capabilities and that executes requested procedures, commands, or applications for one or more users or client devices. Where racks, blade enclosures, or other similar equipment is being employed, each separable physical device (for example, a blade or a rack-mounted device) that has the required components is considered itself a separate server. A virtual server is either a virtual computer created by partitioning the resources available to a physical server or an unpartitioned physical server. Licensee must obtain Virtual Server entitlements for each virtual server made available to the Program, regardless of the number of processor cores in the virtual server or the number of copies of the Program on the virtual server.
+
+L/N:  L-VSAY-BGJUYJ
+D/N:  L-VSAY-BGJUYJ
+P/N:  L-VSAY-BGJUYJ
+
+
+
+==============================================
+
+
+LICENSE INFORMATION
+
+The Programs listed below are licensed under the following License Information terms and conditions in addition to the Program license terms previously agreed to by Client and IBM. If Client does not have previously agreed to license terms in effect for the Program, the International Program License Agreement (Z125-3301-14) applies.
+
+Program Name (Program Number):
+IBM FileNet P8 Connector to Hitachi Content Platform v5.5.4 (5724-S20)
+IBM FileNet P8 Connector to Centera Storage and Retrieval v5.5.4 (5724-S20)
+IBM FileNet P8 Connector to DR550 Storage and Retrieval v5.5.4 (5724-S20)
+IBM FileNet P8 Connector to Snaplock Storage and Retrieval v5.5.4 (5724-S20)
+IBM FileNet P8 Cloud Storage Connector to OpenStack-enabled devices v5.5.4 (5724-S20)
+IBM FileNet P8 Connector to EMC Atmos v5.5.4 (5724-S20)
+IBM FileNet P8 Connector to EMC Isilon v5.5.4 (5724-S20)
+IBM FileNet P8 Connector to S3-enabled devices v5.5.4 (5724-S20)
+
+The following standard terms apply to Licensee's use of the Program.
+
+Limited use right
+
+As described in the International Program License Agreement ("IPLA") and this License Information, IBM grants Licensee a limited right to use the Program. This right is limited to the level of Authorized Use, such as a Processor Value Unit ("PVU"), a Resource Value Unit ("RVU"), a Value Unit ("VU"), or other specified level of use, paid for by Licensee as evidenced in the Proof of Entitlement. Licensee's use may also be limited to a specified machine, or only as a Supporting Program, or subject to other restrictions. As Licensee has not paid for all of the economic value of the Program, no other use is permitted without the payment of additional fees. In addition, Licensee is not authorized to use the Program to provide commercial IT services to any third party, to provide commercial hosting or timesharing, or to sublicense, rent, or lease the Program unless expressly provided for in the applicable agreements under which Licensee obtains authorizations to use the Program. Additional rights may be available to Licensee subject to the payment of additional fees or under different or supplementary terms. IBM reserves the right to determine whether to make such additional rights available to Licensee.
+
+Specifications
+
+Program's specifications can be found in the collective Description and Technical Information sections of the Program's Announcement Letters.
+
+Prohibited Uses
+
+Licensee may not use or authorize others to use the Program if failure of the Program could lead to death, bodily injury, or property or environmental damage.
+
+Multi-Product Install Image
+
+The Program is provided as part of a multi-product install image. Licensee is authorized to install and use only the Program (and its Bundled or Supporting Programs, if any) for which a valid entitlement is obtained and may not install or use any of the other software included in the image unless Licensee has acquired separate entitlements for that other software.
+
+Limited Use Program
+
+This Program is supplied only for use with Named Program(s) and/or Service(s) identified below or their successors. Licensee is prohibited from using this Program in connection with any other software or service.
+
+Named Program(s) and/or Service(s):
+IBM FileNet Content Manager
+IBM Content Foundation
+
+The following units of measure may apply to Licensee's use of the Program.
+
+Resource Value Unit (RVU)
+
+Resource Value Unit (RVU) is a unit of measure by which the Program can be licensed. RVU Proofs of Entitlement are based on the number of units of a specific resource used or managed by the Program. Licensee must obtain sufficient entitlements for the number of RVUs required for Licensee's environment for the specific resources as specified in the table below. RVU entitlements are specific to the Program and the type of resource and may not be exchanged, interchanged, or aggregated with RVU entitlements of another program or resource.
+
+Terabyte
+
+Terabyte is a unit of measure by which the Program can be licensed. A Terabyte is 2 to the 40th power bytes. Licensee must obtain an entitlement for each Terabyte available to the Program.
+
+In addition to the above, the following terms apply to Licensee's use of the Program.
+
+1. Resource Value Unit
+
+1.1 The resource for the purpose of the RVU calculation is a Terabyte. One Terabyte is 2 to the 40th power bytes. Terabytes are counted based on the amount of IBM repository content stored on the primary storage device identified in the Program name for the unique connector. Duplicate copies of the content stored for Disaster Recovery or High Availability are not counted for the purpose of calculating the number of required RVUs. 
+
+1.2 Resource Value Unit Conversion Table
+
+From 1 to 1 Resources, 10.0000 per Resource
+From 2 to 5 Resources, 7.0000 per Resource above 1
+From 6 to 10 Resources, 5.4000 per Resource above 5
+From 11 to 25 Resources, 5.0000 per Resource above 10
+From 26 to 50 Resources, 3.4000 per Resource above 25
+From 51 to 200 Resources, 3.1666 per Resource above 50
+From 201 to 500 Resources, 2.6666 per Resource above 200
+From 501 to 1,000 Resources, 2.0000 per Resource above 500
+From 1,001 to 5,000 Resources, 1.8750 per Resource above 1,000
+For more than 5,001 Resources, 1.4975 per Resource above 5,001
+
+
+1. Users of the Program must be covered by an entitlement to the Named Program(s). Entitlements to the Program authorize usage of the IBM FileNet P8 Connector that is delivered with the Named Program(s) and that connects to the storage device identified in the Program name identified in your entitlement.
+
+2. Restriction on Assignment. Licensee may not assign, transfer, delegate, nor outsource to a third party, any of Licensee's license rights or obligations, in whole or in part, without the express written permission of IBM. Licensee may not use the Program or any component thereof to provide a service bureau application or commercial hosting services to third parties unless agreed to in writing by IBM. Contact Licensee's IBM Representative or IBM Business Partner if Licensee has any questions.
+
+L/N:  L-VSAY-BGJV3L
+D/N:  L-VSAY-BGJV3L
+P/N:  L-VSAY-BGJV3L
+
+
+
 
 
 International Program License Agreement
@@ -1002,4 +1132,3 @@ b. special, incidental, exemplary, or indirect damages or consequential damages;
 c. wasted management time or lost profits, business, revenue, goodwill, or anticipated savings.
 
 Z125-3301-14 (07/2011)
-

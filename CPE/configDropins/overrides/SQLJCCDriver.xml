@@ -1,6 +1,0 @@
-<server>
-	<library id="3ptLibrary">
-		<fileset dir="${server.config.dir}/configDropins/overrides" includes="mssql-jdbc-7.2.2.jre8.jar"/>
-	</library>	
-</server>
-
