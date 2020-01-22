@@ -41,9 +41,9 @@ You can access the container images in the IBM Docker registry with your IBMid (
    ```bash
    $ docker ps
    ```
-5. Login to the Docker registry with a token.
+5. Login to the Docker registry with your credentials.
    ```bash
-   $ docker login $(registry info) -u <ADMINISTRATOR> -p $(oc whoami -t)
+   $ docker login <registry_url> -u <your_account>
    ```
    > **Note**: You can connect to a node in the cluster to resolve the `docker-registry.default.svc` parameter.
 
@@ -180,13 +180,12 @@ $ kubectl create secret docker-registry <secret_name> --docker-server=<registry_
 
 ## Step 5: Deploy the operator to your cluster
 
-To be able to use the operator, you must declare a number of YAML files in Kubernetes.
-
-      - [descriptors/fncm_v1_fncm_crd.yaml](../../descriptors/fncm_v1_fncm_crd.yaml?raw=true) contain the description of the Custom Resource Definition.
-      - [descriptors/service_account.yaml](../../descriptors/service_account.yaml?raw=true) defines the identity for processes that run inside the pods of the operator.    
-      - [descriptors/role.yaml](../../descriptors/role.yaml?raw=true) defines the access of the operator.
-      - [descriptors/role_binding.yaml](../../descriptors/role_binding.yaml?raw=true) defines the access of the operator.
-      - [descriptors/operator.yaml](../../descriptors/operator.yaml?raw=true) defines the deployment of the operator code.
+The operator has a number of descriptors that must be applied.
+  - [descriptors/fncm_v1_fncm_crd.yaml](../../descriptors/fncm_v1_fncm_crd.yaml?raw=true) contains the description of the Custom Resource Definition.
+  - [descriptors/operator.yaml](../../descriptors/operator.yaml?raw=true) defines the deployment of the operator code.
+  - [descriptors/role.yaml](../../descriptors/role.yaml?raw=true) defines the access of the operator.
+  - [descriptors/role_binding.yaml](../../descriptors/role_binding.yaml?raw=true) defines the access of the operator.
+  - [descriptors/service_account.yaml](../../descriptors/service_account.yaml?raw=true) defines the identity for processes that run inside the pods of the operator.    
 
 1. Modify the `image` parameter for containers (ansible and operator) and the `imagePullSecrets` name in `descriptors/operator.yaml` to a valid image registry URL. The value for `imagePullSecrets` name is the secret that you created in [Step 4](install.md#step-4-create-or-reuse-a-docker-registry-secret).
 
@@ -262,7 +261,19 @@ To be able to use the operator, you must declare a number of YAML files in Kuber
 ## Step 6: Configure the software that you want to install
 
 1. Make a copy of the template custom resources YAML file [fncm_v1_fncm_cr_template.yaml](../../descriptors/fncm_v1_fncm_cr_template.yaml?raw=true) and name it appropriately for your deployment (for example my_fncm_v1_fncm_cr.yaml).
-2. If you use an internal registry, enter values for the `image_pull_secrets` and `images` parameters with the information that you noted from [Step 4](install.md#step-4-create-or-reuse-a-docker-registry-secret) in the `shared_configuration` section.
+
+   > **Important:** Because the maximum length of labels in Kubernetes is 63 characters, be careful with the lengths of your CR name and instance names. Some components can configure multiple instances, each instance must have a different name. The total length of the CR name and an instance name must not exceed 24 characters, otherwise some component deployments fail.
+   
+   You must use a single custom resource file to include all of the components that you want to deploy with an operator instance. Each time that you need to make an update or modification you must use this same file to apply the changes to your deployments. When you apply a new custom resource to an operator you must make sure that all previously deployed resources are included if you do not want the operator to delete them.
+
+2. Change the default name of your instance in descriptors/my_fncm_v1_fncm_cr.yaml:
+
+   ```yaml
+   metadata:
+     name: <MY-INSTANCE>
+   ```
+
+3. If you use an internal registry, enter values for the `image_pull_secrets` and `images` parameters with the information that you noted from [Step 4](install.md#step-4-create-or-reuse-a-docker-registry-secret) in the `shared_configuration` section.
 
    ```yaml
    shared_configuration:
@@ -270,17 +281,22 @@ To be able to use the operator, you must declare a number of YAML files in Kuber
      - pull-secret
     ```
 
-3. Use the information in [Configure IBM FileNet Content Manager](../../FNCM/README_config.md) to configure the software that you want to install. When you have completed all entries into your deployment copy of the `fncm_v1_fncm_cr_template.yaml` file, return to these instructions to continue the deployment.
+4. Use the information in [Configure IBM FileNet Content Manager](../../FNCM/README_config.md) to configure the software that you want to install. When you have completed all entries into your deployment copy of the `fncm_v1_fncm_cr_template.yaml` file, return to these instructions to continue the deployment.
 
 ## Step 7: Apply the custom resources
 
-Use the customized `fncm_v1_fncm_cr_template.yaml` file that you updated for your software and environment, and run the following commands to deploy the configured components:
+1. Check that all the components you want to install are configured.
 
    ```bash
    $ cat descriptors/my_fncm_v1_fncm_cr.yaml
-   // check that all the components you want to install are configured
+   ```
+
+2. Deploy the configured components by applying the custom resource.
+
+   ```bash
    $ kubectl apply -f descriptors/my_fncm_v1_fncm_cr.yaml
    ```
+
 
 ## Step 8: Verify that the automation containers are running
 
