@@ -40,7 +40,7 @@ First, create a namespce. Then, you can access the container images in the IBM D
 
 3. Create a pull secret by running a `kubectl create secret` command.
    ```bash
-   $ kubectl create secret docker-registry <my_pull_secret> --docker-server=cp.icr.io --docker-username=iamapikey --docker-password="<API_KEY_GENERATED>" --docker-email=user@foo.com
+   $ kubectl create secret docker-registry <my_pull_secret> --docker-server=cp.icr.io --docker-username=cp --docker-password="<API_KEY_GENERATED>" --docker-email=user@foo.com
    ```
 
    > **Note**: The `cp.icr.io` value for the **docker-server** parameter is the only registry domain name that contains the images.
