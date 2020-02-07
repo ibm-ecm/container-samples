@@ -35,6 +35,7 @@ spec:
     # lc_selected_ldap_type: "IBM Security Directory Server"
     # lc_ldap_server: "<hostname>"
     # lc_ldap_port: "389"
+    # lc_bind_secret: ldap-bind-secret # secret is expected to have ldapUsername and ldapPassword keys
     # lc_ldap_base_dn: "dc=hqpsidcdom,dc=com"
     # lc_ldap_ssl_enabled: false
     # lc_ldap_ssl_secret_name: ""
