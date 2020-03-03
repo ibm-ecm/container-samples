@@ -299,12 +299,11 @@ The operator has a number of descriptors that must be applied.
      name: <MY-INSTANCE>
    ```
 
-3. If you use an internal registry, enter values for the `image_pull_secrets` and `images` parameters with the information that you noted from [Step 4](install.md#step-4-create-or-reuse-a-docker-registry-secret) in the `shared_configuration` section.
+3. If you use an internal registry, enter values for the `image_pull_secrets` and `images` parameters with the information that you noted from [Step 4](install.md#step-4-create-or-reuse-a-docker-registry-secret) in the `ecm_configuration` and `navigator_configuration` section.
 
    ```yaml
-   shared_configuration:
      image_pull_secrets:
-     - pull-secret
+       name: <pull-secret>
     ```
 
 4. Use the information in [Configure IBM FileNet Content Manager](../../FNCM/README_config.md) to configure the software that you want to install. When you have completed all entries into your deployment copy of the `fncm_v1_fncm_cr_template.yaml` file, return to these instructions to continue the deployment.
