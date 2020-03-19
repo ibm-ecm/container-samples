@@ -25,10 +25,10 @@ First, create a namespce. Then, you can access the container images in the IBM D
    ```bash
    $ oc new-project my-project
    ```
-3. Download or clone the repository on your local machine and change to `cert-kubernetes` directory
+3. Download or clone the repository on your local machine and change to `container-samples` directory
    ```bash
-   $ git clone git@github.com:icp4a/cert-kubernetes.git
-   $ cd cert-kubernetes
+   $ git clone git@github.com:ibm-ecm/container-samples.git
+   $ cd container-samples
    ```
 
 
