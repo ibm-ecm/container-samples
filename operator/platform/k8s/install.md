@@ -23,7 +23,7 @@ You can access the container images in the IBM Docker registry with your IBMid (
 
 3. Create a pull secret by running a `kubectl create secret` command.
    ```bash
-   $ kubectl create secret docker-registry <my_pull_secret> --docker-server=cp.icr.io --docker-username=iamapikey --docker-password="<API_KEY_GENERATED>" --docker-email=user@foo.com
+   $ kubectl create secret docker-registry admin.registrykey --docker-server=cp.icr.io --docker-username=iamapikey --docker-password="<API_KEY_GENERATED>" --docker-email=user@foo.com
    ```
 
    > **Note**: The `cp.icr.io` value for the **docker-server** parameter is the only registry domain name that contains the images.
@@ -167,15 +167,15 @@ In your target namespace, you must create a Docker registry secret if you want t
 
 ```yaml
 imagePullSecrets:
-   name: "<secret_name>"
+   name: "admin.registrykey"
 ```
 
-> **Note**: The secret_name must match the imagePullSecrets.name parameter in the operator custom resource definition (.yaml) file.
+> **Note**: The secret_name must match the imagePullSecrets.name parameter in the operator custom resource definition (.yaml) file, for example, admin.registrykey.
 
 For an external Docker registry.
 
 ```bash
-$ kubectl create secret docker-registry <secret_name> --docker-server=<registry_url> --docker-username=<your_account> --docker-password=<your_password> --docker-email=fncmtest@ibm.com
+$ kubectl create secret docker-registry admin.registrykey --docker-server=<registry_url> --docker-username=<your_account> --docker-password=<your_password> --docker-email=fncmtest@ibm.com
 ```
 
 ## Step 5: Deploy the operator to your cluster
@@ -214,28 +214,7 @@ The operator has a number of descriptors that must be applied.
       namespace: <my-project>
    ```
 
-3. Apply the [Security Context Constraints (SCC)](../../descriptors/scc-fncm.yaml) that are needed for FileNet Content Manager:
-
-   ```bash
-   $ kubectl apply -f descriptors/scc-fncm.yaml
-   ```
-
-   > **Note**: `fsGroup` and `supplementalGroups` are `RunAsAny` and  `runAsUser` is `MustRunAsRange`.
-
-   ```yaml
-   fsGroup:
-      type: RunAsAny
-      ...
-      ...
-   runAsUser:
-      type: MustRunAsRange
-      ...
-      ...
-   supplementalGroups:
-      type: RunAsAny
-   ```
-
-4. Prepare and deploy the ibm-fncm-operator on your cluster.
+3. Prepare and deploy the ibm-fncm-operator on your cluster.
    
    The script [deployOperator.sh](../../scripts/deployOperator.sh) can be used to deploy the descriptors and the operator pod.
    ```bash
@@ -253,7 +232,7 @@ The operator has a number of descriptors that must be applied.
    oc apply -f ./descriptors/operator.yaml
    ``` 
 
-5. Monitor the pod until it shows a STATUS of *Running* or *Completed*:
+4. Monitor the pod until it shows a STATUS of *Running* or *Completed*:
    ```bash
    $ while kubectl get pods  | grep -v -E "(Running|Completed|STATUS)"; do sleep 5; done
    ```
@@ -296,6 +275,14 @@ The operator has a number of descriptors that must be applied.
    ```bash
    $ kubectl apply -f descriptors/my_fncm_v1_fncm_cr.yaml
    ```
+3. Configure runAsUser with a specific UID. This value depends on security policies for your cluster environment.
+   
+   Example:
+   ```
+   ecm_configuration:
+     cpe:
+       run_as_user: 1000110001
+   ``` 
 
 
 ## Step 8: Verify that the automation containers are running

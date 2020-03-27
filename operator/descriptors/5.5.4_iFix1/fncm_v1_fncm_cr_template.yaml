@@ -2,7 +2,7 @@
 #
 # Licensed Materials - Property of IBM
 #
-# (C) Copyright IBM Corp. 2019. All Rights Reserved.
+# (C) Copyright IBM Corp. 2020. All Rights Reserved.
 #
 # US Government Users Restricted Rights - Use, duplication or
 # disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
@@ -16,7 +16,7 @@ metadata:
     app.kubernetes.io/instance: ibm-fncm
     app.kubernetes.io/managed-by: ibm-fncm
     app.kubernetes.io/name: ibm-fncm
-    release: 5.5.4
+    release: 5.5.4.1
 spec:
   ## TIPS: The names of all variables in the spec field are converted to snake_case by the operator before running ansible
   ## For example, serviceAccount in the spec becomes service_account in ansible.
@@ -131,8 +131,9 @@ spec:
     #   dc_hadr_validation_timeout: 3
     #   dc_hadr_retry_interval_for_client_reroute: 3
     #   dc_hadr_max_retries_for_client_reroute: 3
-  # # Monitor setting
-  # monitoring_configuration:
+  
+  ## Monitor setting
+  monitoring_configuration:
   #   mon_metrics_writer_option: 4
   #   mon_enable_plugin_pch: false
   #   mon_enable_plugin_mbean: false
@@ -165,8 +166,8 @@ spec:
     #   run_as_user: 1000110001
     #   image:
     #     repository: cp.icr.io/cp/cp4a/fncm/cpe
-    #     tag: ga-554-p8cpe
-    #     pull_policy: Always
+    #     tag: ga-554-p8cpe-if001
+    #     pull_policy: IfNotPresent
     #   ## Logging for workloads
     #   log:
     #    format: json
@@ -197,7 +198,7 @@ spec:
     #     license_model: FNCM.PVUNonProd
     #     license: accept
     #   monitor_enabled: false
-    #   logging_enabled: true
+    #   logging_enabled: false
     #   collectd_enable_plugin_write_graphite: false
     #   ## Specify the names of existing persistent volume claims to be used by your application.
     #   datavolume:
@@ -230,8 +231,8 @@ spec:
     #   run_as_user: 1000110001
     #   image:
     #     repository: cp.icr.io/cp/cp4a/fncm/css
-    #     tag: ga-554-p8css
-    #     pull_policy: Always
+    #     tag: ga-554-p8css-if001
+    #     pull_policy: IfNotPresent
     #   ## Logging for workloads
     #   log:
     #     format: json
@@ -249,7 +250,7 @@ spec:
     #     jvm_max_heap_percentage: 50
     #     license: accept
     #   monitor_enabled: false
-    #   logging_enabled: true
+    #   logging_enabled: false
     #   collectd_enable_plugin_write_graphite: false
     #   ## Specify the names of existing persistent volume claims to be used by your application.
     #   datavolume:
@@ -280,8 +281,8 @@ spec:
     #   run_as_user: 1000110001
     #   image:
     #     repository: cp.icr.io/cp/cp4a/fncm/cmis
-    #     tag: ga-304-cmis-if009
-    #     pull_policy: Always
+    #     tag: ga-304-cmis-if010
+    #     pull_policy: IfNotPresent
     #   ## Logging for workloads
     #   log:
     #     format: json
@@ -358,8 +359,8 @@ spec:
     #   run_as_user: 1000110001
     #   image:
     #     repository: cp.icr.io/cp/cp4a/fncm/graphql
-    #     tag: ga-554-p8cgql
-    #     pull_policy: Always
+    #     tag: ga-554-p8cgql-if001
+    #     pull_policy: IfNotPresent
     #   ## resource
     #   resources:
     #     requests:
@@ -388,7 +389,7 @@ spec:
     #     cpe_uri: http://<hostname>:9080/wsi/FNCEWS40MTOM
     #   ## Monitor setting and Logging setting
     #   monitor_enabled: false
-    #   logging_enabled: true
+    #   logging_enabled: false
     #   collectd_enable_plugin_write_graphite: false
     #   ## Specify the names of existing persistent volume claims to be used by your application.
     #   datavolume:
@@ -416,8 +417,8 @@ spec:
     #   run_as_user: 1000110001
     #   image:
     #     repository: cp.icr.io/cp/cp4a/fncm/extshare
-    #     tag: ga-307-es
-    #     pull_policy: Always
+    #     tag: ga-307-es-if002
+    #     pull_policy: IfNotPresent
     #   ## resource
     #   resources:
     #     requests:
@@ -442,14 +443,10 @@ spec:
     #     jvm_customize_options: ""
     #     license_model: FNCM.PVUNonProd
     #     license: accept
-    #     es_dbtype: db2
-    #     es_jndi_ds: ECMClientDS
-    #     es_schema: ICNDB
-    #     es_ts: ICNDB
-    #     es_admin: ceadmin
+    #     allowed_origins: ""
     #   ## Monitor setting and Logging setting
     #   monitor_enabled: false
-    #   logging_enabled: true
+    #   logging_enabled: false
     #   collectd_enable_plugin_write_graphite: false
     #   ## Specify the names of existing persistent volume claims to be used by your application.
     #   datavolume:
@@ -477,8 +474,8 @@ spec:
     #   run_as_user: 1000110001
     #   image:
     #     repository: cp.icr.io/cp/cp4a/fncm/taskmgr
-    #     tag: 3.0.7
-    #     pull_policy: Always
+    #     tag: ga-307-tm-if002
+    #     pull_policy: IfNotPresent
     #  ## LOGGING FOR WORKLOADS
     #   log:
     #     format: JSON
@@ -511,7 +508,7 @@ spec:
 
     #   ## Monitor setting and Logging setting
     #   monitor_enabled: false
-    #   logging_enabled: true
+    #   logging_enabled: false
     #   collectd_enable_plugin_write_graphite: false
     #   ## Specify the names of existing persistent volume claims to be used by your application.
     #   datavolume:
@@ -540,13 +537,13 @@ spec:
   #   arch:
   #     amd64: "3 - Most preferred"
   #   replica_count: 1
-  # Set UID within value of openshift.io/sa.scc.uid-range in namespace's specs,
-  # If comment it, will use UID auto assigned by OCP
-  #   run_as_user: 1000110001
+   # Set UID within value of openshift.io/sa.scc.uid-range in namespace's specs,
+   # If comment it, will use UID auto assigned by OCP
+   #  run_as_user: 1000110001
   #   image:
   #     repository: cp.icr.io/cp/cp4a/ban/navigator-sso
-  #     tag: ga-307-icn
-  #     pull_policy: Always
+  #     tag: ga-307-icn-if002
+  #     pull_policy: IfNotPresent
   #     arbitrary_uid_enabled: true
   #   ## Logging for workloads
   #   log:

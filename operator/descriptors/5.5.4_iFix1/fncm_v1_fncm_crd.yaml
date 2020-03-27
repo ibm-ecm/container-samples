@@ -1,0 +1,59 @@
+###############################################################################
+#
+# Licensed Materials - Property of IBM
+#
+# (C) Copyright IBM Corp. 2020. All Rights Reserved.
+#
+# US Government Users Restricted Rights - Use, duplication or
+# disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+#
+###############################################################################
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: fncmclusters.fncm.ibm.com
+  labels:
+    app.kubernetes.io/instance: ibm-fncm
+    app.kubernetes.io/managed-by: ibm-fncm
+    app.kubernetes.io/name: ibm-fncm
+    release: 5.5.4.1
+spec:
+  group: fncm.ibm.com
+  names:
+    kind: FNCMCluster
+    listKind: FNCMClusterList
+    plural: fncmclusters
+    singular: fncmcluster
+  scope: Namespaced
+  subresources:
+    status: {}
+  version: v1
+  versions:
+  - name: v1
+    served: true
+    storage: true
+  validation:
+   # openAPIV3Schema is the schema for validating custom objects.
+   # in kube 1.14 schemas can be version specific
+    openAPIV3Schema:
+      properties:
+        spec:
+          properties:
+            appVersion:
+              type: string
+            license:
+              type: string
+              pattern: '^accept$'
+            readinessProbe:
+              properties:
+                initialDelaySeconds: 
+                  type: integer
+                  minimum: 5
+                  maximum: 20
+            queueManager:
+              properties:
+                dev:
+                  properties:
+                    adminPassword:  
+                      type: string
+                      pattern: '^[a-zA-Z0-9]{8,}$'

@@ -8,3 +8,4 @@ Choose which use case you need, and then follow the links below to find the righ
 - [Uninstall IBM FileNet Content Manager 5.5.4 on Certified Kubernetes](uninstall.md)
 - [Migrate 5.5.x persisted data to 5.5.4 on Certified Kubernetes](migrate.md)
 - [Update IBM FileNet Content Manager 5.5.4 on Certified Kubernetes](update.md)
+- [Update IBM FileNet Content Manager 5.5.4 with interim fixes on Certified Kubernetes](iFixesUpdate.md)

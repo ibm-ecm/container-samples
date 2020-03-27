@@ -25,10 +25,10 @@ First, create a namespce. Then, you can access the container images in the IBM D
    ```bash
    $ oc new-project my-project
    ```
-3. Download or clone the repository on your local machine and change to `container-samples` directory
+3. Download or clone the repository on your local machine and change to `cert-kubernetes` directory
    ```bash
    $ git clone git@github.com:ibm-ecm/container-samples.git
-   $ cd container-samples
+   $ cd container-samples/operator/
    ```
 
 
@@ -40,7 +40,7 @@ First, create a namespce. Then, you can access the container images in the IBM D
 
 3. Create a pull secret by running a `kubectl create secret` command.
    ```bash
-   $ kubectl create secret docker-registry <my_pull_secret> --docker-server=cp.icr.io --docker-username=cp --docker-password="<API_KEY_GENERATED>" --docker-email=user@foo.com
+   $ kubectl create secret docker-registry admin.registrykey --docker-server=cp.icr.io --docker-username=cp --docker-password="<API_KEY_GENERATED>" --docker-email=user@foo.com
    ```
 
    > **Note**: The `cp.icr.io` value for the **docker-server** parameter is the only registry domain name that contains the images.
@@ -191,15 +191,15 @@ In your target namespace, you must create a Docker registry secret if you want t
 
 ```yaml
 imagePullSecrets:
-   name: "<secret_name>"
+   name: "admin.registrykey"
 ```
 
-> **Note**: The secret_name must match the imagePullSecrets.name parameter in the operator deployment (.yaml) file.
+> **Note**: The secret_name must match the imagePullSecrets.name parameter in the operator deployment (.yaml) file, for example, admin.registrykey.
 
 For an external Docker registry.
 
 ```bash
-$ oc create secret docker-registry <secret_name> --docker-server=<registry_url> --docker-username=<your_account> --docker-password=<your_password> --docker-email=fncmtest@ibm.com
+$ oc create secret docker-registry admin.registrykey --docker-server=<registry_url> --docker-username=<your_account> --docker-password=<your_password> --docker-email=fncmtest@ibm.com
 ```
 
 For an internal Docker registry.
@@ -237,7 +237,7 @@ The operator has a number of descriptors that must be applied.
    ```
 
   
-2. Apply the [Security Context Constraints (SCC)](../../descriptors/scc-fncm.yaml) that are needed for FileNet Content Manager:
+2. ( 5.5.4 GA only not required for 5.5.4 iFix001 ) Apply the [Security Context Constraints (SCC)](../../descriptors/scc-fncm.yaml) that are needed for FileNet Content Manager:
 
    ```bash
    $ oc apply -f descriptors/scc-fncm.yaml
@@ -299,11 +299,12 @@ The operator has a number of descriptors that must be applied.
      name: <MY-INSTANCE>
    ```
 
-3. If you use an internal registry, enter values for the `image_pull_secrets` and `images` parameters with the information that you noted from [Step 4](install.md#step-4-create-or-reuse-a-docker-registry-secret) in the `ecm_configuration` and `navigator_configuration` section.
+3. If you use an internal registry, enter values for the `image_pull_secrets` and `images` parameters with the information that you noted from [Step 4](install.md#step-4-create-or-reuse-a-docker-registry-secret) in the `shared_configuration` section.
 
    ```yaml
+   shared_configuration:
      image_pull_secrets:
-       name: <pull-secret>
+     - pull-secret
     ```
 
 4. Use the information in [Configure IBM FileNet Content Manager](../../FNCM/README_config.md) to configure the software that you want to install. When you have completed all entries into your deployment copy of the `fncm_v1_fncm_cr_template.yaml` file, return to these instructions to continue the deployment.

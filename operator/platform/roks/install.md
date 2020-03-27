@@ -13,23 +13,102 @@
 
 ##  Step 1: Get access to the container images
 
-1. Go to [Preparing to install with an operator on Red Hat OpenShift](https://www.ibm.com/support/knowledgecenter/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_prepare_envop_roks.htm) to get access to the container images. You can access the container images in the IBM Docker registry with your IBMid, or you can use the downloaded archives from IBM Passport Advantage (PPA).
-2. Log in to your IBM Cloud Kubernetes cluster. In the OpenShift web console menu bar, click your profile *IAM#user.name@email.com* > *Copy Login Command* and paste the copied command into your command line.
+1. Log in to your IBM Cloud Kubernetes cluster. In the OpenShift web console menu bar, click your profile *IAM#user.name@email.com* > *Copy Login Command* and paste the copied command into your command line.
    ```bash
    $ oc login https://<CLUSTERNAME>:<CLUSTERPORT> --token=<GENERATED_TOKEN>
    ```
-3. Run a `kubectl` command to make sure that you have access to Kubernetes.
+2. Run a `kubectl` command to make sure that you have access to Kubernetes.
    ```bash
    $ kubectl cluster-info
    ```
-4. Check that the images are pushed correctly to the registry.
-    ```bash
-    $ oc get is --all-namespaces
-    ```
-    or
-    ```bash
-    $ oc get is -n my-project
-    ```
+3. Download or clone the repository on your local machine and change to `container-samples` directory
+   ```bash
+   $ git clone git@github.com:ibm-ecm/container-samples.git
+   $ cd container-samples/operator/
+   ```
+   The `container-samples/operator` directory includes all of the scripts and descriptors that are needed to install Cloud Pak for Automation.
+
+4. Create a project for each release that you want to install by running the following commands.
+   ```bash
+   $ oc new-project <project_name> --description="<description>" --display-name="<display_name>"
+   ```
+5. Make sure that your entitled container images are available and accessible in one of the IBM docker registries. Use either **option 1** or **option 2**.
+
+### Option 1: Create a pull secret for the IBM Cloud Entitled Registry
+
+1. Log in to [MyIBM Container Software Library](https://myibm.ibm.com/products-services/containerlibrary) with the IBMid and password that are associated with the entitled software.
+
+2. In the **Container software library** tile, click **View library** and then click **Copy key** to copy the entitlement key to the clipboard.
+
+3. Create a pull secret by running a `kubectl create secret` command.
+   ```bash
+   $ kubectl create secret docker-registry admin.registrykey --docker-server=cp.icr.io --docker-username=iamapikey --docker-password="<API_KEY_GENERATED>" --docker-email=<USER_EMAIL>
+   ```
+
+   > **Note**: The `cp.icr.io` value for the **docker-server** parameter is the only registry domain name that contains the images. The `cp.icr.io` and `cp` values for the **docker-server** and **docker-username** parameters must be used.
+
+4. Take a note of the secret and the server values so that you can set them to the **pullSecrets** and **repository** parameters when you run the operator for your containers.
+
+### Option 2: Download the packages from PPA and load the images
+
+[IBM Passport Advantage (PPA)](https://www-01.ibm.com/software/passportadvantage/pao_customer.html) provides archives (.tgz) for the software. To view the list of Passport Advantage eAssembly installation images, refer to the [20.0.1 download document](https://www.ibm.com/support/pages/ibm-cloud-pak-automation-v2001-download-document).
+
+1. Download one or more PPA packages to a server that is connected to your Docker registry.
+
+2. Check that you can run a docker command.
+   ```bash
+   $ docker ps
+   ```
+3. Log in to the Docker registry with a token.
+   ```bash
+   $ docker login $(oc registry info) -u <ADMINISTRATOR> -p $(oc whoami -t)
+   ```
+
+   You can also log in to an external Docker registry using the following command:
+   ```bash
+   $ docker login <registry_url> -u <your_account>
+   ```
+4. Run a `kubectl` command to make sure that you have access to Kubernetes.
+   ```bash
+   $ kubectl cluster-info
+   ```
+5. Download the loadimages.sh script. Change the permissions so that you can run the script.
+   ```bash
+   $ chmod +x loadimages.sh
+   ```
+6. Use the [`scripts/loadimages.sh`](../../scripts/loadimages.sh) script to push the images into the IBM Cloud Container Registry.Specify the two mandatory parameters in the command line.
+
+   ```
+   -p  PPA archive files location or archive filename
+   -r  Target Docker registry and namespace
+   -l  Optional: Target a local registry
+   ```
+   The following example shows the input values in the command line.
+   ```bash
+   ./loadimages.sh -p <PPA-ARCHIVE>.tgz -r <registry_domain_name>/<project_name>
+   ```
+
+   > Note: A registry domain name is associated with your cluster location. The name us.icr.io for example, is for the region us-south. The region and registry domain names are listed on the https://cloud.ibm.com/docs/services/Registry. The default docker registry is based on the host name, for example "default-route-openshift-image-registry.ibm.com". The project must have pull request privileges to the registry where the images are loaded. The project must also have pull request privileges to push the images into another namespace/project.
+
+7. After you push the images to the registry, check whether they are pushed correctly by running the following command.
+   ```bash
+   $ ibmcloud cr images --restrict <project_name>
+   ```
+8. Create a pull secret to be able to pull images from the IBM Cloud Container Registry.
+   ```bash
+   $ kubectl <project_name> create secret docker-registry admin.registrykey \
+   --docker-server=<registry_domain_name> --docker-username=iamapikey \
+   --docker-password="<APIKEY>" --docker-email=<IBMID> --namespace 
+   ```
+   To generate an API KEY, go to Security > Manage > Identity and Access > IBM Cloud API Keys in the IBM Cloud menu and select Generate an IBM Cloud API key.
+
+9. Take a note of the secret names so that you can set them to the **pullSecrets** parameter when you run the installation for your containers.
+10. (Optional) If you want to use an external Docker registry, create a Docker registry secret.
+   ```bash
+   $ oc create secret docker-registry <secret_name> --docker-server=<registry_url> --docker-username=<your_account> --docker-password=<your_password> --docker-email=<your_email>
+   ```
+   Take a note of the secret and the server values so that you can set them to the **pullSecrets** and **repository** parameters when you run the operator for your containers.
+
 
 ## Step 2: Prepare the cluster for automation software
 
@@ -40,55 +119,27 @@ Before you install any of the containerized software:
 
   How much preparation you need to do depends on what you want to install and how familiar you are with your environment.
 
-## Step 3: Create a shared PV and add the JDBC drivers
+## Step 3: Create a shared PVC and add the JDBC drivers
 
-  1. Create a persistent volume (PV) for the operator. This PV is needed for the JDBC drivers. The following example YAML defines a PV, but PVs depend on your cluster configuration. 
-     ```yaml
-     apiVersion: v1
-     kind: PersistentVolume
-     metadata:
-       labels:
-         type: local
-       name: operator-shared-pv
-     spec:
-       capacity:
-         storage: 1Gi
-       accessModes:
-         - ReadWriteMany
-       hostPath:
-         path: "/root/operator"
-       persistentVolumeReclaimPolicy: Delete
-     ```
+  IBM Public Cloud ROKS cluster by default attached to an endurance storage which comes with pre-defined storage classes. In order to copy the JDBC drivers to Operator pod you will need to create a new storage class with the following storage requirements to allow copy of JDBC drivers.
+   1. Use one of the available storage classes with "gid". (ibmc-file-bronze-gid , ibmc-file-retain-gold , ibmc-file-silver-gid )
+   2. Apply the new storage class yaml
+      ```bash
+      $ oc apply -f operator-sc.yaml
+   
+   3. Create a claim for a PV dynamically , [descriptors/operator-shared-pvc.yaml](../../descriptors/operator-shared-pvc.yaml?raw=true).
 
-  2. Deploy the PV.
-     ```bash
-     $ oc create -f operator-shared-pv.yaml
-     ```
+        > Replace the storage class with the name of the storage class from Step 1. Which is (ibmc-file-bronze-gid , ibmc-file-retain-gold , ibmc-file-silver-gid )
 
-  2. Create a claim for the PV, or check that the PV is bound dynamically, [operator-shared-pvc.yaml](../../descriptors/operator-shared-pvc.yaml?raw=true).
-
-     > Replace the storage class if you do not want to create the relevant persistent volume.
-
-     ```yaml
-     apiVersion: v1
-     kind: PersistentVolumeClaim
-     metadata:
-       name: operator-shared-pvc
-       namespace: my-project
-     spec:
-       accessModes:
-         - ReadWriteMany
-       storageClassName: ""
-       resources:
-         requests:
-           storage: 1Gi
-       volumeName: operator-shared-pv
-     ```
-
-  3. Deploy the PVC.
-     ```bash
-     $ oc create -f descriptors/operator-shared-pvc.yaml
-     ```
+   2. Deploy the PVC.
+        ```bash
+        $ oc create -f descriptors/operator-shared-pvc.yaml
+        ```
+        Run the following commands to get the bound PV name and the PV location.
+        ```bash
+        $ oc get pvc | grep operator-shared-pvc
+        $ oc describe PV PV_name
+        ```
 
   4. Copy all of the JDBC drivers that are needed by the components you intend to install to the persistent volume. Depending on your storage configuration you might not need these drivers.
 
@@ -129,15 +180,15 @@ In your target namespace, you must create a Docker registry secret if you want t
 
 ```yaml
 imagePullSecrets:
-   name: "<secret_name>"
+   name: "admin.registrykey"
 ```
 
-> **Note**: The secret_name must match the imagePullSecrets.name parameter in the operator custom resource definition (.yaml) file.
+> **Note**: The secret_name must match the imagePullSecrets.name parameter in the operator custom resource definition (.yaml) file, for example, admin.registrykey.
 
 For an external Docker registry.
 
 ```bash
-$ oc create secret docker-registry <secret_name> --docker-server=<registry_url> --docker-username=<your_account> --docker-password=<your_password> --docker-email=fncmtest@ibm.com
+$ oc create secret docker-registry admin.registrykey --docker-server=<registry_url> --docker-username=<your_account> --docker-password=<your_password> --docker-email=fncmtest@ibm.com
 ```
 
 For an internal Docker registry.
@@ -183,7 +234,7 @@ The operator has a number of descriptors that must be applied.
       namespace: <my-project>
    ```
 
-3. Apply the [Security Context Constraints (SCC)](../../descriptors/scc-fncm.yaml) that are needed for FileNet Content Manager:
+3. ( 5.5.4 GA only not required for 5.5.4 iFix001 ) Apply the [Security Context Constraints (SCC)](../../descriptors/scc-fncm.yaml) that are needed for FileNet Content Manager:
 
    ```bash
    $ oc apply -f descriptors/scc-fncm.yaml
