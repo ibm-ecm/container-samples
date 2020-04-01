@@ -45,7 +45,8 @@
    $ kubectl create secret docker-registry admin.registrykey --docker-server=cp.icr.io --docker-username=iamapikey --docker-password="<API_KEY_GENERATED>" --docker-email=<USER_EMAIL>
    ```
 
-   > **Note**: The `cp.icr.io` value for the **docker-server** parameter is the only registry domain name that contains the images. The `cp.icr.io` and `cp` values for the **docker-server** and **docker-username** parameters must be used.
+   > **Note**: The `cp.icr.io` value for the **docker-server** parameter is the only registry domain name that contains the images.
+   > **Note**: Use “cp” for the docker-username. The docker-email has to be a valid email address (associated to your IBM ID). Make sure you are copying the Entitlement Key in the docker-password field within double-quotes.
 
 4. Take a note of the secret and the server values so that you can set them to the **pullSecrets** and **repository** parameters when you run the operator for your containers.
 
