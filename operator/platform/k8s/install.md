@@ -36,7 +36,7 @@ You can access the container images in the IBM Docker registry with your IBMid (
 [IBM Passport Advantage (PPA)](https://www-01.ibm.com/software/passportadvantage/pao_customer.html) provides archives (.tgz) for the software. To view the list of Passport Advantage eAssembly installation images, refer to the [FileNet Content Manager V5.5.4 download document](http://www.ibm.com/support/pages/node/1096522).
 
 1. Download one or more PPA packages to a server that is connected to your Docker registry.
-2. Download the [`loadimages.sh`](../../scripts/loadimages.sh) script from GitHub.
+2. Download the [`loadimages.sh`](../../../scripts/loadimages.sh) script from GitHub.
 3. Log in to your Kubernetes cluster.
 4. Check that you can run a docker command.
    ```bash
