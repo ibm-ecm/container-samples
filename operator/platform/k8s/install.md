@@ -226,11 +226,11 @@ The operator has a number of descriptors that must be applied.
    
     If you want to deploy the operator YAML files without using the deployOperator.sh script, you can use the deploy command to deploy each file, for example:
    ```bash
-   oc apply -f ./descriptors/fncm_v1_fncm_crd.yaml
-   oc apply -f ./descriptors/service_account.yaml
-   oc apply -f ./descriptors/role.yaml
-   oc apply -f ./descriptors/role_bingding.yaml
-   oc apply -f ./descriptors/operator.yaml
+   kubectl apply -f ./descriptors/fncm_v1_fncm_crd.yaml
+   kubectl apply -f ./descriptors/service_account.yaml
+   kubectl apply -f ./descriptors/role.yaml
+   kubectl apply -f ./descriptors/role_bingding.yaml
+   kubectl apply -f ./descriptors/operator.yaml
    ``` 
 
 4. Monitor the pod until it shows a STATUS of *Running* or *Completed*:
