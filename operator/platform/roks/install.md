@@ -272,7 +272,7 @@ The operator has a number of descriptors that must be applied.
    oc apply -f ./descriptors/fncm_v1_fncm_crd.yaml
    oc apply -f ./descriptors/service_account.yaml
    oc apply -f ./descriptors/role.yaml
-   oc apply -f ./descriptors/role_bingding.yaml
+   oc apply -f ./descriptors/role_binding.yaml
    oc apply -f ./descriptors/operator.yaml
    ``` 
 
