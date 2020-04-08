@@ -226,16 +226,7 @@ The operator has a number of descriptors that must be applied.
       - name: "admin.registrykey"
    ```
 
-
-2. Edit the namespace spec in the `service_account.yaml` and `operator.yaml` files.
-
-   ```yaml
-   metadata:
-      name: ibm-fncm-operator
-      namespace: <my-project>
-   ```
-
-3. ( 5.5.4 GA only not required for 5.5.4 iFix001 ) Apply the [Security Context Constraints (SCC)](../../descriptors/scc-fncm.yaml) that are needed for FileNet Content Manager:
+2. ( 5.5.4 GA only not required for 5.5.4 iFix001 ) Apply the [Security Context Constraints (SCC)](../../descriptors/scc-fncm.yaml) that are needed for FileNet Content Manager:
 
    ```bash
    $ oc apply -f descriptors/scc-fncm.yaml
@@ -256,7 +247,7 @@ The operator has a number of descriptors that must be applied.
       type: RunAsAny
    ```
 
-4. Prepare and deploy the ibm-fncm-operator on your cluster.
+3. Prepare and deploy the ibm-fncm-operator on your cluster.
 
    The script [deployOperator.sh](../../scripts/deployOperator.sh) can be used to deploy the descriptors and the operator pod.
    ```bash
@@ -276,7 +267,7 @@ The operator has a number of descriptors that must be applied.
    oc apply -f ./descriptors/operator.yaml
    ``` 
 
-5. Monitor the pod until it shows a STATUS of *Running* or *Completed*:
+4. Monitor the pod until it shows a STATUS of *Running* or *Completed*:
    ```bash
    $ oc get pods -w  | grep -v -E "(Running|Completed|STATUS)"; do sleep 5; done
    $ oc logs -f <operator-pod> -c operator
