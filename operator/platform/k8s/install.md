@@ -206,14 +206,14 @@ The operator has a number of descriptors that must be applied.
       - name: "admin.registrykey"
    ```
 
-2. Prepare and deploy the ibm-fncm-operator on your cluster.
+2. Prepare and deploy the fncm-operator on your cluster.
    
    The script [deployOperator.sh](../../scripts/deployOperator.sh) can be used to deploy the descriptors and the operator pod.
    ```bash
-   $ ./scripts/deployOperator.sh -i <registry_url>/ibm-fncm-operator:latest -p '<secret_name>' -n <Namespace>
+   $ ./scripts/deployOperator.sh -i <registry_url>/fncm-operator:ga-5.5.4 -p '<secret_name>' -n <Namespace>
    ```
 
-   > **Note**: If you do not specify the -i and -n options the operator is deployed in the default namespace at this URL: master_node:8500/default/ibm-fncm-operator:v1.0.0.
+   > **Note**: If you do not specify the -i and -n options the operator is deployed in the default namespace at this URL: master_node:8500/default/fncm-operator:ga-5.5.4
    
     If you want to deploy the operator YAML files without using the deployOperator.sh script, you can use the deploy command to deploy each file, for example:
    ```bash
