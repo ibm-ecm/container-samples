@@ -206,16 +206,7 @@ The operator has a number of descriptors that must be applied.
       - name: "admin.registrykey"
    ```
 
-
-2. Edit the namespace spec in the `service_account.yaml` and `operator.yaml` files.
-
-   ```yaml
-   metadata:
-      name: ibm-fncm-operator
-      namespace: <my-project>
-   ```
-
-3. Prepare and deploy the ibm-fncm-operator on your cluster.
+2. Prepare and deploy the ibm-fncm-operator on your cluster.
    
    The script [deployOperator.sh](../../scripts/deployOperator.sh) can be used to deploy the descriptors and the operator pod.
    ```bash
@@ -233,7 +224,7 @@ The operator has a number of descriptors that must be applied.
    kubectl apply -f ./descriptors/operator.yaml
    ``` 
 
-4. Monitor the pod until it shows a STATUS of *Running* or *Completed*:
+3. Monitor the pod until it shows a STATUS of *Running* or *Completed*:
    ```bash
    $ while kubectl get pods  | grep -v -E "(Running|Completed|STATUS)"; do sleep 5; done
    ```
