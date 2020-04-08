@@ -229,7 +229,7 @@ The operator has a number of descriptors that must be applied.
    kubectl apply -f ./descriptors/fncm_v1_fncm_crd.yaml
    kubectl apply -f ./descriptors/service_account.yaml
    kubectl apply -f ./descriptors/role.yaml
-   kubectl apply -f ./descriptors/role_bingding.yaml
+   kubectl apply -f ./descriptors/role_binding.yaml
    kubectl apply -f ./descriptors/operator.yaml
    ``` 
 
