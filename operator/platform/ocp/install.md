@@ -263,10 +263,10 @@ The operator has a number of descriptors that must be applied.
       
    The script [deployOperator.sh](../../scripts/deployOperator.sh) can be used to deploy all of the descriptors and the operator pod.
    ```bash
-   $ ./scripts/deployOperator.sh -i <registry_url>/fncm-operator:latest -p '<secret_name>' -n <namespace>
+   $ ./scripts/deployOperator.sh -i <registry_url>/fncm-operator:ga-5.5.4 -p '<secret_name>' -n <namespace>
    ```
 
-   > **Note**: If you do not specify the -i and -n options the operator is deployed in the default namespace at this URL: master_node:8500/default/fncm-operator:v1.0.0. If you plan to use a non-admin user to install the operator, you must add the user to the `icp4operator` role. For example:
+   > **Note**: If you do not specify the -i and -n options the operator is deployed in the default namespace at this URL: master_node:8500/default/fncm-operator:ga-5.5.4. If you plan to use a non-admin user to install the operator, you must add the user to the `icp4operator` role. For example:
    ```bash
    $ oc adm policy add-cluster-role-to-user ibm-fncm-operator <user_name>
    ```   
