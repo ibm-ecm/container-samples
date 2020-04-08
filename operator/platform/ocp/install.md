@@ -4,7 +4,7 @@
 - [Step 2: Prepare your environment for automation software](install.md#step-2-prepare-your-environment-for-automation-software)
 - [Step 3: Create a shared PV and add the JDBC drivers](install.md#step-3-create-a-shared-pv-and-add-the-jdbc-drivers)
 - [Step 4: Create or reuse Docker registry secrets](install.md#step-4-create-or-reuse-a-docker-registry-secret)
-- [Step 5: Deploy the operator manifest files to your cluster](install.md#step-5-deploy-the-operator-manifest-files-to-your-cluster)
+- [Step 5: Deploy the operator manifest files to your cluster](install.md#step-5-deploy-the-operator-to-your-cluster)
 - [Step 6: Configure the software that you want to install](install.md#step-6-configure-the-software-that-you-want-to-install)
 - [Step 7: Apply the custom resources](install.md#step-7-apply-the-custom-resources)
 - [Step 8: Verify that the automation containers are running](install.md#step-8-verify-that-the-automation-containers-are-running)
