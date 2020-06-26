@@ -1,6 +1,6 @@
 # IBM FileNet Content Manager 5.5.4 on Red Hat OpenShift
 
-Red Hat OpenShift Cloud Platform 3.11 ,4.2 & 4.3 are the target platform for FileNet Content Manager 5.5.4.
+Red Hat OpenShift Cloud Platform 3.11 is the target platform for FileNet Content Manager 5.5.4.
 
 Choose which use case you need, and then follow the links below to find the right instructions:
 

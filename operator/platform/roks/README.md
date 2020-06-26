@@ -1,6 +1,6 @@
 # IBM FileNet Content Manager 5.5.4 on Managed Red Hat OpenShift on IBM Cloud Public
 
-Red Hat OpenShift 3.11 & 4.3 are the managed version on IBM FileNet Content Manager 5.5.4.
+Red Hat OpenShift 3.11 is the managed version on IBM FileNet Content Manager 5.5.4.
 
 Choose which use case you need with an operator, and then follow the links below to find the right instructions:
 

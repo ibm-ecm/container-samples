@@ -15,10 +15,10 @@ metadata:
   annotations:
     volume.beta.kubernetes.io/storage-class: "StorageclassName"
   labels:
-    app.kubernetes.io/instance: ibm-dba
-    app.kubernetes.io/managed-by: ibm-dba
-    app.kubernetes.io/name: ibm-dba
-    release: 19.0.3
+    app.kubernetes.io/instance: ibm-fncm
+    app.kubernetes.io/managed-by: ibm-fncm
+    app.kubernetes.io/name: ibm-fncm
+    release: 5.5.5
 spec:
   accessModes:
     - ReadWriteMany

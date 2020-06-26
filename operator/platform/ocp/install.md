@@ -4,7 +4,7 @@
 - [Step 2: Prepare your environment for automation software](install.md#step-2-prepare-your-environment-for-automation-software)
 - [Step 3: Create a shared PV and add the JDBC drivers](install.md#step-3-create-a-shared-pv-and-add-the-jdbc-drivers)
 - [Step 4: Create or reuse Docker registry secrets](install.md#step-4-create-or-reuse-a-docker-registry-secret)
-- [Step 5: Deploy the operator manifest files to your cluster](install.md#step-5-deploy-the-operator-to-your-cluster)
+- [Step 5: Deploy the operator manifest files to your cluster](install.md#step-5-deploy-the-operator-manifest-files-to-your-cluster)
 - [Step 6: Configure the software that you want to install](install.md#step-6-configure-the-software-that-you-want-to-install)
 - [Step 7: Apply the custom resources](install.md#step-7-apply-the-custom-resources)
 - [Step 8: Verify that the automation containers are running](install.md#step-8-verify-that-the-automation-containers-are-running)
@@ -44,8 +44,7 @@ First, create a namespce. Then, you can access the container images in the IBM D
    ```
 
    > **Note**: The `cp.icr.io` value for the **docker-server** parameter is the only registry domain name that contains the images.
-   > **Note**: Use “cp” for the docker-username. The docker-email has to be a valid email address (associated to your IBM ID). Make sure you are copying the Entitlement Key in the docker-password field within double-quotes.
-.
+
 4. Take a note of the secret and the server values so that you can set them to the **pullSecrets** and **repository** parameters when you run the operator for your containers.
 
 ### Option 2: Download the packages from PPA and load the images
@@ -263,10 +262,10 @@ The operator has a number of descriptors that must be applied.
       
    The script [deployOperator.sh](../../scripts/deployOperator.sh) can be used to deploy all of the descriptors and the operator pod.
    ```bash
-   $ ./scripts/deployOperator.sh -i <registry_url>/fncm-operator:ga-5.5.4 -p '<secret_name>' -n <namespace>
+   $ ./scripts/deployOperator.sh -i <registry_url>/fncm-operator:latest -p '<secret_name>' -n <namespace>
    ```
 
-   > **Note**: If you do not specify the -i and -n options the operator is deployed in the default namespace at this URL: master_node:8500/default/fncm-operator:ga-5.5.4. If you plan to use a non-admin user to install the operator, you must add the user to the `icp4operator` role. For example:
+   > **Note**: If you do not specify the -i and -n options the operator is deployed in the default namespace at this URL: master_node:8500/default/fncm-operator:v1.0.0. If you plan to use a non-admin user to install the operator, you must add the user to the `icp4operator` role. For example:
    ```bash
    $ oc adm policy add-cluster-role-to-user ibm-fncm-operator <user_name>
    ```   
@@ -275,7 +274,7 @@ The operator has a number of descriptors that must be applied.
    oc apply -f ./descriptors/fncm_v1_fncm_crd.yaml
    oc apply -f ./descriptors/service_account.yaml
    oc apply -f ./descriptors/role.yaml
-   oc apply -f ./descriptors/role_binding.yaml
+   oc apply -f ./descriptors/role_bingding.yaml
    oc apply -f ./descriptors/operator.yaml
    ``` 
 

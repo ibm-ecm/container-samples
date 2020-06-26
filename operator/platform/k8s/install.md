@@ -4,7 +4,7 @@
 - [Step 2: Prepare your environment for FileNet Content Manager software](install.md#step-2-prepare-your-environment-for-automation-software)
 - [Step 3: Create a shared PV and add the JDBC drivers](install.md#step-3-create-a-shared-pv-and-add-the-jdbc-drivers)
 - [Step 4: Create or reuse Docker registry secrets](install.md#step-4-create-or-reuse-a-docker-registry-secret)
-- [Step 5: Deploy the operator manifest files to your cluster](install.md#step-5-deploy-the-operator-to-your-cluster)
+- [Step 5: Deploy the operator manifest files to your cluster](install.md#step-5-deploy-the-operator-manifest-files-to-your-cluster)
 - [Step 6: Configure the software that you want to install](install.md#step-6-configure-the-software-that-you-want-to-install)
 - [Step 7: Apply the custom resources](install.md#step-7-apply-the-custom-resources)
 - [Step 8: Verify that the FileNet Content Manager containers are running](install.md#step-8-verify-that-the-automation-containers-are-running)
@@ -27,7 +27,6 @@ You can access the container images in the IBM Docker registry with your IBMid (
    ```
 
    > **Note**: The `cp.icr.io` value for the **docker-server** parameter is the only registry domain name that contains the images.
-   > **Note**: Use “cp” for the docker-username. The docker-email has to be a valid email address (associated to your IBM ID). Make sure you are copying the Entitlement Key in the docker-password field within double-quotes.
 
 4. Take a note of the secret and the server values so that you can set them to the **pullSecrets** and **repository** parameters when you run the operator for your containers.
 
@@ -36,7 +35,7 @@ You can access the container images in the IBM Docker registry with your IBMid (
 [IBM Passport Advantage (PPA)](https://www-01.ibm.com/software/passportadvantage/pao_customer.html) provides archives (.tgz) for the software. To view the list of Passport Advantage eAssembly installation images, refer to the [FileNet Content Manager V5.5.4 download document](http://www.ibm.com/support/pages/node/1096522).
 
 1. Download one or more PPA packages to a server that is connected to your Docker registry.
-2. Download the [`loadimages.sh`](../../../scripts/loadimages.sh) script from GitHub.
+2. Download the [`loadimages.sh`](../../scripts/loadimages.sh) script from GitHub.
 3. Log in to your Kubernetes cluster.
 4. Check that you can run a docker command.
    ```bash
@@ -206,25 +205,34 @@ The operator has a number of descriptors that must be applied.
       - name: "admin.registrykey"
    ```
 
-2. Prepare and deploy the fncm-operator on your cluster.
+
+2. Edit the namespace spec in the `service_account.yaml` and `operator.yaml` files.
+
+   ```yaml
+   metadata:
+      name: ibm-fncm-operator
+      namespace: <my-project>
+   ```
+
+3. Prepare and deploy the ibm-fncm-operator on your cluster.
    
    The script [deployOperator.sh](../../scripts/deployOperator.sh) can be used to deploy the descriptors and the operator pod.
    ```bash
-   $ ./scripts/deployOperator.sh -i <registry_url>/fncm-operator:ga-5.5.4 -p '<secret_name>' -n <Namespace>
+   $ ./scripts/deployOperator.sh -i <registry_url>/ibm-fncm-operator:latest -p '<secret_name>' -n <Namespace>
    ```
 
-   > **Note**: If you do not specify the -i and -n options the operator is deployed in the default namespace at this URL: master_node:8500/default/fncm-operator:ga-5.5.4
+   > **Note**: If you do not specify the -i and -n options the operator is deployed in the default namespace at this URL: master_node:8500/default/ibm-fncm-operator:v1.0.0.
    
     If you want to deploy the operator YAML files without using the deployOperator.sh script, you can use the deploy command to deploy each file, for example:
    ```bash
-   kubectl apply -f ./descriptors/fncm_v1_fncm_crd.yaml
-   kubectl apply -f ./descriptors/service_account.yaml
-   kubectl apply -f ./descriptors/role.yaml
-   kubectl apply -f ./descriptors/role_binding.yaml
-   kubectl apply -f ./descriptors/operator.yaml
+   oc apply -f ./descriptors/fncm_v1_fncm_crd.yaml
+   oc apply -f ./descriptors/service_account.yaml
+   oc apply -f ./descriptors/role.yaml
+   oc apply -f ./descriptors/role_bingding.yaml
+   oc apply -f ./descriptors/operator.yaml
    ``` 
 
-3. Monitor the pod until it shows a STATUS of *Running* or *Completed*:
+4. Monitor the pod until it shows a STATUS of *Running* or *Completed*:
    ```bash
    $ while kubectl get pods  | grep -v -E "(Running|Completed|STATUS)"; do sleep 5; done
    ```

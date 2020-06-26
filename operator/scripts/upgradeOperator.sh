@@ -52,7 +52,7 @@ cp ./descriptors/operator.yaml ./upgradeOperator.yaml
 function readLicense() {
     echo -e "\033[32mYou need to read the International Program License Agreement before start\033[0m"
     sleep 3
-    more LICENSE
+    more ./scripts/LICENSE
 }
 
 # Get user's input on whether accept the license
@@ -78,7 +78,10 @@ fi
 
 if [[ $LICENSE_ACCEPTED == "accept" ]]; then
     sed -e '/dba_license/{n;s/value:/value: accept/;}' ./upgradeOperator.yaml > ./upgradeOperatorsav.yaml ;  mv ./upgradeOperatorsav.yaml ./upgradeOperator.yaml
-
+    sed -e '/baw_license/{n;s/value:/value: accept/;}' ./upgradeOperator.yaml > ./upgradeOperatorsav.yaml ;  mv ./upgradeOperatorsav.yaml ./upgradeOperator.yaml
+    sed -e '/fncm_license/{n;s/value:/value: accept/;}' ./upgradeOperator.yaml > ./upgradeOperatorsav.yaml ;  mv ./upgradeOperatorsav.yaml ./upgradeOperator.yaml
+    sed -e '/ier_license/{n;s/value:/value: accept/;}' ./upgradeOperator.yaml > ./upgradeOperatorsav.yaml ;  mv ./upgradeOperatorsav.yaml ./upgradeOperator.yaml
+    
     if [ ! -z ${IMAGEREGISTRY} ]; then
     # Change the location of the image
     echo "Using the operator image name: $IMAGEREGISTRY"

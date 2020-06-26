@@ -2,7 +2,7 @@
 #
 # Licensed Materials - Property of IBM
 #
-# (C) Copyright IBM Corp. 2019. All Rights Reserved.
+# (C) Copyright IBM Corp. 2020. All Rights Reserved.
 #
 # US Government Users Restricted Rights - Use, duplication or
 # disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
@@ -16,7 +16,7 @@ metadata:
     app.kubernetes.io/instance: ibm-fncm
     app.kubernetes.io/managed-by: ibm-fncm
     app.kubernetes.io/name: ibm-fncm
-    release: 5.5.4
+    release: 5.5.5
 spec:
   replicas: 1
   selector:
@@ -29,11 +29,11 @@ spec:
         app.kubernetes.io/instance: ibm-fncm
         app.kubernetes.io/managed-by: ibm-fncm
         app.kubernetes.io/name: ibm-fncm
-        release: 5.5.4
+        release: 5.5.5
       annotations:
         productID: "5724-R81 | 5725-L50"
         productName: "IBM FileNet Content Manager | IBM Content Foundation"
-        productVersion: "5.5.4"
+        productVersion: "5.5.5"
     spec:
       hostNetwork: false
       hostPID: false
@@ -65,7 +65,7 @@ spec:
           - /tmp/ansible-operator/runner
           - stdout
           # Replace this with the built image name
-          image: "cp.icr.io/cp/cp4a/fncm-operator:ga-5.5.4"
+          image: "cp.icr.io/cp/cp4a/icp4a-operator:20.0.2"
           imagePullPolicy: "Always"
           securityContext:
             allowPrivilegeEscalation: false
@@ -89,8 +89,24 @@ spec:
             name: operator-shared-folder
         - name: operator
           # Replace this with the built image name
-          image: "cp.icr.io/cp/cp4a/fncm-operator:ga-5.5.4"
+          image: "cp.icr.io/cp/cp4a/icp4a-operator:20.0.2"
           imagePullPolicy: "Always"
+          livenessProbe:
+            exec:
+              command:
+              - /bin/bash
+              - -ec
+              - |
+                OLD_COUNT=$(cat /tmp/old) || true
+                NEW_COUNT=$(find /tmp/ansible-operator/runner/fncm.ibm.com/v1/FNCMCluster | grep json -c) || true
+                if [ $NEW_COUNT -eq 0 ]; then exit 0; fi
+                echo $NEW_COUNT > /tmp/old
+                if [ $NEW_COUNT -eq $OLD_COUNT ]; then exit 1;else exit 0; fi
+            initialDelaySeconds: 100
+            periodSeconds: 120
+            timeoutSeconds: 10
+            successThreshold: 1
+            failureThreshold: 5
           securityContext:
             allowPrivilegeEscalation: false
             privileged: false
@@ -111,6 +127,11 @@ spec:
             name: runner
           - mountPath: /opt/ansible/share
             name: operator-shared-folder
+          args:
+          - '--zap-time-encoding=iso8601'
+          - '--zap-encoder=console'
+          - "--max-workers"
+          - "10"
           env:
             - name: WATCH_NAMESPACE
               valueFrom:
@@ -122,8 +143,11 @@ spec:
                   fieldPath: metadata.name
             - name: OPERATOR_NAME
               value: "ibm-fncm-operator"
-            - name: WORKER_FOOSERVICE_CACHE_EXAMPLE_COM
+            - name: WORKER_FNCMCLUSTER_FNCM_IBM_COM
               value: "10"
+            # MUST exist, used to accept fncm license, valid value only can be "accept" 
+            - name: fncm_license
+              value:
       imagePullSecrets:
       - name: "admin.registrykey"
       volumes:
