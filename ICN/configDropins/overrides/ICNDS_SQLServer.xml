@@ -1,0 +1,13 @@
+<server>
+        <dataSource id="ECMClientDS" jndiName="ECMClientDS"    isolationLevel="TRANSACTION_READ_COMMITTED"  type="javax.sql.DataSource">
+                <jdbcDriver libraryRef="3ptLibrary"/>
+                <properties.microsoft.sqlserver
+                        serverName="<hostname>"
+                        portNumber="1433"
+                        databaseName="ICNDB"
+                        user="sa"
+                        password="password"/>
+                />
+                <connectionManager enableSharingForDirectLookups="false" />
+         </dataSource>
+</server>
