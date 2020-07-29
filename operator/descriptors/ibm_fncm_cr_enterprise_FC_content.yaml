@@ -36,7 +36,7 @@ spec:
     sc_image_repository: cp.icr.io
 
     ## All FNCM components must use/share the root_ca_secret in order for integration.
-    root_ca_secret: fncm-root-ca
+    root_ca_secret: icp4a-root-ca
 
     ## The deployment type as selected
     sc_deployment_type: enterprise
