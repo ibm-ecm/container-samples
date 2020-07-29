@@ -40,7 +40,7 @@ spec:
     sc_run_as_user:
 
     ## All FNCM components must use/share the root_ca_secret in order for integration
-    root_ca_secret: fncm-root-ca
+    root_ca_secret: icp4a-root-ca
 
     ## FNCM capabilities to be deployed.  This CR represents the "content" pattern (aka FileNet Content Manager), which includes the following 
     ## mandatory components: cpe, icn (Navigator), graphql and optional components: css, cmis, es (External Share) and tm (Task Manager)
