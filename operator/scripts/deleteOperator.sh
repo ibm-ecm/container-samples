@@ -14,6 +14,4 @@ kubectl delete -f descriptors/role_binding.yaml
 kubectl delete -f descriptors/role.yaml
 kubectl delete -f descriptors/service_account.yaml
 
-kubectl patch crd/fncmclusters.fncm.ibm.com -p '{"metadata":{"finalizers":[]}}' --type=merge
-kubectl delete crd fncmclusters.fncm.ibm.com
 echo "All descriptors have been successfully deleted."
