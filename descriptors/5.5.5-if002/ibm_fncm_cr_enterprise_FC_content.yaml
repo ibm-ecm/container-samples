@@ -21,7 +21,7 @@ spec:
   ##########################################################################
   ## This section contains the shared configuration for all FNCM components #
   ##########################################################################
-  appVersion: 20.0.2
+  appVersion: 20.0.2.1
   shared_configuration:
 
     ## This is the deployment context is FNCM. No update it required.
@@ -218,6 +218,10 @@ spec:
 
   ## The beginning section of database configuration for FNCM
   datasource_configuration:
+    ## The database_precheck parameter is used to enable or disable CPE/Navigator database connection check.
+    ## If set to "true", then CPE/Navigator database connection check will be enabled.
+    ## if set to "false", then CPE/Navigator database connection check will not be enabled.
+   # database_precheck: true
     ## The database configuration for the GCD datasource for CPE
     dc_gcd_datasource:
       ## Provide the database type from your infrastructure.  The possible values are "db2" or "db2HADR" or "oracle" or "sqlserver" or "postgresql".
@@ -249,6 +253,17 @@ spec:
     
     ## The database configuration for the object store 1 (OS1) datasource for CPE
     dc_os_datasources:
+      ## Provide the object store label for the object store.  The default value is "os" or not defined.
+      ## This label must match the OS secret you define in ibm-fncm-secret.  
+      ## For example, if you define dc_os_label: "abc", then your OS secret must be defined as:
+      ## --from-literal=abcDBUsername="<your os db username>" --from-literal=abcDBPassword="<your os db password>"
+      ## If you don't define dc_os_label, then your secret will be defined as:
+      ## --from-literal=osDBUsername="<your os db username>" --from-literal=osDBPassword="<your os db password>".
+      ## If you have multiple object stores, then you need to define multiple datasource sections starting 
+      ## at "dc_database_type" element.
+      ## If all the object store databases share the same username and password, then dc_os_label value should be the same
+      ## in all the datasource sections.
+      dc_os_label: "os"
       ## Provide the database type from your infrastructure.  The possible values are "db2" or "db2HADR" or "oracle" or "sqlserver" or "postgresql".  This should be the same as the 
       ## GCD configuration above.
     - dc_database_type: "<Required>"
@@ -347,13 +362,13 @@ spec:
 
       ## The number of replicas or pods to be deployed.  The default is 1 replica and for high availability in a production env, 
       ## it is recommened to have 2 or more.        
-      replica_count: 1
+      replica_count: 2
 
       ## This is the image repository and tag that correspond to image registry, which is where the image will be pulled.
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cpe
-        tag: ga-555-p8cpe
+        tag: ga-555-p8cpe-if002
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -450,13 +465,13 @@ spec:
 
       ## The number of replicas or pods to be deployed.  The default is 1 replica and for high availability in a production env, 
       ## it is recommened to have 2 or more.        
-      replica_count: 1
+      replica_count: 2
 
       ## This is the image repository and tag that correspond to image registry, which is where the image will be pulled.
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/css
-        tag: ga-555-p8css
+        tag: ga-555-p8css-if002
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -523,13 +538,13 @@ spec:
 
       ## The number of replicas or pods to be deployed.  The default is 1 replica and for high availability in a production env, 
       ## it is recommened to have 2 or more.
-      replica_count: 1
+      replica_count: 2
       
       ## This is the image repository and tag that correspond to image registry, which is where the image will be pulled.
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cmis
-        tag: ga-305-cmis
+        tag: ga-305-cmis-if001
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -633,13 +648,13 @@ spec:
 
       ## The number of replicas or pods to be deployed.  The default is 1 replica and for high availability in a production env, 
       ## it is recommened to have 2 or more.
-      replica_count: 1
+      replica_count: 2
 
       ## This is the image repository and tag that correspond to image registry, which is where the image will be pulled.
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/graphql
-        tag: ga-555-p8cgql
+        tag: ga-555-p8cgql-if002
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -731,13 +746,13 @@ spec:
 
       ## The number of replicas or pods to be deployed.  The default is 1 replica and for high availability in a production env, 
       ## it is recommened to have 2 or more.
-      replica_count: 1
+      replica_count: 2
 
       ## This is the image repository and tag that correspond to image registry, which is where the image will be pulled.
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/extshare
-        tag: ga-308-es
+        tag: ga-308-es-if001
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -816,7 +831,7 @@ spec:
 
       ## The number of replicas or pods to be deployed.  The default is 1 replica and for high availability in a production env, 
       ## it is recommened to have 2 or more.
-      replica_count: 1
+      replica_count: 2
 
       ## This is the image repository and tag that correspond to image registry, which is where the image will be pulled.
       image:
@@ -827,10 +842,6 @@ spec:
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
 
-      ## This will override the image pull policy in the shared_configuration.
-      log:
-        format: JSON
-      
       ## The initial resources (CPU, memory) requests and limits.  If more resources are needed,
       ## make the changes here to meet your requirement.
       resources:
@@ -917,13 +928,13 @@ spec:
 
     ## The number of replicas or pods to be deployed.  The default is 1 replica and for high availability in a production env, 
     ## it is recommened to have 2 or more.
-    replica_count: 1
+    replica_count: 2
 
     ## This is the image repository and tag that correspond to image registry, which is where the image will be pulled.
     image:
       ## The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/ban/navigator
-      tag: ga-308-icn
+      tag: ga-308-icn-if002
 
       ## This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
