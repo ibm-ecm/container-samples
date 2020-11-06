@@ -56,7 +56,7 @@ fi
 [ -f ./deployoperator.yaml ] && rm ./deployoperator.yaml
 cp ./descriptors/operator.yaml ./deployoperator.yaml
 
-# Uncomment runAsUser for OCP 3.11 
+# Set runAsUser for OCP 3.11 
 function ocp311_special(){
     if [[ ${PLATFORM_VERSION} == "3.11" ]]; then 
         oc adm policy add-scc-to-user privileged -z ibm-fncm-operator -n ${NAMESPACE}
@@ -118,7 +118,7 @@ if [[ $LICENSE_ACCEPTED == "accept" ]]; then
     kubectl apply -f ./descriptors/role_binding.yaml --validate=false
 
 
-    # Uncomment runAsUser: 1001 for OCP 3.11
+    # Set runAsUser: 1001 for OCP 3.11
     ocp311_special
     
     kubectl apply -f ./deployoperator.yaml --validate=false
