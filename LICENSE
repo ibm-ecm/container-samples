@@ -2,7 +2,7 @@ NOTICE
 
 This document includes License Information documents below for multiple Programs. Each License Information document identifies the Program(s) to which it applies. Only those License Information documents for the Program(s) for which Licensee has acquired entitlements apply.
 
-The translated license terms can be viewed here: [License and Copyright](https://www-03.ibm.com/software/sla/sladb.nsf/search?OpenForm) and search for FileNet Content Manager v5.5.4
+The translated license terms can be viewed here: [License and Copyright](https://www-03.ibm.com/software/sla/sladb.nsf/search?OpenForm) and search for FileNet Content Manager v5.5.6
 ==============================================
 
 
@@ -11,24 +11,20 @@ LICENSE INFORMATION
 The Programs listed below are licensed under the following License Information terms and conditions in addition to the Program license terms previously agreed to by Client and IBM. If Client does not have previously agreed to license terms in effect for the Program, the International Program License Agreement (Z125-3301-14) applies.
 
 Program Name (Program Number):
-IBM FileNet Content Manager Authorized v5.5.5 (5724-R81)
-IBM FileNet Content Manager Employee v5.5.5 (5724-R81)
-IBM FileNet Content Manager Eligible Participant v5.5.5 (5724-R81)
-IBM FileNet Content Manager Starter Pack Authorized v5.5.5 (5724-R81)
-IBM FileNet Content Manager Authorized User Term v5.5.5 (5724-R81)
-IBM FileNet Content Manager v5.5.5 (5724-R81)
-IBM FileNet Content Manager for Non-Production Environment v5.5.5 (5724-R81)
-IBM FileNet Content Manager Concurrent User v5.5.5 (5724-R81)
+IBM FileNet Content Manager Authorized v5.5.6 (5724-R81)
+IBM FileNet Content Manager Employee v5.5.6 (5724-R81)
+IBM FileNet Content Manager Eligible Participant v5.5.6 (5724-R81)
+IBM FileNet Content Manager Starter Pack Authorized v5.5.6 (5724-R81)
+IBM FileNet Content Manager Authorized User Term v5.5.6 (5724-R81)
+IBM FileNet Content Manager v5.5.6 (5724-R81)
+IBM FileNet Content Manager for Non-Production Environment v5.5.6 (5724-R81)
+IBM FileNet Content Manager Concurrent User v5.5.6 (5724-R81)
 
 The following standard terms apply to Licensee's use of the Program.
 
 Limited use right
 
-As described in the International Program License Agreement ("IPLA") and this License Information, IBM grants Licensee a limited right to use the Program. This right is limited to the level of Authorized Use, such as a Processor Value Unit ("PVU"), a Resource Value Unit ("RVU"), a Value Unit ("VU"), or other specified level of use, paid for by Licensee as evidenced in the Proof of Entitlement. Licensee's use may also be limited to a specified machine, or only as a Supporting Program, or subject to other restrictions. As Licensee has not paid for all of the economic value of the Program, no other use is permitted without the payment of additional fees. In addition, Licensee is not authorized to use the Program to provide commercial IT services to any third party, to provide commercial hosting or timesharing, or to sublicense, rent, or lease the Program unless expressly provided for in the applicable agreements under which Licensee obtains authorizations to use the Program. Additional rights may be available to Licensee subject to the payment of additional fees or under different or supplementary terms. IBM reserves the right to determine whether to make such additional rights available to Licensee.
-
-Specifications
-
-Program's specifications can be found in the collective Description and Technical Information sections of the Program's Announcement Letters.
+Licensee is not authorized to use the Program to provide commercial IT services to any third party, to provide commercial hosting or timesharing, or to sublicense, rent, or lease the Program unless expressly provided for in the applicable agreements under which Licensee obtains authorizations to use the Program.
 
 Prohibited Uses
 
@@ -38,26 +34,32 @@ Multi-Product Install Image
 
 The Program is provided as part of a multi-product install image. Licensee is authorized to install and use only the Program (and its Bundled or Supporting Programs, if any) for which a valid entitlement is obtained and may not install or use any of the other software included in the image unless Licensee has acquired separate entitlements for that other software.
 
+Bundled Programs
+
+Licensee is authorized to install and use the Bundled Programs identified below. A Bundled Program may be accompanied by license terms, and those terms, if any, apply to Licensee's use of that Bundled Program. In the event of conflict, the terms in this License Information document supersede the Bundled Program's terms. The Principal Program and any Bundled Programs are all part of the Program, as a whole. Therefore, Licensee must obtain sufficient entitlements to the Program, as a whole, to cover Licensee's installation and use of all of the Bundled Programs, unless separate entitlements are provided within this License Information document. For example, if this Program were licensed on a VPC (Virtual Processor Core) basis and Licensee were to install the Principal Program or a Bundled Program on a 10 VPC machine and another Bundled Program on a second 10 VPC machine, Licensee would be required to obtain 20 VPC entitlements to the Program.
+
+Bundled Programs:
+IBM Daeja ViewONE Professional
+IBM Daeja ViewONE Professional Module for Microsoft Office
+IBM Daeja ViewONE Professional Permanent Redaction Server Module
+IBM Daeja ViewONE Virtual
+IBM Daeja ViewONE Virtual Module for Microsoft Office
+IBM Daeja ViewONE Virtual Module for Permanent Redaction
+
 Supporting Programs
 
-Licensee is authorized to install and use the Supporting Programs identified below. Licensee is authorized to install and use such Supporting Programs only to support Licensee's use of the Principal Program under this Agreement. The phrase "to support Licensee's use" would only include those uses that are necessary or otherwise directly related to a licensed use of the Principal Program or another Supporting Program. The Supporting Programs may not be used for any other purpose. A Supporting Program may be accompanied by license terms, and those terms, if any, apply to Licensee's use of that Supporting Program. In the event of conflict, the terms in this License Information document supersede the Supporting Program's terms. Licensee must obtain sufficient entitlements to the Program, as a whole, to cover Licensee's installation and use of all of the Supporting Programs, unless separate entitlements are provided within this License Information document. For example, if this Program were licensed on a PVU (Processor Value Unit) basis and Licensee were to install the Principal Program or a Supporting Program on a 100 PVU machine (physical or virtual) and another Supporting Program on a second 100 PVU machine, Licensee would be required to obtain 200 PVU entitlements to the Program.
+Licensee is authorized to install and use the Supporting Programs identified below only to support Licensee's use of the Principal Program under this Agreement. The phrase "to support Licensee's use" would only include those uses that are necessary or otherwise directly related to a licensed use of the Principal Program or another Supporting Program. The Supporting Programs may not be used for any other purpose. A Supporting Program may be accompanied by license terms, and those terms, if any, apply to Licensee's use of that Supporting Program. In the event of conflict, the terms in this License Information document supersede the Supporting Program's terms. Licensee must obtain sufficient entitlements to the Program, as a whole, to cover Licensee's installation and use of all of the Supporting Programs, unless separate entitlements are provided within this License Information document. For example, if this Program were licensed on a VPC (Virtual Processor Core) basis and Licensee were to install the Principal Program or a Supporting Program on a 10 VPC machine and another Supporting Program on a second 10 VPC machine, Licensee would be required to obtain 20 VPC entitlements to the Program.
 
 Supporting Programs:
 IBM System Dashboard for Enterprise Content Management
 IBM Content Search Services
 IBM FileNet Content Federation Services for Content Integrator
 IBM Content Navigator
-IBM DB2 Enterprise Server Edition
+IBM DB2 Standard Edition
 IBM Websphere Application Server
 IBM Security Directory Server
 IBM Content Integrator Connection
 IBM Content Engine Bulk Import Tool
-IBM Daeja ViewONE Professional Module for Microsoft Office
-IBM Daeja ViewONE Professional Permanent Redaction Server Module
-IBM Daeja ViewONE Professional
-IBM Daeja ViewONE Virtual Module for Microsoft Office
-IBM Daeja ViewONE Virtual Module for Permanent Redaction
-IBM Daeja ViewONE Virtual
 IBM FileNet P8 Connector to Hitachi Content Platform
 IBM FileNet P8 Connector to Centera Storage and Retrieval
 IBM FileNet P8 Connector to DR550 Storage and Retrieval
@@ -70,11 +72,8 @@ IBM Watson Explorer Deep Analytics Edition
 
 Prohibited Components
 
-Notwithstanding any provision in the Agreement, Licensee is not authorized to use any of the following components or functions of the Program:
+Licensee is not authorized to use any of the following components or functions of the Program:
 IBM LanguageWare (of IBM Content Search Services)
-pureScale clustering technology (of IBM DB2 Enterprise Server Edition)
-SQL Replication (of IBM DB2 Enterprise Server Edition)
-IBM WebSphere MQ 8.0 (of IBM DB2 Enterprise Server Edition)
 IBM WebSphere eXtreme Scales (of WebSphere Application Server)
 Proxy server (of IBM Security Directory Server)
 Pass Through Authentication (of IBM Security Directory Server)
@@ -84,42 +83,19 @@ Advanced password policy rules plugin (of IBM Security Directory Server)
 
 Non-Production Limitation
 
-If the Program is designated as "Non-Production", the Program can only be deployed as part of the Licensee's internal development and test environment for internal non-production activities, including but not limited to testing, performance tuning, fault diagnosis, internal benchmarking, staging, quality assurance activity and/or developing internally used additions or extensions to the Program using published application programming interfaces. Licensee is not authorized to use any part of the Program for any other purposes without acquiring the appropriate production entitlements.
+If the Program is designated as "Non-Production", Licensee can only use the Program as part of Licensee's internal development and test environment for internal non-production activities.
 
 Separately Licensed Code
 
-The provisions of this paragraph do not apply to the extent they are held to be invalid or unenforceable under the law that governs this license. Each of the components listed below is considered "Separately Licensed Code". IBM Separately Licensed Code is licensed to Licensee under the terms of the applicable third party license agreement(s) set forth in the NON_IBM_LICENSE file(s) that accompanies the Program. Notwithstanding any of the terms in the Agreement, or any other agreement Licensee may have with IBM, the terms of such third party license agreement(s) governs Licensee's use of all Separately Licensed Code unless otherwise noted below.
+Each of the components listed in the NON_IBM_LICENSE file is considered "Separately Licensed Code" licensed to Licensee under the terms of the applicable third party license agreement(s) set forth in the NON_IBM_LICENSE file(s) that accompanies the Program, and not this Agreement. Future Program updates or fixes may contain additional Separately Licensed Code. Such additional Separately Licensed Code and related licenses are listed in the applicable NON_IBM_LICENSE file that accompanies the Program update or fix. 
 
-Future Program updates or fixes may contain additional Separately Licensed Code. Such additional Separately Licensed Code and related licenses are listed in another NON_IBM_LICENSE file that accompanies the Program update or fix. Licensee acknowledges that Licensee has read and agrees to the license agreements contained in the NON_IBM_LICENSE file(s). If Licensee does not agree to the terms of these third party license agreements, Licensee may not use the Separately Licensed Code.
-
-For Programs acquired under the International Program License Agreement ("IPLA") or International Program License Agreement for Non Warranted Program ("ILAN") and Licensee is the original licensee of the Program, if Licensee does not agree with the third party license agreements, Licensee may return the Program in accordance with the terms of, and within the specified time frames stated in, the "Money-back Guarantee" section of the IPLA or ILAN IBM Agreement.
-
-Note: Notwithstanding any of the terms in the third party license agreement, the Agreement, or any other agreement Licensee may have with IBM:
-(a) IBM provides this Separately Licensed Code to Licensee WITHOUT WARRANTIES OF ANY KIND;
-(b) IBM DISCLAIMS ANY AND ALL EXPRESS AND IMPLIED WARRANTIES AND CONDITIONS INCLUDING, BUT NOT LIMITED TO, THE WARRANTY OF TITLE, NON-INFRINGEMENT OR INTERFERENCE AND THE IMPLIED WARRANTIES AND CONDITIONS OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE, WITH RESPECT TO THE SEPARATELY LICENSED CODE;
-(c) IBM is not liable to Licensee, and will not defend, indemnify, or hold Licensee harmless for any claims arising from or related to the Separately Licensed Code; and
-(d) IBM is not liable for any direct, indirect, incidental, special, exemplary, punitive or consequential damages including, but not limited to, lost data, lost savings, and lost profits, with respect to the Separately Licensed Code.
-
-Notwithstanding these exclusions, in Germany and Austria, IBM's warranty and liability for the Separately Licensed Code is governed only by the respective terms applicable for Germany and Austria in IBM license agreements.
-
-Note: IBM may provide limited support for some Separately Licensed Code. If such support is available, the details and any additional terms related to such support will be set forth in the License Information document.
-
-The following are Separately Licensed Code:
-Ansible
-collectd
-epel-release
-libgcrypt-devel
-sensible-utils
-syslog-ng
-yum-plugin-fastestmirror
-inotify-tools
-krb5-libs
-OpenLDAP
-coreutils-timeout
+Note: Notwithstanding any of the terms in the third party license agreement, the Agreement, or any other agreement Licensee may have with IBM, with respect to the Separately Licensed Code: 
+(a) IBM provides it to Licensee WITHOUT WARRANTIES OF ANY KIND AND DISCLAIMS ANY AND ALL EXPRESS AND IMPLIED WARRANTIES AND CONDITIONS INCLUDING, BUT NOT LIMITED TO, THE WARRANTY OF TITLE, NON-INFRINGEMENT OR NON-INTERFERENCE, AND THE IMPLIED WARRANTIES AND CONDITIONS OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE;
+(b) IBM is not liable for any direct, indirect, incidental, special, exemplary, punitive or consequential damages including, but not limited to, lost data, lost savings, and lost profits.
 
 Source Components and Sample Materials
 
-The Program may include some components in source code form ("Source Components") and other materials identified as Sample Materials. Licensee may copy and modify Source Components and Sample Materials for internal use only provided such use is within the limits of the license rights under this Agreement; provided, however, that Licensee may not alter or delete any copyright information or notices contained in the Source Components or Sample Materials. IBM provides the Source Components and Sample Materials without obligation of support and "AS IS", WITH NO WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING THE WARRANTY OF TITLE, NON-INFRINGEMENT OR NON-INTERFERENCE AND THE IMPLIED WARRANTIES AND CONDITIONS OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+The Program includes components in source code form ("Source Components"), or other materials identified as Sample Materials or both. Licensee may copy and modify Source Components and Sample Materials for internal use only within the limits of the license rights under this Agreement; provided, however, that Licensee may not alter or delete any copyright information or notices contained in the Source Components or Sample Materials. IBM provides the Source Components and Sample Materials without obligation of support and "AS IS", WITH NO WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING THE WARRANTY OF TITLE, NON-INFRINGEMENT OR NON-INTERFERENCE AND THE IMPLIED WARRANTIES AND CONDITIONS OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 Terms for Oracle Outside In Technology
 
@@ -135,24 +111,6 @@ The Programs licensed under this Agreement include Outside In filtering and docu
 
 (5) To the extent allowed under applicable law, the Uniform Computer Information Transactions Act ("UCITA") does not apply.
 
-Technology Preview Code
-
-Technology Preview Code (TPC) may be included or distributed with the Program or updates to it but are not part of the Program. TPC is licensed under the same terms as the Program, except as provided below. TPC will be identified as such in the Notices File (or in an updated Notices File accompanying the updates). Some or all of the TPC may not be made generally available by IBM as or in a product. Licensee is permitted to use TPC only for internal use for evaluation purposes and not for use in a production environment. The Notices File may limit this evaluation use to an evaluation period. If so, at the end of such evaluation period Licensee must cease using and uninstall the TPC. IBM provides the TPC without obligation of support and "AS IS," WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING, WITHOUT LIMITATION, THE WARRANTY OF TITLE, NON-INFRINGEMENT OR NON-INTERFERENCE AND ANY IMPLIED WARRANTIES AND CONDITIONS OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
-
-Licensee may not transfer TPC to another party except as a transfer accompanying the Program. TPC may contain a disabling device that will prevent it from being used after the evaluation period ends. Licensee will not tamper with this disabling device or the TPC. Licensee should take precautions to avoid any loss of data that might result when the TPC can no longer be used.
-
-Licensee assigns to IBM all right, title, and interest (including ownership of copyright) in any data, suggestions, or written materials that 1) are related to the Technology Preview Code and 2) Licensee provides to IBM. Upon IBM's request, Licensee will sign additional documents necessary to assign such rights. In addition to the foregoing, Licensee grants to IBM a non-exclusive, irrevocable, unrestricted, worldwide and paid-up right and license to a) include in any product or service any idea, know-how, concept, technique, invention, discovery or improvement, whether or not patentable, that Licensee provides to IBM related to the Technology Preview Code b) use, manufacture and market any such product or service, and c) allow others to do any of the foregoing.
-
-Licensee agrees to treat the following as "IBM Confidential Information" regardless of whether they contain restrictive markings indicating the confidential nature thereof or have been identified as IBM Confidential Information prior to disclosure: (a) the Technology Preview Code, (b) any information provided to Licensee by IBM with regard to the Technology Preview Code including, but not limited to, related materials such as specifications, plans, trends, strategies, benchmarks, performance characteristics, comparisons and other assessments of the Technology Preview Code, (c) any information related to Licensee's access to the Technology Preview Code including, but not limited to, passwords or other access codes, and (d) all data, feedback, suggestions and/or written materials that Licensee provides to IBM related to the Technology Preview Code. Licensee is authorized to use the IBM Confidential Information for the purpose for which it was disclosed or otherwise for the benefit of IBM. Notwithstanding any other terms of this Agreement, Licensee agrees not to communicate, publish, disseminate or otherwise discuss with or disclose to any third party the IBM Confidential Information (including but not limited to articles, papers or other written materials pertaining to the IBM Confidential Information) prior to IBM making such IBM Confidential Information publicly available without a non-disclosure obligation. Notwithstanding the above, Licensee does not have a confidentiality obligation to Technology Preview Code identified in the Notices File as non-confidential.
-
-Licensee agrees to use the same care and discretion to avoid disclosure of the IBM Confidential Information as Licensee uses with Licensee's own similar information that Licensee does not wish to disclose, but in no event will such degree of care be less than reasonable care. Licensee's obligations with respect to the IBM Confidential Information will continue for a period of two years from Licensee's receipt of the IBM Confidential Information. Licensee agrees not to disclose to IBM any information that is considered confidential or proprietary to Licensee or any third party except under a signed, separate, written confidential agreement.
-
-Notwithstanding the existence of any confidentiality or other agreement Licensee may have with IBM pertaining to confidential information, the preceding paragraphs will govern the treatment of the IBM Confidential Information.
-
-Export and Import Restrictions
-
-This Program may contain cryptography. Transfer to, or use by, users of the Program may be prohibited or subject to export or import laws, regulations or policies, including those of the United States Export Administration Regulations. Licensee assumes all responsibility for complying with all applicable laws, regulations, and policies regarding the export, import, or use of this Program, including but not limited to, U.S. restrictions on exports or reexports. To obtain the export classification of this Program refer to: https://www.ibm.com/products/exporting/.
-
 The following units of measure may apply to Licensee's use of the Program.
 
 Authorized User
@@ -165,11 +123,9 @@ Concurrent User is a unit of measure by which the Program can be licensed. A Con
 
 Processor Value Unit (PVU)
 
-Processor Value Unit (PVU) is a unit of measure by which the Program can be licensed. The number of PVU entitlements required is based on the processor technology (defined within the PVU Table by Processor Vendor, Brand, Type and Model Number at http://www.ibm.com/software/lotus/passportadvantage/pvu_licensing_for_customers.html) and the number of processors made available to the Program. IBM continues to define a processor, for the purpose of PVU-based licensing, to be each processor core on a chip. A dual-core processor chip, for example, has two processor cores.
+Processor Value Unit (PVU) is a unit of measure by which the Program can be licensed. The number of PVU entitlements required is based on the processor technology (defined within the Processor Value Unit (PVU) licensing for Distributed Software website at https://supportcontent.ibm.com/support/pages/ibm-processor-value-unit-pvu-licensing-distributed-software) and the number of processors made available to the Program. IBM continues to define a processor, for the purpose of PVU-based licensing, to be each processor core on a chip. A dual-core processor chip, for example, has two processor cores.
 
-Licensee can deploy the Program using either Full Capacity licensing or Virtualization Capacity (Sub-Capacity) licensing according to the Passport Advantage Sub-Capacity Licensing Terms (see webpage below). If using Full Capacity licensing, Licensee must obtain PVU entitlements sufficient to cover all activated processor cores* in the physical hardware environment made available to or managed by the Program, except for those servers from which the Program has been permanently removed. If using Virtualization Capacity licensing, Licensee must obtain entitlements sufficient to cover all activated processor cores made available to or managed by the Program, as defined according to the Virtualization Capacity License Counting Rules at http://www.ibm.com/software/lotus/passportadvantage/Counting_Software_licenses_using_specific_virtualization_technologies.html.
-
-* An Activated processor core is a processor core that is available for use in a physical or virtual server, regardless of whether the capacity of the processor core can be or is limited through virtualization technologies, operating system commands, BIOS settings, or similar restrictions.
+Licensee can deploy the Program (if supported) using full capacity licensing, sub-capacity licensing (https://www.ibm.com/software/passportadvantage/subcaplicensing.html), or container licensing (https://www.ibm.com/software/passportadvantage/containerlicenses.html). See the linked websites for more information.
 
 Resource Value Unit (RVU)
 
@@ -243,17 +199,19 @@ A. Definitions
 
 "Repository" means a collection of one or more object stores that share a single configuration database. 
 
-"Storage Device" means a content storage repository with "write once read many" (WORM) capability.
-
 B. Supporting Program Details.
 
-1. IBM DB2 Enterprise Server Edition
+1. IBM DB2 Standard Edition
 - Entitlement: No Metric
 - Use Limitations: Use by Principal Program
 
 "No Metric" means this Supporting Program may be installed on as many machines and used by as many persons as is reasonably necessary within the use limitations that apply to this Supporting Program.
 
 "Use by Principal Program" means that the Supporting Program is provided exclusively for use by the Principal Program. Neither Licensee nor any application, program or device is authorized to directly use or access the services of the Supporting Program except Licensee may access the Supporting Program to perform administrative functions for the Supporting Program such as backup, recovery and authorized configuration.
+
+Additional Supporting Program Details
+
+The Supporting Program may use a maximum of 16 processor cores and 128 GB of memory on each physical or virtual server; however, if the Supporting Program is used on a cluster of servers configured to work together using database partitioning or other permitted clustering technology, the Supporting Program may use a maximum of 16 processor cores and 128 GB of memory across all virtual or physical servers in that cluster.
 
 2. Limited Use IBM Content Integrator Connection
 
@@ -291,9 +249,9 @@ Content Platform Engine
 
 A Content Operation is each access to a document within the Program as measured in the Program's usage tracking.
 
-L/N:  L-VSAY-BPKVYP
-D/N:  L-VSAY-BPKVYP
-P/N:  L-VSAY-BPKVYP
+L/N:  L-VSAY-BSUSRM
+D/N:  L-VSAY-BSUSRM
+P/N:  L-VSAY-BSUSRM
 
 
 International Program License Agreement
@@ -1005,5 +963,6 @@ b. special, incidental, exemplary, or indirect damages or consequential damages;
 c. wasted management time or lost profits, business, revenue, goodwill, or anticipated savings.
 
 Z125-3301-14 (07/2011)
+
 
 

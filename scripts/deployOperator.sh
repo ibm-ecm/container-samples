@@ -9,10 +9,11 @@
 # disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
 #
 ###############################################################################
-# This script need to be executed under root path cert-kubernetes
-CUR_DIR=$(pwd)
+# CUR_DIR set to full path to scripts folder
+CUR_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 PLATFORM_VERSION=""
-source ${CUR_DIR}/scripts/helper/common.sh
+source ${CUR_DIR}/helper/common.sh
 check_platform_version
 
 function show_help {
@@ -20,9 +21,10 @@ function show_help {
     echo "Options:"
     echo "  -h  Display help"
     echo "  -i  Operator image name"
-    echo "      For example: cp.icr.io/cp/icp4a-operator:20.0.2 or registry_url/icp4a-operator:version"
+    echo "      For example: cp.icr.io/cp/icp4a-operator:20.0.3 or registry_url/icp4a-operator:version"
     echo "  -p  Optional: Pull secret to use to connect to the registry"
     echo "  -n  The namespace to deploy Operator"
+    echo "  -t  The deployment type: demo or enterprise"
     echo "  -a  Accept IBM license"
 }
 
@@ -53,14 +55,15 @@ else
     done
 fi
 
-[ -f ./deployoperator.yaml ] && rm ./deployoperator.yaml
-cp ./descriptors/operator.yaml ./deployoperator.yaml
+[ -f ${CUR_DIR}/../deployoperator.yaml ] && rm ${CUR_DIR}/../deployoperator.yaml
+cp ${CUR_DIR}/../descriptors/operator.yaml ${CUR_DIR}/../deployoperator.yaml
 
-# Set runAsUser for OCP 3.11 
+
+# Uncomment runAsUser for OCP 3.11
 function ocp311_special(){
-    if [[ ${PLATFORM_VERSION} == "3.11" ]]; then 
+    if [[ ${PLATFORM_VERSION} == "3.11" ]]; then
         oc adm policy add-scc-to-user privileged -z ibm-fncm-operator -n ${NAMESPACE}
-        sed -e 's/\# runAsUser\: 1001/runAsUser\: 1001/g' ./deployoperator.yaml > ./deployoperatorsav.yaml ;  mv ./deployoperatorsav.yaml ./deployoperator.yaml
+        sed -e 's/\# runAsUser\: 1001/runAsUser\: 1001/g' ${CUR_DIR}/../deployoperator.yaml > ${CUR_DIR}/../deployoperatorsav.yaml ;  mv ${CUR_DIR}/../deployoperatorsav.yaml ${CUR_DIR}/../deployoperator.yaml
     fi
 }
 
@@ -68,7 +71,7 @@ function ocp311_special(){
 function readLicense() {
     echo -e "\033[32mYou need to read the International Program License Agreement before start\033[0m"
     sleep 3
-    more ./scripts/LICENSE
+    more LICENSE
 }
 
 # Get user's input on whether accept the license
@@ -93,35 +96,38 @@ if [[ $LICENSE_ACCEPTED != "accept" ]]; then
 fi
 
 if [[ $LICENSE_ACCEPTED == "accept" ]]; then
-    sed -e '/dba_license/{n;s/value:/value: accept/;}' ./deployoperator.yaml > ./deployoperatorsav.yaml ;  mv ./deployoperatorsav.yaml ./deployoperator.yaml
-    sed -e '/baw_license/{n;s/value:/value: accept/;}' ./deployoperator.yaml > ./deployoperatorsav.yaml ;  mv ./deployoperatorsav.yaml ./deployoperator.yaml
-    sed -e '/fncm_license/{n;s/value:/value: accept/;}' ./deployoperator.yaml > ./deployoperatorsav.yaml ;  mv ./deployoperatorsav.yaml ./deployoperator.yaml
-    sed -e '/ier_license/{n;s/value:/value: accept/;}' ./deployoperator.yaml > ./deployoperatorsav.yaml ;  mv ./deployoperatorsav.yaml ./deployoperator.yaml
+    sed -e '/dba_license/{n;s/value:/value: accept/;}' ${CUR_DIR}/../deployoperator.yaml > ${CUR_DIR}/../deployoperatorsav.yaml ;  mv ${CUR_DIR}/../deployoperatorsav.yaml ${CUR_DIR}/../deployoperator.yaml
+    sed -e '/baw_license/{n;s/value:/value: accept/;}' ${CUR_DIR}/../deployoperator.yaml > ${CUR_DIR}/../deployoperatorsav.yaml ;  mv ${CUR_DIR}/../deployoperatorsav.yaml ${CUR_DIR}/../deployoperator.yaml
+    sed -e '/fncm_license/{n;s/value:/value: accept/;}' ${CUR_DIR}/../deployoperator.yaml > ${CUR_DIR}/../deployoperatorsav.yaml ;  mv ${CUR_DIR}/../deployoperatorsav.yaml ${CUR_DIR}/../deployoperator.yaml
+    sed -e '/ier_license/{n;s/value:/value: accept/;}' ${CUR_DIR}/../deployoperator.yaml > ${CUR_DIR}/../deployoperatorsav.yaml ;  mv ${CUR_DIR}/../deployoperatorsav.yaml ${CUR_DIR}/../deployoperator.yaml
 
     if [ ! -z ${IMAGEREGISTRY} ]; then
     # Change the location of the image
     echo "Using the operator image name: $IMAGEREGISTRY"
-    sed -e "s|image: .*|image: \"$IMAGEREGISTRY\" |g" ./deployoperator.yaml > ./deployoperatorsav.yaml ;  mv ./deployoperatorsav.yaml ./deployoperator.yaml
+    sed -e "s|image: .*|image: \"$IMAGEREGISTRY\" |g" ${CUR_DIR}/../deployoperator.yaml > ${CUR_DIR}/../deployoperatorsav.yaml ;  mv ${CUR_DIR}/../deployoperatorsav.yaml ${CUR_DIR}/../deployoperator.yaml
     fi
 
     # Change the pullSecrets if needed
     if [ ! -z ${PULLSECRET} ]; then
         echo "Setting pullSecrets to $PULLSECRET"
-        sed -e "s|admin.registrykey|$PULLSECRET|g" ./deployoperator.yaml > ./deployoperatorsav.yaml ;  mv ./deployoperatorsav.yaml ./deployoperator.yaml
+        sed -e "s|admin.registrykey|$PULLSECRET|g" ${CUR_DIR}/../deployoperator.yaml > ${CUR_DIR}/../deployoperatorsav.yaml ;  mv ${CUR_DIR}/../deployoperatorsav.yaml ${CUR_DIR}/../deployoperator.yaml
     else
-        sed -e '/imagePullSecrets:/{N;d;}' ./deployoperator.yaml > ./deployoperatorsav.yaml ;  mv ./deployoperatorsav.yaml ./deployoperator.yaml
+        sed -e '/imagePullSecrets:/{N;d;}' ${CUR_DIR}/../deployoperator.yaml > ${CUR_DIR}/../deployoperatorsav.yaml ;  mv ${CUR_DIR}/../deployoperatorsav.yaml ${CUR_DIR}/../deployoperator.yaml
     fi
 
-    kubectl apply -f ./descriptors/fncm_v1_fncm_crd.yaml --validate=false
-    kubectl apply -f ./descriptors/service_account.yaml --validate=false
-    kubectl apply -f ./descriptors/role.yaml --validate=false
-    kubectl apply -f ./descriptors/role_binding.yaml --validate=false
+    kubectl apply -f ${CUR_DIR}/../descriptors/fncm_v1_fncm_crd.yaml --validate=false
+    kubectl apply -f ${CUR_DIR}/../descriptors/service_account.yaml --validate=false
+    kubectl apply -f ${CUR_DIR}/../descriptors/role.yaml --validate=false
+    kubectl apply -f ${CUR_DIR}/../descriptors/role_binding.yaml --validate=false
 
 
-    # Set runAsUser: 1001 for OCP 3.11
+    # Uncomment runAsUser: 1001 for OCP 3.11
     ocp311_special
-    
-    kubectl apply -f ./deployoperator.yaml --validate=false
+
+    if [[ "$PLATFORM_VERSION" == "4.4OrLater" ]]; then
+        oc adm policy add-scc-to-user privileged -z ibm-fncm-operator -n ${NAMESPACE}
+    fi
+    kubectl apply -f ${CUR_DIR}/../deployoperator.yaml --validate=false
     echo -e "\033[32mAll descriptors have been successfully applied. Monitor the pod status with 'kubectl get pods -w'.\033[0m"
 else
   echo -e "\033[31mIBM software license unexpected error, there is no LICENSE_ACCEPTED variable in setProperties.sh\033[0m"

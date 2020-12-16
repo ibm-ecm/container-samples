@@ -9,9 +9,13 @@
 # disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
 #
 ###############################################################################
-kubectl delete -f descriptors/operator.yaml
-kubectl delete -f descriptors/role_binding.yaml
-kubectl delete -f descriptors/role.yaml
-kubectl delete -f descriptors/service_account.yaml
+# CUR_DIR set to full path to scripts folder
+CUR_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+kubectl delete -f ${CUR_DIR}/../descriptors/operator.yaml
+kubectl delete -f ${CUR_DIR}/../descriptors/role_binding.yaml
+kubectl delete -f ${CUR_DIR}/../descriptors/role.yaml
+kubectl delete -f ${CUR_DIR}/../descriptors/service_account.yaml
+
 
 echo "All descriptors have been successfully deleted."
