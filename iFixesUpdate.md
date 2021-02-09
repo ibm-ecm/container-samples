@@ -1,10 +1,10 @@
-# Updating FileNet Content Manager 5.5.5
+# Updating FileNet Content Manager 5.5.6
 
-If you installed any of the FileNet Content Manager 5.5.5 components on a Kubernetes cluster, you can update them to a higher interim fix patch release level by using the updated operator and the relevant container iFixes. Required details like the image:tag of the interim fix patch Docker image can be found in the individual interim fix readmes.
+If you installed any of the FileNet Content Manager 5.5.6 components on a Kubernetes cluster, you can update them to a higher interim fix patch release level by using the updated operator (if available) and the relevant container iFixes. Required details like the image:tag of the interim fix patch Docker image can be found in the individual interim fix readmes.
 
-> **Important**: If you are using this Interim Fix as a part of a new deployment of the Content Platform Engine container, you must deploy the container as described in the Knowledge Center topic [Deploying a new P8 domain by using containers](https://www.ibm.com/support/knowledgecenter/en/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_deploy.htm). In the parts of the process described in [Deploying a custom resource](https://www.ibm.com/support/knowledgecenter/en/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_deploying_cr.htm), use the information provided in the section "Edits to the custom resource YAML file after 5.5.5/3.0.8" at the end of this readme.
+> **Important**: If you are using this Interim Fix as a part of a new deployment of the Content Platform Engine container, you must deploy the container as described in the Knowledge Center topic [Deploying a new P8 domain by using containers](https://www.ibm.com/support/knowledgecenter/en/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_deploy.htm). In the parts of the process described in [Deploying a custom resource](https://www.ibm.com/support/knowledgecenter/en/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_deploying_cr.htm), use the information provided in the section "Edits to the custom resource YAML file after 5.5.6/3.0.9" at the end of this readme.
 
-> **Important**: If you are using this Interim Fix as a part of a upgrading an existing deployment, you must deploy the container as described in the Knowledge Center topic [Upgrading container deployments](https://www.ibm.com/support/knowledgecenter/en/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_upgradeversion.htm). In the parts of the process described in [Checking the deployment type and license](https://www.ibm.com/support/knowledgecenter/en/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_upgrading_license.htm) and [Upgrading your components](https://www.ibm.com/support/knowledgecenter/en/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_upgrading_fncm.htm), use the information provided in the section "Edits to the custom resource YAML file after 5.5.5/3.0.8" at the end of this readme.
+> **Important**: If you are using this Interim Fix as a part of a upgrading an existing deployment, you must deploy the container as described in the Knowledge Center topic [Upgrading container deployments](https://www.ibm.com/support/knowledgecenter/en/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_upgradeversion.htm). In the parts of the process described in [Checking the deployment type and license](https://www.ibm.com/support/knowledgecenter/en/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_upgrading_license.htm) and [Upgrading your components](https://www.ibm.com/support/knowledgecenter/en/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_upgrading_fncm.htm), use the information provided in the section "Edits to the custom resource YAML file after 5.5.6/3.0.9" at the end of this readme.
 
 ## Updating a deployment with interim fixes
 
@@ -133,12 +133,12 @@ If the operator in the project (namespace) of your deployment is already upgrade
 
 1. Log in to your Kubernetes cluster and set the context to the project for your existing deployment.
 
-2. Go to the downloaded container-samples.git for FileNet Content Manager V5.5.5 and replace the files in the `/descriptors` directory with the files from the interim fix `/descriptors` folder.
+2. Go to the downloaded container-samples.git for FileNet Content Manager V5.5.6 and replace the files in the `/descriptors` directory with the files from the interim fix `/descriptors` folder (if one exists).
 
    For example:
    ```bash
    $ cd container-samples/descriptors
-   $ cp ./5.5.5-if002/* . 
+   $ cp ./5.5.6-some-ifix/* . 
    ```   
 3. Remove the .OPERATOR_TYPE file in case it exists from a previous deployment:
 
@@ -153,7 +153,7 @@ If the operator in the project (namespace) of your deployment is already upgrade
    Use the interim fix [scripts/upgradeOperator.sh](../../scripts/upgradeOperator.sh) script to deploy the operator manifest descriptors.
    ```bash
    $ cd container-samples
-   $ ./scripts/upgradeOperator.sh -i <registry_url>/icp4a-operator:20.0.2-IF001 -p 'admin.registrykey' -a accept
+   $ ./scripts/upgradeOperator.sh -i <registry_url>/icp4a-operator:20.0.3-IF002 -p 'admin.registrykey' -a accept
    ```
 
    Where *registry_url* is the value for your internal docker registry or `cp.icr.io/cp/cp4a` for the IBM Cloud Entitled Registry,  admin.registrykey is the secret created to access the registry, and *accept* means that you accept the [license](../../LICENSE).
@@ -176,27 +176,18 @@ If the operator in the project (namespace) of your deployment is already upgrade
 
 Get the custom resource YAML file that you previously deployed and edit it by following the instructions for each component:
 
-1. Verify that the metadata.labels.release version is 5.5.5.
+1. Verify that the metadata.labels.release version is 5.5.6.
 
-2. Change the appVersion in the global spec section:
-   appVersion: 20.0.2.1
-   
-   Note the 20.0.2.1 appVersion setting automatically defaults the image:tag values for deployed containers to reflect the following interim fixes:
-
-   |  Parameter   |  Value |
-   |  ---------   |  ---------   |
-   | cpe.image.tag 	| ga-555-p8cpe-if002 | 
-   | css.image.tag 	| ga-555-p8css-if002 | 
-   | cmis.image.tag 	| ga-305-cmis-if001 |
-   | navigator_configuration.image.tag 	| ga-308-icn-if002 |
-   | graphql.image.tag 	| ga-555-p8cgql-if002 |
-   | es.image.tag 	| ga-308-es-if001 |
-   | tm.image.tag 	| ga-308-tm-if001 |
-
-3. If you want to override the default tags as shown in substep 2, then in the sections for each of the components you wish to override, modify the configuration parameter `ecm_configuration.<component>.image.tag` to reflect the value for the image loaded, for example:
+2. Verify the appVersion in the global spec section, for example:
     ```bash
-       repository: cp.icr.io/cp/cp4a/fncm/cpe
-       tag: ga-555-p8cpe-if002
+       appVersion: 20.0.3
+   ```     
+    > **Tip**: The appVersion setting automatically defaults the image:tag or digest values for deployed containers to reflect a particular release. For example 20.0.3 is the appVersion for the 5.5.6 GA release. For an interim fix release of the operator, the appVersion changes the default values of the tags or digests to reflect the versions of component interim fixes that operator was released with. If an alternate appVersion is documented in the iFix readme for the operator, you may choose to use that appVersion instead to automatically utilize the new default tag or digest values.
+
+3. If you want to override the default tags, then in the sections for each of the components you wish to override, modify the configuration parameter `ecm_configuration.<component>.image.tag` to reflect the value for the image loaded, for example:
+    ```bash
+       repository: cp.icr.io/cp/cp4a/ban/navigator
+       tag: ga-309-icn-if001
    ```     
     > **Tip**: The values of the tags for a given interim fix can be found in the readme provided with that interim fix.
    
@@ -204,16 +195,6 @@ Get the custom resource YAML file that you previously deployed and edit it by fo
 
    Repeat this step for each component that you want to update to a new version.
    
-4. In the `ldap_configuration` section, verify that the `lc_bind_secret parameter` is set.
-   The value of the parameter is typically the same secret that is used in the `ecm_configuration.fncm_secret_name parameter`. 
-   
-   Example:
-   ```
-     ldap_configuration:
-    lc_bind_secret: ibm-fncm-secret # secret is expected to have ldapUsername and ldapPassword keys
-   ```    
-    > **Tip**: The value that you provide for the lc_bind_secret must be the same value that you used previously for the fncm-secret value.
-
 5. Verify or change the following parameters in the shared_configuration section:
 
    ```
@@ -250,61 +231,25 @@ Return to the interim fix readme for additional verification instructions for th
 
 ## Rolling a deployment back to a previous version
 
-Leave the operator and custom resource file at 20.0.2.1 level.
+Leave the operator and custom resource file at interim fix level.
 
 Edit the custom resource file:
 
-1. Change the appVersion in the global spec section:
-   appVersion:20.0.2
-   
-   Note that the 20.0.2 appVersion setting automatically defaults the image:tag values for deployed containers to reflect the general availability values:
-   
-   |  Parameter   |  Value |
-   |  ---------   |  ---------   |
-   | cpe.image.tag 	| ga-555-p8cpe | 
-   | css.image.tag 	| ga-555-p8css | 
-   | cmis.image.tag 	| ga-305-cmis |
-   | navigator_configuration.image.tag 	| ga-308-icn |
-   | graphql.image.tag 	| ga-555-p8cgql |
-   | es.image.tag 	| ga-308-es |
-   | tm.image.tag 	| ga-308-tm |
+1. Revert the appVersion in the global spec section to the previous level, for example:
+   appVersion:20.0.3
 
-2. If you want to override the default tags as shown in step 1, then in the sections for each of the components you wish to override, modify the configuration parameter `ecm_configuration.<component>.image.tag` to reflect the value for the image loaded, for example: 
+2. If you want to override the default tags for the appVersion, then in the sections for each of the components you wish to override, modify the configuration parameter `ecm_configuration.<component>.image.tag` to reflect the value for the image loaded, for example: 
       
    ```bash
-   repository: cp.icr.io/cp/cp4a/fncm/cpe
-   tag: ga-555-p8cpe
-
+       repository: cp.icr.io/cp/cp4a/fncm/cmis
+       tag: cmis:ga-305-cmis-if002
    ```
-      > **Tip**: If you are rolling your deployment back to an earlier 5.5.5/3.0.8 interim fix, the values of the tags for a given interim fix can be found in the readme provided with that interim fix.  
+      > **Tip**: If you are rolling your deployment back to an earlier 5.5.6/3.0.9 interim fix, the values of the tags for a given interim fix can be found in the readme provided with that interim fix.  
        
       > **Tip**: Verify that the secret named in the CR YAML file as the imagePullSecrets is valid. Note that the secret might be expired, in which case you must re-create the secret.  
        
 3. Follow Step 5 and Step 6 in the previous procedure to apply the edited custom resource file and monitor the completion of the operator reconciliation loop.
 
-## Edits to the custom resource YAML file after 5.5.5/3.0.8
+## Edits to the custom resource YAML file after 5.5.6/3.0.9
 
-As a part of the process to create a new deployment or upgrade an existing one, the custom resource YAML file is created or updated as described in the IBM FileNet Content Manager Knowledge Center. The following table shows the differences that are introduced by the operator 20.0.2 interim fix. Consider these differences while creating or updating your custom resource YAML file.
-
-Default image:tag values in the 20.0.2.1 operator:
-
-   |  Parameter   |  Value |
-   |  ---------   |  ---------   |
-   | cpe.image.tag 	| ga-555-p8cpe-if002 | 
-   | css.image.tag 	| ga-555-p8css-if002 | 
-   | cmis.image.tag 	| ga-305-cmis-if001 |
-   | navigator_configuration.image.tag 	| ga-308-icn-if002 |
-   | graphql.image.tag 	| ga-555-p8cgql-if002 |
-   | es.image.tag 	| ga-308-es-if001 |
-   | tm.image.tag 	| ga-308-tm-if001 |
-   
-An option was added to the `database_configuration section` to allow a deployment to proceed when the database services might not be ready for use by optionally disabling the database connection validation. Starting with the operator 20.0.2.1 interim fix, the sample template `ibm_fncm_cr_enterprise_FC_content.yaml` contains the following:  
-
-   ```bash
-datasource_configuration:
-    ## The database_precheck parameter is used to enable or disable CPE/Navigator database connection check.
-    ## If set to "true", then CPE/Navigator database connection check will be enabled.
-    ## if set to "false", then CPE/Navigator database connection check will not be enabled.
-   # database_precheck: true
-   ```
-To use this option, uncomment the database_precheck option and set the value to `true` or `false`. The default setting is `database_precheck: true`, so the operator validates the database connection information.   
+As a part of the process to create a new deployment or upgrade an existing one, the custom resource YAML file is created or updated as described in the IBM FileNet Content Manager Knowledge Center. The differences that are introduced by the operator interim fix are described in the interim fix readme for the particular operator version. Consider these differences while creating or updating your custom resource YAML file.
