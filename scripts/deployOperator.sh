@@ -24,8 +24,7 @@ function show_help {
     echo "      For example: cp.icr.io/cp/icp4a-operator:20.0.3 or registry_url/icp4a-operator:version"
     echo "  -p  Optional: Pull secret to use to connect to the registry"
     echo "  -n  The namespace to deploy Operator"
-    echo "  -t  The deployment type: demo or enterprise"
-    echo "  -a  Accept IBM license"
+    echo "  -a  accept"
 }
 
 if [[ $1 == "" ]]
@@ -96,10 +95,10 @@ if [[ $LICENSE_ACCEPTED != "accept" ]]; then
 fi
 
 if [[ $LICENSE_ACCEPTED == "accept" ]]; then
-    sed -e '/dba_license/{n;s/value:/value: accept/;}' ${CUR_DIR}/../deployoperator.yaml > ${CUR_DIR}/../deployoperatorsav.yaml ;  mv ${CUR_DIR}/../deployoperatorsav.yaml ${CUR_DIR}/../deployoperator.yaml
-    sed -e '/baw_license/{n;s/value:/value: accept/;}' ${CUR_DIR}/../deployoperator.yaml > ${CUR_DIR}/../deployoperatorsav.yaml ;  mv ${CUR_DIR}/../deployoperatorsav.yaml ${CUR_DIR}/../deployoperator.yaml
-    sed -e '/fncm_license/{n;s/value:/value: accept/;}' ${CUR_DIR}/../deployoperator.yaml > ${CUR_DIR}/../deployoperatorsav.yaml ;  mv ${CUR_DIR}/../deployoperatorsav.yaml ${CUR_DIR}/../deployoperator.yaml
-    sed -e '/ier_license/{n;s/value:/value: accept/;}' ${CUR_DIR}/../deployoperator.yaml > ${CUR_DIR}/../deployoperatorsav.yaml ;  mv ${CUR_DIR}/../deployoperatorsav.yaml ${CUR_DIR}/../deployoperator.yaml
+    sed -e '/dba_license/{n;s/value:.*/value: accept/;}' ${CUR_DIR}/../deployoperator.yaml > ${CUR_DIR}/../deployoperatorsav.yaml ;  mv ${CUR_DIR}/../deployoperatorsav.yaml ${CUR_DIR}/../deployoperator.yaml
+    sed -e '/baw_license/{n;s/value:.*/value: accept/;}' ${CUR_DIR}/../deployoperator.yaml > ${CUR_DIR}/../deployoperatorsav.yaml ;  mv ${CUR_DIR}/../deployoperatorsav.yaml ${CUR_DIR}/../deployoperator.yaml
+    sed -e '/fncm_license/{n;s/value:.*/value: accept/;}' ${CUR_DIR}/../deployoperator.yaml > ${CUR_DIR}/../deployoperatorsav.yaml ;  mv ${CUR_DIR}/../deployoperatorsav.yaml ${CUR_DIR}/../deployoperator.yaml
+    sed -e '/ier_license/{n;s/value:.*/value: accept/;}' ${CUR_DIR}/../deployoperator.yaml > ${CUR_DIR}/../deployoperatorsav.yaml ;  mv ${CUR_DIR}/../deployoperatorsav.yaml ${CUR_DIR}/../deployoperator.yaml
 
     if [ ! -z ${IMAGEREGISTRY} ]; then
     # Change the location of the image
@@ -115,10 +114,10 @@ if [[ $LICENSE_ACCEPTED == "accept" ]]; then
         sed -e '/imagePullSecrets:/{N;d;}' ${CUR_DIR}/../deployoperator.yaml > ${CUR_DIR}/../deployoperatorsav.yaml ;  mv ${CUR_DIR}/../deployoperatorsav.yaml ${CUR_DIR}/../deployoperator.yaml
     fi
 
-    kubectl apply -f ${CUR_DIR}/../descriptors/fncm_v1_fncm_crd.yaml --validate=false
-    kubectl apply -f ${CUR_DIR}/../descriptors/service_account.yaml --validate=false
-    kubectl apply -f ${CUR_DIR}/../descriptors/role.yaml --validate=false
-    kubectl apply -f ${CUR_DIR}/../descriptors/role_binding.yaml --validate=false
+    kubectl apply -f ${CUR_DIR}/../descriptors/fncm_v1_fncm_crd.yaml --validate=false -n ${NAMESPACE}
+    kubectl apply -f ${CUR_DIR}/../descriptors/service_account.yaml --validate=false -n ${NAMESPACE}
+    kubectl apply -f ${CUR_DIR}/../descriptors/role.yaml --validate=false -n ${NAMESPACE}
+    kubectl apply -f ${CUR_DIR}/../descriptors/role_binding.yaml --validate=false -n ${NAMESPACE}
 
 
     # Uncomment runAsUser: 1001 for OCP 3.11
@@ -127,7 +126,7 @@ if [[ $LICENSE_ACCEPTED == "accept" ]]; then
     if [[ "$PLATFORM_VERSION" == "4.4OrLater" ]]; then
         oc adm policy add-scc-to-user privileged -z ibm-fncm-operator -n ${NAMESPACE}
     fi
-    kubectl apply -f ${CUR_DIR}/../deployoperator.yaml --validate=false
+    kubectl apply -f ${CUR_DIR}/../deployoperator.yaml --validate=false -n ${NAMESPACE}
     echo -e "\033[32mAll descriptors have been successfully applied. Monitor the pod status with 'kubectl get pods -w'.\033[0m"
 else
   echo -e "\033[31mIBM software license unexpected error, there is no LICENSE_ACCEPTED variable in setProperties.sh\033[0m"
