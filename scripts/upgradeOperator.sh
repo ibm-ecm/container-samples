@@ -35,7 +35,7 @@ function show_help {
     echo "  -i  Operator image name"
     echo "      For example: cp.icr.io/cp/icp4a-operator:20.0.3 or registry_url/icp4a-operator:version"
     echo "  -p  Optional: Pull secret to use to connect to the registry"
-    echo "  -a  Accept IBM license"
+    echo "  -a  accept"
 }
 
 if [[ $1 == "" ]]
