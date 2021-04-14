@@ -54,7 +54,7 @@ spec:
     ## The deployment type as selected.
     sc_deployment_type: enterprise
 
-    ## Specify the RunAsUser for the security context of the pod.  This is usually a numeric value that corresponds to a user ID.
+    ## For non-OCP (e.g., CNCF platforms such as AWS, GKE, etc), this parameter is required. Not supported on OCP and ROKS.
     sc_run_as_user:
 
     ## The platform to be deployed specified by the user.  Possible values are: OCP, ROKS and other.
