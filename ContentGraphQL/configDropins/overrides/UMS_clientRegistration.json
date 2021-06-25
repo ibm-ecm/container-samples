@@ -1,0 +1,29 @@
+{ 
+   "token_endpoint_auth_method":"client_secret_basic",
+   "scope":"openid profile",
+   "grant_types":[ 
+      "authorization_code"
+   ],
+   "response_types":[ 
+      "code"
+   ],
+   "application_type":"web",
+   "preauthorized_scope":"openid profile",
+   "introspect_tokens":true,
+   "resource_ids":[ 
+
+   ],
+   "proofKeyForCodeExchange":false,
+   "publicClient":false,
+   "appPasswordAllowed":false,
+   "appTokenAllowed":false,
+   "hash_itr":0,
+   "hash_len":0,
+   "client_id":"graphql",
+   "client_name":"graphql",
+   "redirect_uris":[ 
+      "https://<ContentGraphQL_hostName>/oidcclient/redirect/graphql"
+   ],
+   "allow_regexp_redirects":false,
+   "client_secret":"************"
+}

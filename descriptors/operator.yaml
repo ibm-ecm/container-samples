@@ -1,0 +1,124 @@
+###############################################################################
+#
+# Licensed Materials - Property of IBM
+#
+# (C) Copyright IBM Corp. 2021. All Rights Reserved.
+#
+# US Government Users Restricted Rights - Use, duplication or
+# disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+#
+###############################################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ibm-fncm-operator
+  labels:
+    app.kubernetes.io/instance: ibm-fncm
+    app.kubernetes.io/managed-by: ibm-fncm
+    app.kubernetes.io/name: ibm-fncm
+    release: 5.5.7
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: ibm-fncm-operator
+  template:
+    metadata:
+      labels:
+        name: ibm-fncm-operator
+        app.kubernetes.io/instance: ibm-fncm
+        app.kubernetes.io/managed-by: ibm-fncm
+        app.kubernetes.io/name: ibm-fncm
+        release: 5.5.7
+      annotations:
+        productID: "5724-R81 | 5725-L50"
+        productName: "IBM FileNet Content Manager | IBM Content Foundation"
+        productVersion: "5.5.7"
+        productChargedContainers: ""
+        productMetric: "VIRTUAL_PROCESSOR_CORE"
+    spec:
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      securityContext:
+        runAsNonRoot: true
+      serviceAccountName: ibm-fncm-operator
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 3
+            preference:
+              matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - "amd64"
+      containers:
+        - name: operator
+          # Replace this with the built image name
+          image: "cp.icr.io/cp/cp4a/icp4a-operator:21.0.2"
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: false
+            # Uncomment below for OCP 3.11 (Dropped in 4Q release)
+            # runAsUser: 1001
+            capabilities:
+              drop:
+              - ALL
+          resources:
+            limits:
+              cpu: '1'
+              memory: 2Gi
+            requests:
+              cpu: 500m
+              memory: 256Mi
+          volumeMounts:
+          - mountPath: /logs
+            name: logs-backup
+          - mountPath: /opt/ansible/share
+            name: operator-shared-folder
+          - mountPath: /tmp/ansible-operator/runner
+            name: runner
+          args:
+          - '--zap-time-encoding=iso8601'
+          - '--zap-encoder=console'
+          - "--max-workers"
+          - "10"
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: "ibm-fncm-operator"
+            - name: WORKER_FNCMCLUSTER_FNCM_IBM_COM
+              value: "10"
+            - name: ANSIBLE_GATHERING
+              value: explicit
+            # MUST exist, used to accept dba license, valid value only can be "accept"
+            - name: fncm_license
+              value: "accept"
+      imagePullSecrets:
+      - name: "admin.registrykey"
+      volumes:
+        - name: logs-backup
+          persistentVolumeClaim:
+            claimName: "cp4a-shared-log-pvc"
+        - name: "operator-shared-folder"
+          persistentVolumeClaim:
+            claimName: "operator-shared-pvc"
+        - name: runner
+          emptyDir: {}
