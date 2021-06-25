@@ -2,7 +2,7 @@
 #
 # Licensed Materials - Property of IBM
 #
-# (C) Copyright IBM Corp. 2020. All Rights Reserved.
+# (C) Copyright IBM Corp. 2021. All Rights Reserved.
 #
 # US Government Users Restricted Rights - Use, duplication or
 # disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
@@ -17,13 +17,14 @@ metadata:
     app.kubernetes.io/instance: ibm-fncm
     app.kubernetes.io/managed-by: ibm-fncm
     app.kubernetes.io/name: ibm-fncm
-    release: 5.5.6
+    release: 5.5.7
 rules:
 - apiGroups:
   - ""
   resources:
   - pods
   - services
+  - services/finalizers
   - endpoints
   - persistentvolumeclaims
   - events
@@ -87,6 +88,7 @@ rules:
   - networking.k8s.io
   resources:
   - networkpolicies
+  - ingresses
   verbs:
   - '*'
 - apiGroups:
@@ -128,3 +130,23 @@ rules:
   - "replicasets"
   verbs:
   - "*"
+- apiGroups:
+  - core.automation.ibm.com
+  resources:
+  - cartridges
+  - automationuiconfigs
+  verbs:
+  - '*'
+- apiGroups:
+  - base.automation.ibm.com
+  resources:
+  - cartridgerequirements
+  - automationbases
+  verbs:
+  - '*'
+- apiGroups:
+  - eventprocessing.automation.ibm.com
+  resources:
+  - eventprocessors
+  verbs:
+  - '*'

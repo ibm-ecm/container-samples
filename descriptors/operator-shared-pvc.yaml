@@ -16,7 +16,7 @@ metadata:
     app.kubernetes.io/instance: ibm-fncm
     app.kubernetes.io/managed-by: ibm-fncm
     app.kubernetes.io/name: ibm-fncm
-    release: 5.5.6
+    release: 5.5.7
 spec:
   accessModes:
     - ReadWriteMany
@@ -33,7 +33,7 @@ metadata:
     app.kubernetes.io/instance: ibm-fncm
     app.kubernetes.io/managed-by: ibm-fncm
     app.kubernetes.io/name: ibm-fncm
-    release: 5.5.6
+    release: 5.5.7
 spec:
   accessModes:
     - ReadWriteMany

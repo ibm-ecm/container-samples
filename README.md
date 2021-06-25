@@ -1,4 +1,4 @@
-# IBM FileNet Content Manager 5.5.6 on Container Samples
+# IBM FileNet Content Manager 5.5.7 on Container Samples
 
 This repository includes folders and resources to help you install the IBM FileNet Content Manager capabilities. Installation of the capabilities is done with the  operator. 
 

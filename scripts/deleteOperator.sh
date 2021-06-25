@@ -10,12 +10,14 @@
 #
 ###############################################################################
 # CUR_DIR set to full path to scripts folder
-CUR_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+CUR_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+printf "\n"
+printf "\x1B[1mUninstall FNCM Operator...\n\x1B[0m"
 kubectl delete -f ${CUR_DIR}/../descriptors/operator.yaml
 kubectl delete -f ${CUR_DIR}/../descriptors/role_binding.yaml
 kubectl delete -f ${CUR_DIR}/../descriptors/role.yaml
 kubectl delete -f ${CUR_DIR}/../descriptors/service_account.yaml
 
-
 echo "All descriptors have been successfully deleted."
+
