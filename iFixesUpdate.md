@@ -11,12 +11,12 @@ Unlike installations and upgrades, which both deal with major versions of a rele
 ## Updating a deployment with interim fixes
 
 The high-level process to updating an environment with interim fixes is
-- [Step 1: Get access to the interim fix container images](iFixesUpdate.md#step-1-get-access-to-the-interim-fix-container-images)
-- [Step 2: Get access to the current version of the operator](iFixesUpdate.md#step-2-get-access-to-the-current-version-of-the-operator)
-- [Step 3: Update the installed operator](iFixesUpdate.md#step-3-update-the-installed-operator)
-- [Step 4: Update the custom resource YAML file for your FileNet Content Manager deployment](iFixesUpdate.md#step-4-update-the-custom-resource-yaml-file-for-your-filenet-content-manager-deployment)
-- [Step 5: Apply the updated custom resource YAML file](iFixesUpdate.md#step-5-apply-the-updated-custom-resource-yaml-file)
-- [Step 6: Verify the updated containers](iFixesUpdate.md#step-6-verify-the-updated-automation-containers)
+- [Step 1: Get access to the interim fix container images](#step-1-get-access-to-the-interim-fix-container-images)
+- [Step 2: Get access to the current version of the operator](#step-2-get-access-to-the-current-version-of-the-operator)
+- [Step 3: Update the installed operator](#step-3-update-the-installed-operator)
+- [Step 4: [Optional] Update the custom resource YAML file for your FileNet Content Manager deployment](#step-4-optional-update-the-custom-resource-yaml-file-for-your-filenet-content-manager-deployment)
+- [Step 5: [Optional] Apply the updated custom resource YAML file](#step-5-optional-apply-the-updated-custom-resource-yaml-file)
+- [Step 6: Verify the updated containers](#step-6-verify-the-updated-containers)
 
 The following sections describe these steps in detail.
 
@@ -128,7 +128,8 @@ If the operator in the project (namespace) of your deployment is already at the 
 
 2. Download or clone the repository on your local machine and change to the `operator` directory. 
    ```bash
-   $ git clone git@github.com:ibm-ecm/container-samples.git
+   $ git clone -b <version_branch> git@github.com:ibm-ecm/container-samples.git
+   Where <version_branch> is 5.5.6 for the current release.
    ```
    The repository contains the scripts and Kubernetes descriptors that are necessary to upgrade the FileNet Content Manager operator.
 
@@ -176,7 +177,9 @@ If the operator in the project (namespace) of your deployment is already at the 
    ```    
    (You can also use kubectl in place of oc in the previous commands.)
    
-## Step 4: Update the custom resource YAML file for your FileNet Content Manager deployment
+## Step 4: [Optional] Update the custom resource YAML file for your FileNet Content Manager deployment
+
+If you upgraded the operator to the latest interim fix level of 5.5.6.0-FNCM-OPR-Container-IF003 or higher and decided to use image digests as described in the documentation topic [Choosing image tags or digests](https://www.ibm.com/docs/en/filenet-p8-platform/5.5.x?topic=deployment-choosing-image-tags-digests), you may want to skip to step 6. Do not skip if you wish to utilize a different component version or to update to a component where a corresponding new operator version is not available. In that case you must specify the image tags in the CR for each component where a non-default version is desired.
 
 Get the custom resource YAML file that you previously deployed and edit it as follows:
 
@@ -187,10 +190,11 @@ Get the custom resource YAML file that you previously deployed and edit it as fo
 | OPR name                         | OPR tag  | appVersion |
 |----------------------------------|----------|------------|
 | 5.5.6.0 FNCM operator            | 20.0.3   | 20.0.3     |
-| 5.5.6.0-FNCM-OPR-Container-IF001 | 20.0.3.2 | 20.0.3.2   |
-| 5.5.6.0-FNCM-OPR-Container-IF002 | 21.0.1   | 21.0.1     |    
+| 5.5.6.0-FNCM-OPR-Container-IF001 | 20.0.3-IF002 | 20.0.3.2   |
+| 5.5.6.0-FNCM-OPR-Container-IF002 | 21.0.1   | 21.0.1     |
+| 5.5.6.0-FNCM-OPR-Container-IF003 | 21.0.1-IF004 | 21.0.1.1    |
 
-> The appVersion changes the default values of the tags or digests to reflect the versions of component interim fixes that particular operator was released with. Choose to use the appVersion documented in the interim fix readme for the operator you are using to automatically utilize the new default tags or digest values.
+> The appVersion changes the default values of the tags or digests to reflect the versions of component interim fixes that particular operator was released with. For operator versions 5.5.6.0-FNCM-OPR-Container-IF003, use appVersion 21.0.1.1 to automatically utilize the new default tags or digest values.  For earlier operator versions, utilize the appVersions provided in the above table. To utilize a different component version or to update to a component where a corresponding new operator version is not available, specify the image tags in the CR for each component where a non-default version is desired.
 
 > Use the version of operator that corresponds to the most recent interim fix you wish to deploy. This might entail utilizing the appVersion for the operator interim fix and then providing the *tag* parameter in the CR to indicate images that should remain at their current level (eGA or an earlier interim fix level).
 
@@ -202,7 +206,7 @@ Get the custom resource YAML file that you previously deployed and edit it as fo
    or to specify an eGA image
    ```bash
        repository: cp.icr.io/cp/cp4a/ban/navigator
-       tag: navigator:ga-309-icn
+       tag: ga-309-icn
    ``` 
    
    **Tips**: 
@@ -212,7 +216,7 @@ Get the custom resource YAML file that you previously deployed and edit it as fo
 
    Repeat this step for each component that you want to update to a new version.
    
-5. Verify the following parameters in the shared_configuration section are set to false:
+4. Verify the following parameters in the shared_configuration section are set to false:
 
    ```
     shared_configuration.sc_content_initialization: false 
@@ -220,7 +224,8 @@ Get the custom resource YAML file that you previously deployed and edit it as fo
 
    ```    
 
-## Step 5: Apply the updated custom resource YAML file
+## Step 5: [Optional] Apply the updated custom resource YAML file
+Skip this step if you skipped step 4.
 
 1. Check that all the components being updated are configured with the correct image tag values.
 
@@ -259,7 +264,7 @@ Edit the custom resource file:
       
    ```bash
        repository: cp.icr.io/cp/cp4a/fncm/cmis
-       tag: cmis:ga-305-cmis-if002
+       tag: ga-305-cmis-if002
    ```
       > **Tip**: If you are rolling your deployment back to an earlier interim fix, the values of the tags for a given interim fix can be found in the readme provided with that interim fix.  
        
@@ -270,3 +275,4 @@ Edit the custom resource file:
 ## Edits to the custom resource YAML file after 5.5.6/3.0.9
 
 As a part of the process to create a new deployment or upgrade an existing one, the custom resource YAML file is created or updated as described in the IBM FileNet Content Manager Knowledge Center. The differences that are introduced by the operator interim fix are described in the interim fix readme for the particular operator version. Consider these differences when creating or updating your custom resource YAML file.
+
