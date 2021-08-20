@@ -134,7 +134,7 @@ function userInput() {
 
 function create_new_shared_logs_pvc() {
   if [[ $(${CLI_CMD} get fncmcluster -n $NAMESPACE) == '' ]]; then
-    echo -e "\033[31mIf you don't have a CR deployed, we can't upgrade CP4A Operator only, pls run deleteOperator.sh and then deployOperator.sh to redeploy Operator.\033[0m"
+    echo -e "\033[31mIf you don't have a CR deployed, we can't upgrade FNCM Operator only, pls run deleteOperator.sh and then deployOperator.sh to redeploy Operator.\033[0m"
     exit 1
   fi
   DEPLOYMENT_TYPE=$(eval echo $(${CLI_CMD} get fncmcluster $(${CLI_CMD} get fncmcluster -n $NAMESPACE | grep NAME -v | awk '{print $1}') -n $NAMESPACE -o yaml | grep sc_deployment_type | tail -1 | cut -d ':' -f 2))
@@ -192,7 +192,7 @@ if [[ $LICENSE_ACCEPTED == "" ]]; then
 fi
 
 if [[ $LICENSE_ACCEPTED == "accept" ]]; then
-  if [[ $(${CLI_CMD} get pvc | grep cp4a-shared-log-pvc) == '' ]]; then
+  if [[ $(${CLI_CMD} get pvc -n ${NAMESPACE} | grep cp4a-shared-log-pvc) == '' ]]; then
     create_new_shared_logs_pvc
   fi
   cncf_install

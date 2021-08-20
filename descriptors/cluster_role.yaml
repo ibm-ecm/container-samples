@@ -115,6 +115,12 @@ rules:
   - update
   - watch
 - apiGroups:
+  - operator.openshift.io
+  resources:
+  - ingresscontrollers
+  verbs:
+    - get
+- apiGroups:
   - db2u.databases.ibm.com/v1
   resources:
   - db2uclusters

@@ -141,7 +141,7 @@ function allocate_operator_pvc(){
 
     ${COPY_CMD} -rf ${OPERATOR_PVC_FILE_TMP} ${OPERATOR_PVC_FILE_BAK}
     # Create Operator Persistent Volume.
-    CREATE_PVC_CMD="${CLI_CMD} apply -f ${OPERATOR_PVC_FILE_TMP}"
+    CREATE_PVC_CMD="${CLI_CMD} apply -f ${OPERATOR_PVC_FILE_TMP} -n ${NAMESPACE}"
     if $CREATE_PVC_CMD ; then
         echo -e "\x1B[1mDone\x1B[0m"
     else
@@ -152,7 +152,7 @@ function allocate_operator_pvc(){
     TIMEOUT=60
     printf "\n"
     echo -e "\x1B[1mWaiting for the persistent volumes to be ready...\x1B[0m"
-    until ${CLI_CMD} get pvc | grep cp4a-shared-log-pvc | grep -q -m 1 "Bound" || [ $ATTEMPTS -eq $TIMEOUT ]; do
+    until ${CLI_CMD} get pvc -n ${NAMESPACE}| grep cp4a-shared-log-pvc | grep -q -m 1 "Bound" || [ $ATTEMPTS -eq $TIMEOUT ]; do
         ATTEMPTS=$((ATTEMPTS + 1))
         echo -e "......"
         sleep 10
