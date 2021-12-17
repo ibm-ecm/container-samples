@@ -1,24 +1,16 @@
-NOTICE
-
-This document includes License Information documents below for multiple Programs. Each License Information document identifies the Program(s) to which it applies. Only those License Information documents for the Program(s) for which Licensee has acquired entitlements apply.
-
-The translated license terms can be viewed here: [License and Copyright](https://www-03.ibm.com/software/sla/sladb.nsf/search?OpenForm) and search for FileNet Content Manager v5.5.7
-==============================================
-
-
 LICENSE INFORMATION
 
 The Programs listed below are licensed under the following License Information terms and conditions in addition to the Program license terms previously agreed to by Client and IBM. If Client does not have previously agreed to license terms in effect for the Program, the International Program License Agreement (Z125-3301-14) applies.
 
 Program Name (Program Number):
-IBM FileNet Content Manager Authorized v5.5.7 (5724-R81)
-IBM FileNet Content Manager Employee v5.5.7 (5724-R81)
-IBM FileNet Content Manager Eligible Participant v5.5.7 (5724-R81)
-IBM FileNet Content Manager Starter Pack Authorized v5.5.7 (5724-R81)
-IBM FileNet Content Manager Authorized User Term v5.5.7 (5724-R81)
-IBM FileNet Content Manager v5.5.7 (5724-R81)
-IBM FileNet Content Manager for Non-Production Environment v5.5.7 (5724-R81)
-IBM FileNet Content Manager Concurrent User v5.5.7 (5724-R81)
+IBM FileNet Content Manager Authorized v5.5.8 (5724-R81)
+IBM FileNet Content Manager Employee v5.5.8 (5724-R81)
+IBM FileNet Content Manager Eligible Participant v5.5.8 (5724-R81)
+IBM FileNet Content Manager Starter Pack Authorized v5.5.8 (5724-R81)
+IBM FileNet Content Manager Authorized User Term v5.5.8 (5724-R81)
+IBM FileNet Content Manager v5.5.8 (5724-R81)
+IBM FileNet Content Manager for Non-Production Environment v5.5.8 (5724-R81)
+IBM FileNet Content Manager Concurrent User v5.5.8 (5724-R81)
 
 The following standard terms apply to Licensee's use of the Program.
 
@@ -246,6 +238,7 @@ Content Platform Engine
 
 A Content Operation is each access to a document within the Program as measured in the Program's usage tracking.
 
-L/N:  L-LSWS-C2RKMV
-D/N:  L-LSWS-C2RKMV
-P/N:  L-LSWS-C2RKMV
+L/N:  L-LSWS-C6KPMK
+D/N:  L-LSWS-C6KPMK
+P/N:  L-LSWS-C6KPMK
+

@@ -43,7 +43,7 @@ function show_help {
   echo "  -h  Display help"
   echo "  -n  The namespace to deploy Operator"
   echo "  -a  accept"
-  echo "  -i  Optional: Operator image name, by default it is cp.icr.io/cp/cp4a/icp4a-operator:21.0.2"
+  echo "  -i  Optional: Operator image name, by default it is cp.icr.io/cp/cp4a/icp4a-operator:21.0.3"
   echo -e "  -p  Optional: Pull secret to use to connect to the registry, by default it is admin.registrykey\n"
 
 }

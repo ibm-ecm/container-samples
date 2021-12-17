@@ -533,15 +533,9 @@ function display_node_name() {
     echo "Below is the host name of the Infrastructure Node for the environment, which is required as an input during the execution of the deployment script for the creation of routes in OCP.  You can also get the host name by running the following command: ${CLI_CMD} get nodes --selector node-role.kubernetes.io/infra=true -o custom-columns=":metadata.name". Take note of the host name. "
     ${CLI_CMD} get nodes --selector node-role.kubernetes.io/infra=true -o custom-columns=":metadata.name"
   elif [[ $PLATFORM_VERSION == "4.4OrLater" ]]; then
-    echo "Below is the route host name for the environment, which is required as an input during the execution of the deployment script for the creation of routes in OCP. You can also get the host name by running the following command: oc get route console -n openshift-console -o yaml|grep routerCanonicalHostname. Take note of the host name. "
-    ${CLI_CMD} get route console -n openshift-console -o yaml | grep routerCanonicalHostname | head -1 | cut -d ' ' -f 6
+    echo "Below is the route host name for the environment, which is required as an input during the execution of the deployment script for the creation of routes in OCP. You can also get the host name by running the following command: oc get IngressController default -n openshift-ingress-operator -o yaml|grep \" domain\". Take note of the host name. "
+    ${CLI_CMD} get IngressController default -n openshift-ingress-operator -o yaml | grep " domain" | head -1 | cut -d ' ' -f 4
   fi
-}
-
-function create_scc() {
-  ${CLI_CMD} create serviceaccount ibm-pfs-es-service-account
-  ${CLI_CMD} create -f ibm-pfs-privileged-scc.yaml
-  ${CLI_CMD} adm policy add-scc-to-user ibm-pfs-privileged-scc -z ibm-pfs-es-service-account
 }
 
 function clean_up() {
@@ -1039,7 +1033,7 @@ function create_secret_local_registry() {
 
 function prompt_license() {
   echo -e "\x1B[1;31mIMPORTANT: Review the IBM FileNet Content Manager license information here: \n\x1B[0m"
-  echo -e "\x1B[1;31mhttps://github.com/ibm-ecm/container-samples/blob/5.5.7/LICENSE\n\x1B[0m"
+  echo -e "\x1B[1;31mhttps://github.com/ibm-ecm/container-samples/blob/5.5.8/LICENSE\n\x1B[0m"
   if [[ ! -z "${FNCM_LICENSE_ACCEPT}" ]]; then
     local accept_array=("accept" "ACCEPT" "Accept")
     if [[ ! " ${accept_array[@]} " =~ " ${FNCM_LICENSE_ACCEPT}" ]]; then
@@ -1126,7 +1120,6 @@ allocate_operator_pvc_olm_or_cncf
 prepare_install
 apply_cp4a_operator
 
-# create_scc
 check_storage_class
 
 #if [[ $PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "ROKS" ]]; then

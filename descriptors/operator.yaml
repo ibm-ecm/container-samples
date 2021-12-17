@@ -16,7 +16,7 @@ metadata:
     app.kubernetes.io/instance: ibm-fncm
     app.kubernetes.io/managed-by: ibm-fncm
     app.kubernetes.io/name: ibm-fncm
-    release: 5.5.7
+    release: 5.5.8
 spec:
   replicas: 1
   selector:
@@ -29,11 +29,11 @@ spec:
         app.kubernetes.io/instance: ibm-fncm
         app.kubernetes.io/managed-by: ibm-fncm
         app.kubernetes.io/name: ibm-fncm
-        release: 5.5.7
+        release: 5.5.8
       annotations:
         productID: "5724-R81 | 5725-L50"
         productName: "IBM FileNet Content Manager | IBM Content Foundation"
-        productVersion: "5.5.7"
+        productVersion: "5.5.8"
         productChargedContainers: ""
         productMetric: "VIRTUAL_PROCESSOR_CORE"
     spec:
@@ -48,22 +48,24 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
             - matchExpressions:
-              - key: beta.kubernetes.io/arch
+              - key: kubernetes.io/arch
                 operator: In
                 values:
                 - amd64
+                - s390x
           preferredDuringSchedulingIgnoredDuringExecution:
           - weight: 3
             preference:
               matchExpressions:
-              - key: beta.kubernetes.io/arch
+              - key: kubernetes.io/arch
                 operator: In
                 values:
-                - "amd64"
+                - amd64
+                - s390x
       containers:
         - name: operator
           # Replace this with the built image name
-          image: "cp.icr.io/cp/cp4a/icp4a-operator:21.0.2"
+          image: "cp.icr.io/cp/cp4a/icp4a-operator:21.0.3"
           imagePullPolicy: "IfNotPresent"
           securityContext:
             allowPrivilegeEscalation: false
@@ -89,10 +91,7 @@ spec:
           - mountPath: /tmp/ansible-operator/runner
             name: runner
           args:
-          - '--zap-time-encoding=iso8601'
           - '--zap-encoder=console'
-          - "--max-workers"
-          - "10"
           env:
             - name: WATCH_NAMESPACE
               valueFrom:
@@ -107,7 +106,7 @@ spec:
             - name: WORKER_FNCMCLUSTER_FNCM_IBM_COM
               value: "10"
             - name: ANSIBLE_GATHERING
-              value: explicit
+              value: smart
             # MUST exist, used to accept dba license, valid value only can be "accept"
             - name: fncm_license
               value: "accept"

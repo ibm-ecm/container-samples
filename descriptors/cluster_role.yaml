@@ -16,7 +16,7 @@ metadata:
     app.kubernetes.io/instance: ibm-fncm
     app.kubernetes.io/managed-by: ibm-fncm
     app.kubernetes.io/name: ibm-fncm
-    release: 5.5.7
+    release: 5.5.8
 rules:
 - apiGroups:
   - security.openshift.io
@@ -64,6 +64,7 @@ rules:
   resources:
   - configmaps
   - secrets
+  - persistentvolumes
   verbs:
   - get
   - create
@@ -87,6 +88,12 @@ rules:
   - operator.ibm.com
   resources:
   - operandrequests/status
+  verbs:
+    - get
+- apiGroups:
+  - operator.openshift.io
+  resources:
+  - ingresscontrollers
   verbs:
     - get
 - apiGroups:
@@ -115,12 +122,6 @@ rules:
   - update
   - watch
 - apiGroups:
-  - operator.openshift.io
-  resources:
-  - ingresscontrollers
-  verbs:
-    - get
-- apiGroups:
   - db2u.databases.ibm.com/v1
   resources:
   - db2uclusters
@@ -144,3 +145,23 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - operator.ibm.com
+  resources:
+  - businessteamsservices
+  verbs:
+  - '*'
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - get
+  - list
