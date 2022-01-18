@@ -89,10 +89,7 @@ spec:
           - mountPath: /tmp/ansible-operator/runner
             name: runner
           args:
-          - '--zap-time-encoding=iso8601'
           - '--zap-encoder=console'
-          - "--max-workers"
-          - "10"
           env:
             - name: WATCH_NAMESPACE
               valueFrom:
@@ -107,7 +104,7 @@ spec:
             - name: WORKER_FNCMCLUSTER_FNCM_IBM_COM
               value: "10"
             - name: ANSIBLE_GATHERING
-              value: explicit
+              value: smart
             # MUST exist, used to accept dba license, valid value only can be "accept"
             - name: fncm_license
               value: "accept"
