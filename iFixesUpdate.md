@@ -97,24 +97,20 @@ If the operator in the project (namespace) of your deployment is already at the 
 
 ## Step 4: [Optional] Update the custom resource YAML file for your FileNet Content Manager deployment
 
-If you upgraded the operator to the latest interim fix level and decided to use image digests as described in the documentation topic [Choosing image tags or digests](https://www.ibm.com/docs/en/filenet-p8-platform/5.5.x?topic=deployment-choosing-image-tags-digests), skip to step 6. 
+If you upgraded the operator to an interim fix level and decided to use image digests as described in the documentation topic [Choosing image tags or digests](https://www.ibm.com/docs/en/filenet-p8-platform/5.5.x?topic=deployment-choosing-image-tags-digests), skip to step 6.
 
 Get the custom resource YAML file that you previously deployed and edit it as follows:
 
 1. Verify that the metadata.labels.release version is 5.5.7.
 
-2. Verify the appVersion in the global spec section matches reflects the major release you are applying a fix to. The appVersion depends on the version of the operator and choice of eGA. The corresponding version of the deployed operator automatically defaults the image:tag or digest values for deployed containers to reflect a particular set of containers that correspond to the release of the operator. 
+2. Verify the appVersion in the global spec section reflects the major release you are applying a fix to. The appVersion depends on the version of the operator and choice of eGA. The corresponding version of the deployed operator automatically defaults the image:tag or digest values for deployed containers to reflect a particular set of containers that correspond to the release of the operator.
 
-The following table shows the operator interim fixes and their corresponding appVersion values.
+    Use the following link to get the FNCM Operator tags and appVersions: [FileNet P8 Fix Pack Compatibility Matrices](https://www.ibm.com/support/pages/filenet-p8-fix-pack-compatibility-matrices)
 
-| OPR name                         | OPR tag  | appVersion |
-|----------------------------------|----------|------------|
-| 5.5.7.0 FNCM operator            | 21.0.2   | 21.0.2     |
-| 5.5.7.0-FNCM-OPR-Container-LA003 | 21.0.2-IF002 | 21.0.2   |
+    **Tips**:
+    > The default values of the tags or digests known to the operator reflect the versions of component interim fixes that a particular operator was released with. To utilize different component version or to update to a component where a corresponding new operator version is not available, specify the image tags in the CR for each component where a non-default version is desired.
 
-> The default values of the tags or digests known to the operator reflect the versions of component interim fixes that a particular operator was released with. To utilize different component version or to update to a component where a corresponding new operator version is not available, specify the image tags in the CR for each component where a non-default version is desired.
-
-> Use the version of operator that corresponds to the most recent interim fix you wish to deploy. This might entail utilizing the operator interim fix and then providing the *tag* parameter in the CR to indicate images that should remain at their current level (eGA or an earlier interim fix level) or update to a higher interim fix level.
+    > Use the "Operator Information" tab in the FileNet P8 Fix Pack Compatibility Matrix to see operator interim fixes and choose the version of operator that corresponds to the most recent interim fix you wish to deploy. This might entail utilizing the operator interim fix and then providing the *tag* parameter in the CR to indicate images that should remain at their current level (eGA or an earlier interim fix level) or update to a higher interim fix level.
 
 3. If you want to override the default tags, then in the sections for each of those components you wish to override, modify the configuration parameter `ecm_configuration.<component>.image.tag` to reflect the value for the image loaded, for example to choose an interim fix image:
     ```bash
