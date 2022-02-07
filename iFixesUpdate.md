@@ -178,22 +178,16 @@ Get the custom resource YAML file that you previously deployed and edit it by fo
 
 1. Verify that the metadata.labels.release version is 5.5.5.
 
-2. Change the appVersion in the global spec section:
-   appVersion: 20.0.2.1
-   
-   Note the 20.0.2.1 appVersion setting automatically defaults the image:tag values for deployed containers to reflect the following interim fixes:
+2. Verify the appVersion in the global spec section reflects the major release you are applying a fix to. The appVersion depends on the version of the operator and choice of eGA. The corresponding version of the deployed operator automatically defaults the image:tag or digest values for deployed containers to reflect a particular set of containers that correspond to the release of the operator.
 
-   |  Parameter   |  Value |
-   |  ---------   |  ---------   |
-   | cpe.image.tag 	| ga-555-p8cpe-if002 | 
-   | css.image.tag 	| ga-555-p8css-if002 | 
-   | cmis.image.tag 	| ga-305-cmis-if001 |
-   | navigator_configuration.image.tag 	| ga-308-icn-if002 |
-   | graphql.image.tag 	| ga-555-p8cgql-if002 |
-   | es.image.tag 	| ga-308-es-if001 |
-   | tm.image.tag 	| ga-308-tm-if001 |
+    Use the following link to get the FNCM Operator tags and appVersions: [FileNet P8 Fix Pack Compatibility Matrices](https://www.ibm.com/support/pages/filenet-p8-fix-pack-compatibility-matrices)
 
-3. If you want to override the default tags as shown in substep 2, then in the sections for each of the components you wish to override, modify the configuration parameter `ecm_configuration.<component>.image.tag` to reflect the value for the image loaded, for example:
+    **Tips**:
+    > The default values of the tags or digests known to the operator reflect the versions of component interim fixes that a particular operator was released with. To utilize different component version or to update to a component where a corresponding new operator version is not available, specify the image tags in the CR for each component where a non-default version is desired.
+
+    > Use the "Operator Information" tab in the FileNet P8 Fix Pack Compatibility Matrix to see operator interim fixes and choose the version of operator that corresponds to the most recent interim fix you wish to deploy. This might entail utilizing the operator interim fix and then providing the *tag* parameter in the CR to indicate images that should remain at their current level (eGA or an earlier interim fix level) or update to a higher interim fix level.
+
+3. If you want to override the default tags, then in the sections for each of those components you wish to override, modify the configuration parameter `ecm_configuration.<component>.image.tag` to reflect the value for the image loaded, for example:
     ```bash
        repository: cp.icr.io/cp/cp4a/fncm/cpe
        tag: ga-555-p8cpe-if002
