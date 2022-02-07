@@ -1,12 +1,12 @@
-# Updating FileNet Content Manager 5.5.7
+# Updating FileNet Content Manager 5.5.8
 
-If you installed any of the FileNet Content Manager 5.5.7 components on a Kubernetes cluster, update the components to a higher interim fix level using the updated operator and the relevant container interim fixes. Required details, like the image:tag, of the interim fix Docker image can be found in the individual interim fix readmes.
+If you installed any of the FileNet Content Manager 5.5.8 components on a Kubernetes cluster, update the components to a higher interim fix level using the updated operator and the relevant container interim fixes. Required details, like the image:tag, of the interim fix Docker image can be found in the individual interim fix readmes.
 
 Unlike installations and upgrades, which both deal with major versions of a release, an update is a change to your containers that are applied within a major release. This readme is used to apply container updates for minor version changes within a major release.
 
-> If you are using this interim fix as a part of a new deployment of the Content Platform Engine container, you must deploy the container as described in the Knowledge Center topic [Deploying a new P8 domain by using containers](https://www.ibm.com/support/knowledgecenter/en/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_deploy.htm). In the parts of the process described in [Deploying a custom resource](https://www.ibm.com/support/knowledgecenter/en/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_deploying_cr.htm), use the information provided in the section "Edits to the custom resource YAML file after 5.5.7/3.0.10" at the end of this readme.
+> If you are using this interim fix as a part of a new deployment of the Content Platform Engine container, you must deploy the container as described in the Knowledge Center topic [Deploying a new P8 domain by using containers](https://www.ibm.com/support/knowledgecenter/en/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_deploy.htm). In the parts of the process described in [Deploying a custom resource](https://www.ibm.com/support/knowledgecenter/en/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_deploying_cr.htm), use the information provided in the section "Edits to the custom resource YAML file after 5.5.8/3.0.11" at the end of this readme.
 
-> If you are using this interim fix as a part of a upgrading an existing deployment, you must deploy the container as described in the Knowledge Center topic [Upgrading container deployments](https://www.ibm.com/support/knowledgecenter/en/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_upgradeversion.htm). In the parts of the process described in [Checking the deployment type and license](https://www.ibm.com/support/knowledgecenter/en/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_upgrading_license.htm) and [Upgrading your components](https://www.ibm.com/support/knowledgecenter/en/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_upgrading_fncm.htm), use the information provided in the section "Edits to the custom resource YAML file after 5.5.7/3.0.10" at the end of this readme.
+> If you are using this interim fix as a part of a upgrading an existing deployment, you must deploy the container as described in the Knowledge Center topic [Upgrading container deployments](https://www.ibm.com/support/knowledgecenter/en/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_upgradeversion.htm). In the parts of the process described in [Checking the deployment type and license](https://www.ibm.com/support/knowledgecenter/en/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_upgrading_license.htm) and [Upgrading your components](https://www.ibm.com/support/knowledgecenter/en/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers_upgrading_fncm.htm), use the information provided in the section "Edits to the custom resource YAML file after 5.5.8/3.0.11" at the end of this readme.
 
 ## Updating a deployment with interim fixes
 
@@ -49,7 +49,7 @@ If the operator in the project (namespace) of your deployment is already at the 
 2. Download or clone the repository on your local machine and change to the `operator` directory.
    ```bash
    $ git clone -b <version_branch> git@github.com:ibm-ecm/container-samples.git
-    Where <version_branch> is 5.5.7 for the current release.
+    Where <version_branch> is 5.5.8 for the current release.
    ```
    The repository contains the scripts and Kubernetes descriptors that are necessary to upgrade the FileNet Content Manager operator.
 
@@ -58,7 +58,7 @@ If the operator in the project (namespace) of your deployment is already at the 
 
 1. Log in to your Kubernetes cluster and set the context to the project for your existing deployment.
 
-2. Go to the downloaded container-samples.git for FileNet Content Manager V5.5.7
+2. Go to the downloaded container-samples.git for FileNet Content Manager V5.5.8
 
    For example:
    ```bash
@@ -97,34 +97,30 @@ If the operator in the project (namespace) of your deployment is already at the 
 
 ## Step 4: [Optional] Update the custom resource YAML file for your FileNet Content Manager deployment
 
-If you upgraded the operator to the latest interim fix level and decided to use image digests as described in the documentation topic [Choosing image tags or digests](https://www.ibm.com/docs/en/filenet-p8-platform/5.5.x?topic=deployment-choosing-image-tags-digests), skip to step 6. 
+If you upgraded the operator to an interim fix level and decided to use image digests as described in the documentation topic [Choosing image tags or digests](https://www.ibm.com/docs/en/filenet-p8-platform/5.5.x?topic=deployment-choosing-image-tags-digests), skip to step 6.
 
 Get the custom resource YAML file that you previously deployed and edit it as follows:
 
-1. Verify that the metadata.labels.release version is 5.5.7.
+1. Verify that the metadata.labels.release version is 5.5.8.
 
-2. Verify the appVersion in the global spec section matches reflects the major release you are applying a fix to. The appVersion depends on the version of the operator and choice of eGA. The corresponding version of the deployed operator automatically defaults the image:tag or digest values for deployed containers to reflect a particular set of containers that correspond to the release of the operator. 
+2. Verify the appVersion in the global spec section reflects the major release you are applying a fix to. The appVersion depends on the version of the operator and choice of eGA. The corresponding version of the deployed operator automatically defaults the image:tag or digest values for deployed containers to reflect a particular set of containers that correspond to the release of the operator.
 
-The following table shows the operator interim fixes and their corresponding appVersion values.
+    Use the following link to get the FNCM Operator tags and appVersions: [FileNet P8 Fix Pack Compatibility Matrices](https://www.ibm.com/support/pages/filenet-p8-fix-pack-compatibility-matrices)
 
-| OPR name                         | OPR tag  | appVersion |
-|----------------------------------|----------|------------|
-| 5.5.7.0 FNCM operator            | 21.0.2   | 21.0.2     |
-| 5.5.7.0-FNCM-OPR-Container-LA003 | 21.0.2-IF002 | 21.0.2   |
+    **Tips**:
+    > The default values of the tags or digests known to the operator reflect the versions of component interim fixes that a particular operator was released with. To utilize different component version or to update to a component where a corresponding new operator version is not available, specify the image tags in the CR for each component where a non-default version is desired.
 
-> The default values of the tags or digests known to the operator reflect the versions of component interim fixes that a particular operator was released with. To utilize different component version or to update to a component where a corresponding new operator version is not available, specify the image tags in the CR for each component where a non-default version is desired.
-
-> Use the version of operator that corresponds to the most recent interim fix you wish to deploy. This might entail utilizing the operator interim fix and then providing the *tag* parameter in the CR to indicate images that should remain at their current level (eGA or an earlier interim fix level) or update to a higher interim fix level.
+    > Use the "Operator Information" tab in the FileNet P8 Fix Pack Compatibility Matrix to see operator interim fixes and choose the version of operator that corresponds to the most recent interim fix you wish to deploy. This might entail utilizing the operator interim fix and then providing the *tag* parameter in the CR to indicate images that should remain at their current level (eGA or an earlier interim fix level) or update to a higher interim fix level.
 
 3. If you want to override the default tags, then in the sections for each of those components you wish to override, modify the configuration parameter `ecm_configuration.<component>.image.tag` to reflect the value for the image loaded, for example to choose an interim fix image:
     ```bash
        repository: cp.icr.io/cp/cp4a/ban/navigator
-       tag: ga-3010-icn-if001
+       tag: ga-3011-icn-if001
    ```
    or to specify an eGA image
    ```bash
        repository: cp.icr.io/cp/cp4a/ban/navigator
-       tag: ga-3010-icn
+       tag: ga-3011-icn
    ```
 
    **Tips**:
@@ -176,13 +172,13 @@ Leave the operator and custom resource file at interim fix level.
 Edit the custom resource file:
 
 1. Revert the appVersion in the global spec section to the previous level:
-   appVersion:21.0.1.1
+   appVersion:21.0.2
 
 2. To override the default tags for the appVersion, in the sections for each of the components you want to override, modify the configuration parameter `ecm_configuration.<component>.image.tag` to reflect the value for the desired image, for example:
 
    ```bash
        repository: cp.icr.io/cp/cp4a/fncm/cmis
-       tag: ga-306-cmis-if001
+       tag: ga-307-cmis-if001
    ```
       > **Tip**: If you are rolling your deployment back to an earlier interim fix, the values of the tags for a given interim fix can be found in the readme provided with that interim fix.
 
@@ -190,6 +186,6 @@ Edit the custom resource file:
 
 3. Follow Step 5 and Step 6 in the previous procedure to apply the edited custom resource file and monitor the completion of the operator reconciliation loop.
 
-## Edits to the custom resource YAML file after 5.5.7/3.0.10
+## Edits to the custom resource YAML file after 5.5.8/3.0.11
 
 As a part of the process to create a new deployment or upgrade an existing one, the custom resource YAML file is created or updated as described in the IBM FileNet Content Manager Knowledge Center. The differences that are introduced by the operator interim fix are described in the interim fix readme for the particular operator version. Consider these differences when creating or updating your custom resource YAML file.
