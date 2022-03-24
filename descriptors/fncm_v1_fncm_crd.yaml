@@ -100,10 +100,6 @@ spec:
                         sc_fast_file_storage_classname:
                           type: string
                           nullable: true
-                    sc_content_initialization:
-                      type: boolean
-                    sc_content_verification:
-                      type: boolean
                     initial_admin_user:
                       type: string
                       nullable: true

@@ -1032,15 +1032,18 @@ function create_secret_local_registry() {
 }
 
 function prompt_license() {
-  echo -e "\x1B[1;31mIMPORTANT: Review the IBM FileNet Content Manager license information here: \n\x1B[0m"
-  echo -e "\x1B[1;31mhttps://github.com/ibm-ecm/container-samples/blob/5.5.8/LICENSE\n\x1B[0m"
+  echo -e "\x1B[1;31mYou need to read the International Program License Agreement before start\n\x1B[0m"
+  echo -e "\x1B[1;31mIMPORTANT: Review the license information for the product bundle you are deploying. \n\x1B[0m"
+  echo -e "\x1B[1;31mIBM FileNet Content Manager license information here: https://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-LSWS-C6KPMK \n\x1B[0m"
+  echo -e "\x1B[1;31mIBM Content Foundation license information here: https://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-LSWS-C6KQ34 \n\x1B[0m"
+
   if [[ ! -z "${FNCM_LICENSE_ACCEPT}" ]]; then
     local accept_array=("accept" "ACCEPT" "Accept")
     if [[ ! " ${accept_array[@]} " =~ " ${FNCM_LICENSE_ACCEPT}" ]]; then
       echo -e "\x1B[1;31mOnly \"Accept\" is valid value for environment variable [FNCM_LICENSE_ACCEPT].\n\x1B[0m"
       exit 1
     else
-      echo -e "\x1B[1mIBM FileNet Content Manager license accepted through silent install\x1B[0m"
+      echo -e "\x1B[1mInternational Program License accepted through silent install\x1B[0m"
       echo
     fi
 
@@ -1050,12 +1053,12 @@ function prompt_license() {
 
     printf "\n"
     while true; do
-      printf "\x1B[1mDo you accept the IBM FileNet Content Manager license (Yes/No, default: No): \x1B[0m"
+      printf "\x1B[1mDo you accept the International Program License (Yes/No, default: No): \x1B[0m"
       read -rp "" ans
       case "$ans" in
       "y" | "Y" | "yes" | "Yes" | "YES")
         printf "\n"
-        echo -e "Starting to Install the IBM FileNet Content Manager Operator...\n"
+        echo -e "Starting to Install the IBM FileNet Standalone Operator...\n"
         break
         ;;
       "n" | "N" | "no" | "No" | "NO" | "")

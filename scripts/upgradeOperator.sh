@@ -31,7 +31,6 @@ CLUSTER_ROLE_BINDING_FILE_TEMP=${TEMP_FOLDER}/.cluster_role_binding.yaml
 
 LOG_FILE=${CUR_DIR}/operator_upgrade.log
 
-LICENSE_FILE=${PARENT_DIR}/LICENSE
 LICENSE_ACCEPTED=""
 
 function show_help {
@@ -105,15 +104,17 @@ fi
 
 # Show license file
 function readLicense() {
-  echo -e "\033[32mYou need to read the International Program License Agreement before start\033[0m"
+  echo -e "\x1B[1;31mYou need to read the International Program License Agreement before start\n\x1B[0m"
+  echo -e "\x1B[1;31mIMPORTANT: Review the license information for the product bundle you are deploying. \n\x1B[0m"
+  echo -e "\x1B[1;31mIBM FileNet Content Manager license information here: https://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-LSWS-C6KPMK \n\x1B[0m"
+  echo -e "\x1B[1;31mIBM Content Foundation license information here: https://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-LSWS-C6KQ34 \n\x1B[0m"
   sleep 3
-  more ${LICENSE_FILE}
 }
 
 # Get user's input on whether accept the license
 function userInput() {
   while true; do
-    echo -e "\033[32mDo you accept the International Program License?(Yes/No): \033[0m"
+    echo -e "\033[32mDo you accept the International Program License? (Yes/No): \033[0m"
     read -rp "" ans
     case "$ans" in
     "y" | "Y" | "yes" | "Yes" | "YES")
