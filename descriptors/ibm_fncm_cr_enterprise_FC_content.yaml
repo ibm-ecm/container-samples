@@ -731,9 +731,7 @@ spec:
 
       ## Below are the default CMIS Production settings.  Make the necessary changes as you see fit.  Refer to Knowledge Center documentation for details.
       cmis_production_setting:
-        ## By default, this parameter is set by the Operator using the CPE service endpoint (e.g., "http://{{ meta.name }}-cpe-svc:9080/wsi/FNCEWS40MTOM")
-        cpe_url:
-
+  
         time_zone: Etc/UTC
 
         ## The initial use of available memory.
@@ -1344,7 +1342,7 @@ spec:
 #        css_text_search_server_mode: 0
 #        css_text_search_server_ssl_enable: "true"
 #        css_text_search_server_credential: "RNUNEWc="
-#        css_text_search_server_host: "{{ meta.name }}-css-svc-1"
+#        css_text_search_server_host: "{{ meta.name }}-css-svc-1.{{ meta.namespace }}.svc"
 #        css_text_search_server_port: 8199
 #    ic_css_index_area:
 #      - object_store_name: "OS01"
@@ -1360,7 +1358,7 @@ spec:
 #    ic_icn_init_info:
 #      icn_repos:
 #      - add_repo_id: "demo_repo1"
-#        add_repo_ce_wsi_url: "http://{{ meta.name }}-cpe-stateless-svc:9080/wsi/FNCEWS40MTOM/"
+#        add_repo_ce_wsi_url: "http://{{ meta.name }}-cpe-stateless-svc.{{ meta.namespace }}.svc:9080/wsi/FNCEWS40MTOM/"
 #        add_repo_os_sym_name: "OS01"
 #        add_repo_os_dis_name: "OS01"
 #        add_repo_workflow_enable: false
@@ -1368,7 +1366,7 @@ spec:
 #        add_repo_protocol: "FileNetP8WSI"
 #      ## If you have more than 1 object store, uncomment this section for initialization of the object store.
 #      # - add_repo_id: "test_repo2"
-#      #   add_repo_ce_wsi_url: "http://{{ meta.name }}-cpe-stateless-svc:9080/wsi/FNCEWS40MTOM/"
+#      #   add_repo_ce_wsi_url: "http://{{ meta.name }}-cpe-stateless-svc.{{ meta.namespace }}.svc:9080/wsi/FNCEWS40MTOM/"
 #      #   add_repo_os_sym_name: "OS02"
 #      #   add_repo_os_dis_name: "OS02"
 #      #   add_repo_workflow_enable: true
