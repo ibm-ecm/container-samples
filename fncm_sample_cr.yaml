@@ -312,7 +312,6 @@ spec:
       hostname: "cmis-{{ meta.namespace }}.9.30.213.60.nip.io"
       cmis_production_setting:
         cmis_version: 1.1
-        cpe_url: 
         time_zone: Etc/UTC
         jvm_initial_heap_percentage: 40
         jvm_max_heap_percentage: 66
