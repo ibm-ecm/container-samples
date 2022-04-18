@@ -15,7 +15,7 @@ spec:
 
   shared_configuration:
     sc_deployment_context: FNCM
-    sc_deployment_flatform: OCP
+    sc_deployment_platform: OCP
     root_ca_secret: fncm-root-ca
   # trusted_certificate_list: []
   ldap_configuration:
