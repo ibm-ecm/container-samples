@@ -22,7 +22,9 @@ The following sections describe these steps in detail.
 
 ##  Step 1: Get access to the interim fix container images
 
-You can access the container images in the IBM Docker registry with your IBMid.
+You can access the container images in the IBM Docker registry with your IBMid (Option 1), or you can use the downloaded images from Fix Central (Option 2).
+
+### Option 1: Create a pull secret for the IBM Cloud Entitled Registry
 
 1. Log in to [MyIBM Container Software Library](https://myibm.ibm.com/products-services/containerlibrary) with the IBMid and password that are associated with the entitled software.
 
@@ -39,6 +41,83 @@ You can access the container images in the IBM Docker registry with your IBMid.
 
 5. Take a note of the secret and the server values so that you can set them to the **pullSecrets** and **repository** parameters when you run the operator for your containers.
 
+### Option 2: Download the packages from the Fix Central download
+
+For instructions on how to access and expand the interim fix patch, see the interim fix readme section “Download location” in the particular container’s readme file available in Fix Central.
+
+1. Download the images using the instructions in your interim fix container readme. Make a note of the file name for your image.
+2. Download the [`loadimages.sh`](../../scripts/loadimages.sh) script from GitHub.
+3. Log in to your Kubernetes cluster and set the context to the project for your existing deployment.
+4. Check that you can run a Docker command or podman command.
+   
+   ```bash
+   $ docker ps
+   ```
+   For OpenShift 4.x:
+   ```bash
+   $ podman ps
+   ```   
+5. Login to the Docker registry with a token
+   
+    ```bash
+   $ docker login $(oc registry info) -u <ADMINISTRATOR> -p $(oc whoami -t)
+   ```
+   > **Note**: Connect to a node in the cluster to resolve the `docker-registry.default.svc` parameter.
+
+   You can also log in to an external Docker registry using the following command:
+   ```bash
+   $ docker login <registry_url> -u <your_account>
+   ```
+   For OpenShift 4.x:
+   ```bash
+   $ podman login $(oc registry info) -u <ADMINISTRATOR> -p $(oc whoami -t) –tls-verify=false
+   ```      
+6. Run a `kubectl` command to ensure that you have access to Kubernetes.
+   ```bash
+   $ kubectl cluster-info
+   ```
+7. Run the `loadimages.sh` script to load the images into your Docker registry. Specify the two mandatory parameters in the command line
+
+   ```
+   -p  Fix Central archive files location or archive filename
+   -r  Target Docker registry and namespace
+   -l  Optional: Target a local registry
+   ```
+
+   The following example shows the input values in the command line using a local Docker registry:
+
+   ```
+   # scripts/loadimages.sh -p <container interim fix>.tgz -r docker-registry.default.svc:5000/my-project
+   ```
+
+   The following example shows the input values in the command line on OCP 4.x:
+
+   ```
+   # scripts/loadimages.sh -p <container interim fix>.tgz -r $(oc registry info)/my-project -tls-verify=false
+   ```
+
+
+   **Note**: The project must have pull request privileges to the registry where the images are loaded. The project must also have pull request privileges to push the images into another namespace/project.
+  
+  Repeat this step for each container image from Fix Central that you want to update, including the operator image.
+
+8. Check that the images are pushed correctly to the registry.
+   ```bash
+   $ oc get is
+   ```
+
+9. If you want to use an external Docker registry, create a Docker registry secret:
+
+   On OpenShift:
+   ```bash
+   $ oc create secret docker-registry admin.registrykey --docker-server=<registry_url> --docker-username=<your_account> --docker-password=<your_password> --docker-email=<your_email>
+   ```
+   
+   Using kubectl:
+   ```bash
+   $ kubectl create secret docker-registry admin.registrykey --docker-server=<registry_url> --docker-username=<your_account> --docker-password=<your_password> --docker-email=<your_email>
+   ```
+  Take a note of the secret and the server values so that you can use them in the **pullSecrets** and **repository** parameters when you run the operator for your containers.
 
 ## Step 2: Get access to the current version of the operator
 
