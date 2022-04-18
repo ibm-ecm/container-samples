@@ -166,10 +166,7 @@ function cncf_install() {
   # Change the pullSecrets if needed
   if [ ! -z ${PULLSECRET} ]; then
     echo "Setting pullSecrets to $PULLSECRET"
-    sed -e "s|admin.registrykey|$PULLSECRET|g" ${CUR_DIR}/../upgradeOperator.yaml >${CUR_DIR}/../upgradeOperatorsav.yaml
-    mv ${CUR_DIR}/../upgradeOperatorsav.yaml ${CUR_DIR}/../upgradeOperator.yaml
-  else
-    sed -e '/imagePullSecrets:/{N;d;}' ${CUR_DIR}/../upgradeOperator.yaml >${CUR_DIR}/../upgradeOperatorsav.yaml
+    sed -e "s/admin.registrykey/$PULLSECRET/g" ${CUR_DIR}/../upgradeOperator.yaml >${CUR_DIR}/../upgradeOperatorsav.yaml
     mv ${CUR_DIR}/../upgradeOperatorsav.yaml ${CUR_DIR}/../upgradeOperator.yaml
   fi
 
@@ -178,8 +175,10 @@ function cncf_install() {
   echo -ne "Creating the custom resource definition (CRD) and a service account that has the permissions to manage the resources..."
   ${CLI_CMD} apply -f ${CRD_FILE} -n ${NAMESPACE} --validate=false >/dev/null 2>&1
   echo " Done!"
+  if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
   ${CLI_CMD} apply -f ${CLUSTER_ROLE_FILE} -n ${NAMESPACE} --validate=false >>${LOG_FILE}
   ${CLI_CMD} apply -f ${CLUSTER_ROLE_BINDING_FILE_TEMP} -n ${NAMESPACE} --validate=false >>${LOG_FILE}
+  fi
 
   ${CLI_CMD} apply -f ${CUR_DIR}/../descriptors/service_account.yaml -n ${NAMESPACE} --validate=false
   ${CLI_CMD} apply -f ${CUR_DIR}/../descriptors/role.yaml -n ${NAMESPACE} --validate=false

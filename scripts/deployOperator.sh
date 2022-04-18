@@ -201,8 +201,10 @@ function prepare_install() {
   echo -ne "Creating the custom resource definition (CRD) and a service account that has the permissions to manage the resources..."
   ${CLI_CMD} apply -f ${CRD_FILE} -n ${project_name} --validate=false >/dev/null 2>&1
   echo " Done!"
-  ${CLI_CMD} apply -f ${CLUSTER_ROLE_FILE} --validate=false >>${LOG_FILE}
-  ${CLI_CMD} apply -f ${CLUSTER_ROLE_BINDING_FILE_TEMP} --validate=false >>${LOG_FILE}
+  if [[ $PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "ROKS" ]]; then
+    ${CLI_CMD} apply -f ${CLUSTER_ROLE_FILE} --validate=false >>${LOG_FILE}
+    ${CLI_CMD} apply -f ${CLUSTER_ROLE_BINDING_FILE_TEMP} --validate=false >>${LOG_FILE}
+  fi
   ${CLI_CMD} apply -f ${SA_FILE} -n ${project_name} --validate=false >>${LOG_FILE}
   ${CLI_CMD} apply -f ${ROLE_FILE} -n ${project_name} --validate=false >>${LOG_FILE}
 
@@ -244,7 +246,7 @@ function apply_cp4a_operator() {
   # set db2_license
   ${SED_COMMAND} '/fncm_license/{n;s/value:.*/value: accept/;}' ${OPERATOR_FILE_TMP}
   # Set operator image pull secret
-  ${SED_COMMAND} "s|admin.registrykey|$DOCKER_RES_SECRET_NAME|g" ${OPERATOR_FILE_TMP}
+  ${SED_COMMAND} "s/admin.registrykey/$DOCKER_RES_SECRET_NAME/g" ${OPERATOR_FILE_TMP}
   # Set operator image registry
   new_operator="$REGISTRY_IN_FILE\/cp\/cp4a"
 
@@ -295,7 +297,7 @@ function check_existing_sc() {
 }
 
 function validate_docker_podman_cli() {
-  if [[ $PLATFORM_VERSION == "3.11" || "$machine" == "Mac" ]]; then
+  if [[ $PLATFORM_VERSION == "3.11" || "$machine" == "Mac" || $PLATFORM_SELECTED == "other" ]]; then
     which docker &>/dev/null
     [[ $? -ne 0 ]] &&
       echo -e "\x1B[1;31mUnable to locate docker, please install it first.\x1B[0m" &&
@@ -373,10 +375,11 @@ function get_entitlement_registry() {
             printf "\n"
             printf "\x1B[1mVerifying the Entitlement Registry key...\n\x1B[0m"
 
-            if [[ "$machine" == "Mac" ]]; then
-              cli_command="docker"
-            else
+            which podman &>/dev/null
+            if [[ $? -eq 0 ]]; then
               cli_command="podman"
+            else
+              cli_command="docker"
             fi
 
             if $cli_command login -u "$DOCKER_REG_USER" -p "$DOCKER_REG_KEY" "$DOCKER_REG_SERVER"; then
@@ -469,7 +472,7 @@ function copy_jdbc_driver() {
   echo -e "\x1B[1mCopying the JDBC driver for the operator...\x1B[0m"
   operator_podname=$(${CLI_CMD} get pod -n $project_name | grep ibm-fncm-operator | grep Running | awk '{print $1}')
 
-  COPY_JDBC_CMD="${CLI_CMD} cp ${JDBC_DRIVER_DIR} ${operator_podname}:/opt/ansible/share/"
+  COPY_JDBC_CMD="${CLI_CMD} cp -n ${project_name} ${JDBC_DRIVER_DIR} ${operator_podname}:/opt/ansible/share/"
 
   if $COPY_JDBC_CMD; then
     echo -e "\x1B[1mDone\x1B[0m"
@@ -709,7 +712,9 @@ function show_summary() {
     echo -e "\x1B[1;31m1. Cloud platform to deploy: ${PLATFORM_SELECTED} ${PLATFORM_VERSION}\x1B[0m"
   fi
   echo -e "\x1B[1;31m2. Project to deploy: ${project_name}\x1B[0m"
-  echo -e "\x1B[1;31m3. User selected: ${user_name}\x1B[0m"
+  if [[ $PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "ROKS" ]]; then
+    echo -e "\x1B[1;31m3. User selected: ${user_name}\x1B[0m"
+  fi
   if [[ $PLATFORM_SELECTED == "ROKS" ]]; then
     echo -e "\x1B[1;31m5. Storage Class created: \x1B[0m"
     display_storage_classes_roks
@@ -720,27 +725,55 @@ function show_summary() {
 function get_local_registry_server() {
   # For internal/external Registry Server
   printf "\n"
-  if [[ "${REGISTRY_TYPE}" == "internal" && ("${PLATFORM_VERSION}" == "4.4OrLater") ]]; then
-    #This is required for docker/podman login validation.
-    if [ ! -z "$FNCM_LOCAL_PUBLIC_REGISTRY" ]; then
-      printf "\x1B[1mEnter the public image registry or route: \x1B[0m$FNCM_LOCAL_PUBLIC_REGISTRY"
-      #printf "\x1B[1mThis is required for docker/podman login validation: \x1B[0m"
-      local_public_registry_server=$FNCM_LOCAL_PUBLIC_REGISTRY
-    else
-      printf "\x1B[1mEnter the public image registry or route (e.g., default-route-openshift-image-registry.apps.<hostname>). \n\x1B[0m"
-      printf "\x1B[1mThis is required for docker/podman login validation: \x1B[0m"
-      local_public_registry_server=""
-      while [[ $local_public_registry_server == "" ]]; do
-        read -rp "" local_public_registry_server
-        if [ -z "$local_public_registry_server" ]; then
-          echo -e "\x1B[1;31mEnter a valid service name or the URL for the docker registry.\x1B[0m"
-        fi
-      done
-    fi
-  fi
+  if [[ "${REGISTRY_TYPE}" == "internal" ]]; then
+    if [[ "${PLATFORM_VERSION}" == "4.4OrLater" ]]; then
+      #This is required for docker/podman login validation.
+      if [ ! -z "$FNCM_LOCAL_PUBLIC_REGISTRY" ]; then
+        printf "\x1B[1mEnter the public image registry or route: \x1B[0m$FNCM_LOCAL_PUBLIC_REGISTRY"
+        #printf "\x1B[1mThis is required for docker/podman login validation: \x1B[0m"
+        local_public_registry_server=$FNCM_LOCAL_PUBLIC_REGISTRY
+      else
+        printf "\x1B[1mEnter the public image registry or route (e.g., default-route-openshift-image-registry.apps.<hostname>). \n\x1B[0m"
+        printf "\x1B[1mThis is required for docker/podman login validation: \x1B[0m"
+        local_public_registry_server=""
+        while [[ $local_public_registry_server == "" ]]; do
+          read -rp "" local_public_registry_server
+          if [ -z "$local_public_registry_server" ]; then
+            echo -e "\x1B[1;31mEnter a valid service name or the URL for the docker registry.\x1B[0m"
+          fi
+        done
+      fi
 
-  if [[ "${REGISTRY_TYPE}" == "external" && ("${PLATFORM_VERSION}" == "4.4OrLater") ]]; then
-    #This is required for docker/podman login validation.
+      if [[ "${PLATFORM_VERSION}" == "4.4OrLater" ]]; then
+        builtin_dockercfg_secrect_name=$(${CLI_CMD} get secret | grep default-dockercfg | awk '{print $1}')
+        if [ -z "$builtin_dockercfg_secrect_name" ]; then
+          DOCKER_RES_SECRET_NAME="admin.registrykey"
+        else
+          DOCKER_RES_SECRET_NAME=$builtin_dockercfg_secrect_name
+        fi
+      fi
+
+      if [[ -z "$FNCM_LOCAL_PRIVATE_REGISTRY" ]]; then
+        local_registry_server=""
+        if [[ "${REGISTRY_TYPE}" == "internal" && "${PLATFORM_VERSION}" == "4.4OrLater" ]]; then
+          printf "\x1B[1mEnter the local image registry (e.g., image-registry.openshift-image-registry.svc:5000/<project>)\n\x1B[0m"
+          printf "\x1B[1mThis is required to pull container images and Kubernetes secret creation: \x1B[0m"
+
+          while [[ $local_registry_server == "" ]]; do
+            read -rp "" local_registry_server
+            if [ -z "$local_registry_server" ]; then
+              echo -e "\x1B[1;31mEnter a valid service name or the URL for the docker registry.\x1B[0m"
+            fi
+          done
+        elif [[ "${PLATFORM_VERSION}" != "4.4OrLater" ]]; then
+          printf "\n"
+          printf "\x1B[1mEnter the local image registry: \x1B[0m$FNCM_LOCAL_PRIVATE_REGISTRY"
+          local_registry_server=$FNCM_LOCAL_PRIVATE_REGISTRY
+        fi
+      fi
+    fi
+
+  else
     if [ ! -z "$FNCM_LOCAL_PUBLIC_REGISTRY" ]; then
       printf "\x1B[1mEnter the docker image registry or route: \x1B[0m$FNCM_LOCAL_PUBLIC_REGISTRY"
       #printf "\x1B[1mThis is required for docker/podman login validation: \x1B[0m"
@@ -756,35 +789,6 @@ function get_local_registry_server() {
         fi
       done
     fi
-  fi
-
-  if [[ "${REGISTRY_TYPE}" == "internal" && "${PLATFORM_VERSION}" == "4.4OrLater" ]]; then
-    builtin_dockercfg_secrect_name=$(${CLI_CMD} get secret | grep default-dockercfg | awk '{print $1}')
-    if [ -z "$builtin_dockercfg_secrect_name" ]; then
-      DOCKER_RES_SECRET_NAME="admin.registrykey"
-    else
-      DOCKER_RES_SECRET_NAME=$builtin_dockercfg_secrect_name
-    fi
-  fi
-
-  if [[ -z "$FNCM_LOCAL_PRIVATE_REGISTRY" && "${REGISTRY_TYPE}" == "internal" ]]; then
-    local_registry_server=""
-    if [[ "${REGISTRY_TYPE}" == "internal" && "${PLATFORM_VERSION}" == "4.4OrLater" ]]; then
-      printf "\x1B[1mEnter the local image registry (e.g., image-registry.openshift-image-registry.svc:5000/<project>)\n\x1B[0m"
-      printf "\x1B[1mThis is required to pull container images and Kubernetes secret creation: \x1B[0m"
-    fi
-
-    while [[ $local_registry_server == "" ]]; do
-      read -rp "" local_registry_server
-      if [ -z "$local_registry_server" ]; then
-        echo -e "\x1B[1;31mEnter a valid service name or the URL for the docker registry.\x1B[0m"
-      fi
-    done
-  elif [[ "${REGISTRY_TYPE}" == "internal" && "${PLATFORM_VERSION}" == "4.4OrLater" ]]; then
-    printf "\n"
-    printf "\x1B[1mEnter the local image registry: \x1B[0m$FNCM_LOCAL_PRIVATE_REGISTRY"
-    local_registry_server=$FNCM_LOCAL_PRIVATE_REGISTRY
-  elif [[ "${REGISTRY_TYPE}" == "external" && "${PLATFORM_VERSION}" == "4.4OrLater" ]]; then
     local_registry_server=$local_public_registry_server
   fi
 
@@ -799,6 +803,7 @@ function get_local_registry_server() {
   done
   IFS=$OIFS
   CONVERT_LOCAL_REGISTRY_SERVER=${joined}
+
 }
 
 function get_local_registry_user() {
@@ -1105,7 +1110,9 @@ if [[ $PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "ROKS" ]]; then
 fi
 
 collect_input
-bind_scc
+if [[ $PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "ROKS" ]]; then
+  bind_scc
+fi
 
 validate_docker_podman_cli
 get_entitlement_registry
@@ -1125,12 +1132,12 @@ apply_cp4a_operator
 
 check_storage_class
 
-#if [[ $PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "ROKS" ]]; then
-#  display_node_name
-#fi
-
 show_summary
 
 clean_up
 #set the project context back to the user generated one
-${CLI_CMD} project ${PROJ_NAME} >/dev/null
+if [[ $PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "ROKS" ]]; then
+  ${CLI_CMD} project ${PROJ_NAME} >/dev/null
+else
+  ${CLI_CMD} config set-context --current --namespace=${PROJ_NAME} >/dev/null
+fi
