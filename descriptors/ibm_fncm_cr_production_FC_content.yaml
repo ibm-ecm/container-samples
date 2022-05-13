@@ -167,40 +167,6 @@ spec:
     #  # - "myKey2:myValue2"
     #  # - "myKey3:myValue3"
 
-  #scim_configuration:
-    #auth_url:
-    #context_path:
-
-    ## Enable SSL/TLS for SCIM communication.
-    #ssl_enabled:
-
-    ## The SCIM group base DN.
-    #group_base_dn:
-
-    ## The SCIM group name attributes
-    #group_dn_attribute:
-    #group_unique_id_attribute:
-    #group_name_attribute:
-    #group_display_name_attribute:
-
-    ## The SCIM user base DN.
-    #user_base_dn:
-
-    ## The SCIM user name attributes
-    #user_dn_attribute:
-    #user_unique_id_attribute:
-    #user_display_name_attribute:
-    #user_name_attribute:
-
-    ## The name of the SCIM server to connect
-    #host:
-
-    ## The port of the SCIM server to connect.
-    #port:
-
-    #scim_secret_name: "< secret contains scimUsername, scimPassword >"
-
-
   ## The beginning section of LDAP configuration for FNCM
   ldap_configuration:
     ## The possible values are: "IBM Security Directory Server"
@@ -266,42 +232,6 @@ spec:
     #oracle:
     #  lc_user_filter: "(&(objectClass=person)(cn=%v))"
     #  lc_group_filter:  "(&(objectClass=group)(cn=%v))"
-
-    ## This section allows to enhance the ldap configuration for the UMS SCIM capability. If lc_user_filter or lc_group_filter cannot handle a custom LDAP filter for user or group searches this section should be enabled.
-    ## optional: enables the liberty ldapEntityType configuration and disables the usage of lc_user_filter, lc_group_filter, lc_ldap_group_member_id_map, lc_ldap_user_name_attribute and lc_ldap_group_name_attribute in the UMS capabilities.
-    ## for detailed information about the ldapEntityType, loginProperty and groupProperties  parameters please see the liberty documentation: https://www.ibm.com/docs/en/was-liberty/nd?topic=configuration-ldapregistry
-    ## default is false
-    lc_use_ldap_entity_type:
-    ## optional: only used if lc_use_ldap_entity_type is true
-    ## default is uid
-    lc_ldap_login_property:
-    ## optional: only used if lc_use_ldap_entity_type is true
-    ## the defaults depends on the lc_selected_ldap_type
-    lc_ldap_entity_type_user:
-      object_class:
-      search_base:
-      searchfilter:
-    ## optional: only used if lc_use_ldap_entity_type is true
-    ## the defaults depends on the lc_selected_ldap_type
-    lc_ldap_entity_type_group:
-      object_class:
-      search_base:
-      searchfilter:
-    ## optional: only used if lc_use_ldap_entity_type is true
-    ## the defaults depends on the lc_selected_ldap_type
-    lc_ldap_group_properties:
-      # member_attribute:
-        # The name of the member. Required if member_attribute is set
-        # name:
-        # The name of the object class. Required member_attribute is set
-        # object_class:
-        ## the scope options are: all, direct, nested
-        # scope:
-      #membership_attribute:
-        # The name of the membership. Required if membership_attribute is set
-        # name:
-        ## the scope options are: all, direct, nested
-        # scope:
 
   ## The beginning section of multi ldap configuration for FNCM
   #ldap_configuration_<id_name>:
@@ -659,10 +589,10 @@ spec:
       ## make the changes here to meet your requirement.
       resources:
         requests:
-          cpu: 500m
+          cpu: "500m"
           memory: 512Mi
         limits:
-          cpu: 1
+          cpu: "1"
           memory: 3072Mi
 
       ## By default "Autoscaling" is disabled with the following settings with a minimum of 2 replca and a maximum of 3 replicas.  Change
@@ -766,10 +696,10 @@ spec:
       ## make the changes here to meet your requirement.
       resources:
         requests:
-          cpu: 500m
+          cpu: "500m"
           memory: 512Mi
         limits:
-          cpu: 1
+          cpu: "1"
           memory: 4096Mi
 
       ## CSS Production setting
@@ -847,10 +777,10 @@ spec:
       ## make the changes here to meet your requirement.
       resources:
         requests:
-          cpu: 500m
+          cpu: "500m"
           memory: 256Mi
         limits:
-          cpu: 1
+          cpu: "1"
           memory: 1536Mi
 
       ## By default "Autoscaling" is disabled with the following settings with a minimum of 2 replca and a maximum of 3 replicas.  Change
@@ -985,10 +915,10 @@ spec:
       ## make the changes here to meet your requirement.
       resources:
         requests:
-          cpu: 500m
+          cpu: "500m"
           memory: 512Mi
         limits:
-          cpu: 1
+          cpu: "1"
           memory: 1536Mi
 
       ## By default "Autoscaling" is disabled with the following settings with a minimum of 2 replca and a maximum of 3 replicas.  Change
@@ -1079,10 +1009,10 @@ spec:
       ## make the changes here to meet your requirement.
       resources:
         requests:
-          cpu: 500m
+          cpu: "500m"
           memory: 512Mi
         limits:
-          cpu: 1
+          cpu: "1"
           memory: 1536Mi
 
       ## By default "Autoscaling" is disabled with the following settings with a minimum of 2 replca and a maximum of 3 replicas.  Change
@@ -1166,10 +1096,10 @@ spec:
       ## make the changes here to meet your requirement.
       resources:
         requests:
-          cpu: 500m
+          cpu: "500m"
           memory: 512Mi
         limits:
-          cpu: 1
+          cpu: "1"
           memory: 1536Mi
 
       ## By default "Autoscaling" is disabled with the following settings with a minimum of 2 replca and a maximum of 3 replicas.  Change
@@ -1293,10 +1223,10 @@ spec:
     ## make the changes here to meet your requirement.
     resources:
       requests:
-        cpu: 500m
+        cpu: "500m"
         memory: 512Mi
       limits:
-        cpu: 1
+        cpu: "1"
         memory: 1536Mi
 
     ## By default "Autoscaling" is disabled with the following settings with a minimum of 2 replca and a maximum of 3 replicas.  Change
