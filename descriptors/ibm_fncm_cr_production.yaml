@@ -56,6 +56,7 @@ spec:
     
     ## Specify the license model for FNCM.
     ## Choose the licensing model. Required. The expected values are ICF.PVUNonProd, ICF.PVUProd, ICF.UVU, ICF.CU, FNCM.PVUNonProd, FNCM.PVUProd, FNCM.UVU, or FNCM.CU
+    ## Choose one of these licensing model if you traded up to Cloud Pak for Business Automation from Standalone FileNet Content Manager. The expected values are CP4BA.NonProd, CP4BA.Prod, CP4BA.User
     sc_fncm_license_model: <Required>
 
     ## Optional: You can specify a profile size for CloudPak - valid values are small,medium,large - default is small.
@@ -113,71 +114,76 @@ spec:
       sc_medium_file_storage_classname: "<Required>"
       sc_fast_file_storage_classname: "<Required>"
 
-   ## Uncomment out this section if you have OpenId Connect providers. 
-    # open_id_connect_providers:
-    ## set the provider name that is for your redirect url.
+    ## Uncomment out this section if you have OpenId Connect identity providers.
+    ## open_id_connect_providers section must be defined if you want to config Jaaslogin module
+    #open_id_connect_providers:
+    ## Set a provider name that will be used in your redirect URL.
     #- provider_name: ""
-      ## Set the display name for the sign in button in navigator.
-    #  display_name: "Single Sign on"
-    #  # Enter your oidc secret names here for cpe, nav external share and graphql.
-    #  # Not all are required depending on you deployment.
-    #  client_oidc_secret:
-    #     es: "" # Points to a secret with client_id and client_secret in that format.
-    #     nav: "" # Points to a secret with client_id and client_secret in that format.
-    #     cpe: "" # Points to a secret with client_id and client_secret in that format.
-    #     graphql: "" # Points to a secret with client_id and client_secret in that format.
-    #  issuer_identifier: ""
-    #  # REQUIRED PROPERTIES AND VALUES which are common
-    #  # If not set will be set to the defaults.
-    #  response_type: "code"
-    #  scope: "openid email profile"
-    #  map_identity_to_registry_user: "false"
-    #  authn_session_disabled: "false"
-    #  inbound_propagation: "supported"
-    #  https_required: "true"
-    #  validation_method: "introspect"
-    #  disable_ltpa_cookie: "true"
-    #  signature_algorithm: "RS256"
-    #  user_identifier: "sub" # sub for ums and ibm id, email for google
-    #  unique_user_identifier: "sub" # sub for ums and ibm id, email for google
-    #  user_identity_to_create_subject: "sub" # sub for ums and ibm id, email for google
-    #  ## Uncomment out discovery_endpoint_url for Google or UMS IdP.
-    #  # discovery_endpoint_url: 
-    #  ##
-    #  # Optional parameters 
-    #  ##
-    #  # authorization_endpoint_url: ""
-    #  # token_endpoint_url: ""
-    #  # validation_endpoint_url: ""
-    #  # trust_alias_name: "secrent name you created"
-    #  # disables_iss_checking: "true"
-    #  # jwk_client_oidc_secret:
-    #  #   es: "" # Points to a secret with client_id and client_secret in that format.
-    #  #   nav: "" # Points to a secret with client_id and client_secret in that format.
-    #  #   cpe: "" # Points to a secret with client_id and client_secret in that format.
-    #  #   graphql: ""  # Points to a secret with client_id and client_secret in that format.
-    #  # token_reuse: "true"
+      ## Set a display name for the sign in button in Navigator.
+      #display_name: "Single Sign on"
+      ## Enter your OIDC secret names for the ECM and Navigator Components.
+      #client_oidc_secret:
+         #nav: "" # Points to a secret with client_id and client_secret in that format.
+         #cpe: "" # Points to a secret with client_id and client_secret in that format.
+      #issuer_identifier: ""
+      ## COMMON REQUIRED PROPERTIES AND VALUES
+      ## If no value is set, the default value is taken. Uncomment or add new parameters as applicable for your provider.
+      #response_type: "code"
+      #scope: "openid email profile"
+      #map_identity_to_registry_user: "false"
+      #authn_session_disabled: "false"
+      #inbound_propagation: "supported"
+      #https_required: "true"
+      #validation_method: "introspect"
+      #disable_ltpa_cookie: "true"
+      #signature_algorithm: "RS256"
+      #user_identifier: "sub"
+      #unique_user_identifier: "sub"
+      #user_identity_to_create_subject: "sub"
+      ### Uncomment out discovery_endpoint_url
+      ##discovery_endpoint_url:
+      ###
+      ### Optional parameters
+      ###
+      ##authorization_endpoint_url: ""
+      ##token_endpoint_url: ""
+      ##validation_endpoint_url: ""
+      ##trust_alias_name: "secret name you created"
+      ##disables_iss_checking: "true"
+      ##jwk_client_oidc_secret:
+      ##  nav: "" # Points to a secret with client_id and client_secret in that format.
+      ##  cpe: "" # Points to a secret with client_id and client_secret in that format.
+      ##token_reuse: "true"
 
-    #  ##
-    #  # User defined parameters.  
-    #  # If you do not see a parameter that is needed for you OpenId Connect provider.
-    #  # You are able to defined in this section has a key value pair separated by the delimeter `:`
-    #  # If you want to change the default delimeter, add `DELIM=<NEW_DELIMETER>` infront of your 
-    #  # key value pair. Ex: 'DELIM=;myKey;myValue'.  In this example, the new delimeter is `;` and 
-    #  # the key value pair is set to `myKey;myValue` instead of `myKey:myValue`.
-    #  ##
-    #  # oidc_ud_param:
-    #  # - 'DELIM=;myKey;myValue'
-    #  # - "myKey2:myValue2"
-    #  # - "myKey3:myValue3"
+      ###
+      ### User defined parameters.
+      ### If you do not see a parameter that is needed for your OpenId Connect identity provider,
+      ### you can use this section to define key value pairs separated by the delimiter `:`.
+      ### If you want to change the default delimiter, add `DELIM=<NEW_DELIMETER>` in-front of your
+      ### key value pair. Ex: 'DELIM=;myKey;myValue'.  In this example, the new delimiter is `;` and
+      ### the key value pair is set to `myKey;myValue` instead of `myKey:myValue`.
+      ####
+      ##oidc_ud_param:
+      ##- "DELIM=;revokeEndpointUrl;https://xxx/yyy"
+      ##- "DELIM=;introspectEndpointUrl;https:/xxx/zzz"
+      ##- 'DELIM=;myKey;myValue'
+      ##- "myKey2:myValue2"
+      ##- "myKey3:myValue3"
 
   ## The beginning section of LDAP configuration for FNCM
   ldap_configuration:
     ## The possible values are: "IBM Security Directory Server" 
     ## or "Microsoft Active Directory" 
     ## or "NetIQ eDirectory" 
-    ## or "Oracle"
+    ## or "Oracle Internet Directory"
+    ## or "Oracle Directory Server Enterprise Edition"
+    ## or "Oracle Unified Directory"
     lc_selected_ldap_type: "<Required>"
+
+    ## The lc_ldap_precheck parameter is used to enable or disable LDAP connection check.
+    ## If set to "true", then LDAP connection check will be enabled.
+    ## if set to "false", then LDAP connection check will not be enabled.
+    lc_ldap_precheck: true
 
     ## The name of the LDAP server to connect
     lc_ldap_server: "<Required>"
@@ -240,8 +246,18 @@ spec:
   ## The beginning section of multi ldap configuration for FNCM
   #ldap_configuration_<id_name>:
     #lc_ldap_id: <id_name>
-    ## The possible values are: "IBM Security Directory Server" or "Microsoft Active Directory"
+    ## The possible values are: "IBM Security Directory Server"
+    ## or "Microsoft Active Directory"
+    ## or "NetIQ eDirectory"
+    ## or "Oracle Internet Directory"
+    ## or "Oracle Directory Server Enterprise Edition"
+    ## or "Oracle Unified Directory"
     #lc_selected_ldap_type: "<Required>"
+
+    ## The lc_ldap_precheck parameter is used to enable or disable LDAP connection check.
+    ## If set to "true", then LDAP connection check will be enabled.
+    ## if set to "false", then LDAP connection check will not be enabled.
+    #lc_ldap_precheck: true
 
     ## The name of the LDAP server to connect
     #lc_ldap_server: "<Required>"
@@ -286,7 +302,7 @@ spec:
     ## The LDAP group membership ID map.  One possible value is "groupofnames:member" for TDS and "memberOf:member" for AD.
     #lc_ldap_group_member_id_map: "<Required>"
 
-    ## Uncomment the necessary section (depending if you are using Active Directory (ad) or Tivoli Directory Service (tds)) accordingly.
+    ## Uncomment the necessary section (depending on if you are using Active Directory (ad) or Tivoli Directory Service (tds)) accordingly.
     ## NetIQ eDirectory (ed)
     ## Oracle (oracle) - OID, OUD and ODSEE
     #ad:
@@ -304,11 +320,20 @@ spec:
     #  lc_user_filter: "(&(objectClass=person)(cn=%v))"
     #  lc_group_filter:  "(&(objectClass=group)(cn=%v))"
 
-  ## Comments to be deleted by user only when plan to use external share
   ## The beginning section of external LDAP configuration for FNCM if External Share is deployed
   #ext_ldap_configuration:
-    ## The possible values are: "IBM Security Directory Server" or "Microsoft Active Directory"
+    ## The possible values are: "IBM Security Directory Server"
+    ## or "Microsoft Active Directory"
+    ## or "NetIQ eDirectory"
+    ## or "Oracle Internet Directory"
+    ## or "Oracle Directory Server Enterprise Edition"
+    ## or "Oracle Unified Directory"
     #lc_selected_ldap_type: "<Required>"
+
+    ## The lc_ldap_precheck parameter is used to enable or disable LDAP connection check.
+    ## If set to "true", then LDAP connection check will be enabled.
+    ## if set to "false", then LDAP connection check will not be enabled.
+    #lc_ldap_precheck: true
 
     ## The name of the LDAP server to connect
     #lc_ldap_server: "<Required>"
@@ -349,7 +374,7 @@ spec:
     ## The LDAP group membership ID map.  One possible value is "groupofnames:member" for TDS and "memberOf:member" for AD.
     #lc_ldap_group_member_id_map: "<Required>"
 
-    ## Uncomment the necessary section (depending if you are using Active Directory (ad) or Tivoli Directory Service (tds)) accordingly.
+    ## Uncomment the necessary section (depending on if you are using Active Directory (ad) or Tivoli Directory Service (tds)) accordingly.
     ## NetIQ eDirectory (ed)
     ## Oracle (oracle) - OID, OUD and ODSEE
     #ad:
@@ -389,7 +414,7 @@ spec:
       database_name: "<Required>"
       ## Provide the database server port.  For Db2, the default is "50000".  For Oracle, the default is "1521"
       database_port: "<Required>"
-      ## The name of the secret that contains the DB2 SSL certificate.
+      ## The name of the secret that contains the DB2/Oracle/PostgreSQL/SQLServer SSL certificate.
       database_ssl_secret_name: "<Required>"
       ## If the database type is Oracle, provide the Oracle DB connection string.  For example, "jdbc:oracle:thin:@//<oracle_server>:1521/orcl"
       dc_oracle_gcd_jdbc_url: "<Required>"
@@ -433,7 +458,7 @@ spec:
       database_name: "<Required>"
       ## Provide the database server port.  For Db2, the default is "50000".  For Oracle, the default is "1521"
       database_port: "<Required>"
-      ## The name of the secret that contains the DB2 SSL certificate.
+      ## The name of the secret that contains the DB2/Oracle/PostgreSQL/SQLServer SSL certificate.
       database_ssl_secret_name: "<Required>"
       ## If the database type is Oracle, provide the Oracle DB connection string.  For example, "jdbc:oracle:thin:@//<oracle_server>:1521/orcl"
       dc_oracle_os_jdbc_url: "<Required>"
@@ -462,7 +487,7 @@ spec:
       database_port: "<Required>"
       ## Provide the name of the database for ICN (Navigator).  For example: "ICNDB"
       database_name: "<Required>"
-      ## The name of the secret that contains the DB2 SSL certificate.
+      ## The name of the secret that contains the DB2/Oracle/PostgreSQL/SQLServer SSL certificate.
       database_ssl_secret_name: "<Required>"
       ## If the database type is Oracle, provide the Oracle DB connection string.  For example, "jdbc:oracle:thin:@//<oracle_server>:1521/orcl"
       dc_oracle_icn_jdbc_url: "<Required>"

@@ -40,19 +40,35 @@ rules:
   resources:
   - '*'
   verbs:
-  - '*'
+  - get
+  - list
+  - update
+  - patch
+  - delete
+  - create
+  - watch
 - apiGroups:
   - extensions
   resources:
   - podsecuritypolicies
   verbs:
-  - '*'
+  - get
+  - list
+  - create
+  - delete
+  - update
+  - patch
 - apiGroups:
   - policy
   resources:
   - podsecuritypolicies
   verbs:
-  - '*'
+  - get
+  - list
+  - create
+  - delete
+  - update
+  - patch
 - apiGroups:
   - route.openshift.io
   resources:
@@ -150,7 +166,10 @@ rules:
   resources:
   - businessteamsservices
   verbs:
-  - '*'
+  - create
+  - get
+  - list
+  - delete
 - apiGroups:
   - ""
   resources:

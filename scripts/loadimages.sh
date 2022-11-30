@@ -68,7 +68,7 @@ then
     echo "Use podman command to load images."
     cli_cmd="podman"
     local_repo_prefix="localhost/"
-    loaded_msg_prefix="Loaded image(s): localhost/"
+    loaded_msg_prefix="Loaded image: localhost/"
 elif command -v "docker" >/dev/null 2>&1
 then
     echo "Use docker command to load images."
