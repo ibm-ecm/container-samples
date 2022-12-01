@@ -1343,12 +1343,10 @@ spec:
     image_pull_secrets:
       name: "admin.registrykey"
 
-    ###
-    # Optional entry only if you have the open_id_connect_providers enabled.
-    # if not specified it will be set to false.
-    # This is to enable give the user the option to signing using
-    ###
-    # enable_ldap: true
+    ## Optional entry only if you have the open_id_connect_providers enabled.
+    ## if not specified it will be set to false.
+    ## Enabling this will give the user the option to sign-in using the LDAP.
+    #enable_ldap: true
 
 #  ########################################################################
 #  ######## IBM FileNet Content Manager Initialization configuration ######
