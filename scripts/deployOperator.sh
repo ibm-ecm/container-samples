@@ -744,15 +744,6 @@ function get_local_registry_server() {
         done
       fi
 
-      if [[ "${PLATFORM_VERSION}" == "4.4OrLater" ]]; then
-        builtin_dockercfg_secrect_name=$(${CLI_CMD} get secret | grep default-dockercfg | awk '{print $1}')
-        if [ -z "$builtin_dockercfg_secrect_name" ]; then
-          DOCKER_RES_SECRET_NAME="admin.registrykey"
-        else
-          DOCKER_RES_SECRET_NAME=$builtin_dockercfg_secrect_name
-        fi
-      fi
-
       if [[ -z "$FNCM_LOCAL_PRIVATE_REGISTRY" ]]; then
         local_registry_server=""
         if [[ "${REGISTRY_TYPE}" == "internal" && "${PLATFORM_VERSION}" == "4.4OrLater" ]]; then
@@ -1022,17 +1013,13 @@ function verify_local_registry_password() {
 
 function create_secret_local_registry() {
   echo -e "\x1B[1mCreating the secret based on the local docker registry information...\x1B[0m"
-  if [[ $LOCAL_REGISTRY_SERVER == docker-registry* || $LOCAL_REGISTRY_SERVER == image-registry.openshift-image-registry* ]]; then
-    builtin_dockercfg_secrect_name=$(${CLI_CMD} get secret | grep default-dockercfg | awk '{print $1}')
-    DOCKER_RES_SECRET_NAME=$builtin_dockercfg_secrect_name
+
+  ${CLI_CMD} delete secret "$DOCKER_RES_SECRET_NAME" -n $project_name >/dev/null 2>&1
+  CREATE_SECRET_CMD="${CLI_CMD} create secret docker-registry $DOCKER_RES_SECRET_NAME --docker-server=$LOCAL_REGISTRY_SERVER --docker-username=$LOCAL_REGISTRY_USER --docker-password=$LOCAL_REGISTRY_PWD --docker-email=ecmtest@ibm.com -n $project_name"
+  if $CREATE_SECRET_CMD; then
+    echo -e "\x1B[1mDone\x1B[0m"
   else
-    ${CLI_CMD} delete secret "$DOCKER_RES_SECRET_NAME" -n $project_name >/dev/null 2>&1
-    CREATE_SECRET_CMD="${CLI_CMD} create secret docker-registry $DOCKER_RES_SECRET_NAME --docker-server=$LOCAL_REGISTRY_SERVER --docker-username=$LOCAL_REGISTRY_USER --docker-password=$LOCAL_REGISTRY_PWD --docker-email=ecmtest@ibm.com -n $project_name"
-    if $CREATE_SECRET_CMD; then
-      echo -e "\x1B[1mDone\x1B[0m"
-    else
-      echo -e "\x1B[1;31mFailed\x1B[0m"
-    fi
+    echo -e "\x1B[1;31mFailed\x1B[0m"
   fi
 }
 

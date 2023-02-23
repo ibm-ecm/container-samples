@@ -71,11 +71,12 @@ spec:
             allowPrivilegeEscalation: false
             privileged: false
             readOnlyRootFilesystem: false
-            # Uncomment below for OCP 3.11 (Dropped in 4Q release)
-            # runAsUser: 1001
             capabilities:
               drop:
               - ALL
+          ## Uncomment this to enable seccomp profile on OCP 4.12+
+          #  seccompProfile:
+          #    type: RuntimeDefault
           resources:
             limits:
               cpu: '1'
