@@ -4,6 +4,7 @@ This repository includes folders and resources to help you install the IBM FileN
 
 | Release        | Tag      | Date           |
 |----------------|----------|----------------|
+| FNCM 5.5.8-IF1 | v5.5.8.1 | 03 / 30 / 2022 |
 | FNCM 5.5.8 GA  | v5.5.8.0 | 12 / 17 / 2021 |
 
 For more information about the IBM FileNet Content Manager builds, tags and compatability, see [FileNet P8 Fix Pack Compatibility Matrices](https://www.ibm.com/support/pages/filenet-p8-fix-pack-compatibility-matrices).
