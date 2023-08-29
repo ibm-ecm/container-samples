@@ -1,0 +1,116 @@
+{
+  "LDAP_TYPE": {
+    "value": "<Required>",
+    "comment": [
+      "The type of LDAP server"
+    ]
+  },
+  "LDAP_ID": {
+    "value": "<Required>",
+    "comment": [
+      "The ID of LDAP server"
+    ]
+  },
+  "LDAP_SERVER": {
+    "value": "<Required>",
+    "comment": [
+      "The name of the LDAP server to connect"
+    ]
+  },
+  "LDAP_PORT": {
+    "value": "<Required>",
+    "comment": [
+      "The port of the LDAP server to connect."
+    ]
+  },
+  "LDAP_BASE_DN": {
+    "value": "<Required>",
+    "comment": [
+      "The LDAP base DN."
+    ]
+  },
+  "LDAP_GROUP_BASE_DN": {
+    "value": "<Required>",
+    "comment": [
+      "The LDAP group base DN."
+    ]
+  },
+  "LDAP_BIND_DN": {
+    "value": "<Required>",
+    "comment": [
+      "The LDAP bind DN."
+    ]
+  },
+  "LDAP_BIND_DN_PASSWORD": {
+    "value": "<Required>",
+    "comment": [
+      "The password for LDAP bind DN."
+    ]
+  },
+  "LDAP_SSL_ENABLED": {
+    "value": "<Required>",
+    "comment": [
+      "Enable SSL for LDAP connection."
+    ]
+  },
+  "LDAP_USER_NAME_ATTRIBUTE": {
+    "value": "<Required>",
+    "comment": [
+      "The LDAP username attribute."
+    ]
+  },
+  "LDAP_USER_DISPLAY_NAME_ATTR": {
+    "value": "<Required>",
+    "comment": [
+      "The LDAP user display name attribute."
+    ]
+  },
+  "LDAP_GROUP_NAME_ATTRIBUTE": {
+    "value": "<Required>",
+    "comment": [
+      "The LDAP group name attribute."
+    ]
+  },
+  "LDAP_GROUP_DISPLAY_NAME_ATTR": {
+    "value": "<Required>",
+    "comment": [
+      "The LDAP group display name attribute."
+    ]
+  },
+  "LDAP_GROUP_MEMBERSHIP_ID_MAP": {
+    "value": "<Required>",
+    "comment": [
+      "The LDAP group membership ID map."
+    ]
+  },
+  "LDAP_GROUP_MEMBERSHIP_SEARCH_FILTER": {
+    "value": "<Required>",
+    "comment": [
+      "The LDAP group membership search filter."
+    ]
+  },
+  "LC_USER_FILTER": {
+    "value": "<Required>",
+    "comment": [
+      "The LDAP user filter."
+    ]
+  },
+  "LC_GROUP_FILTER": {
+    "value": "<Required>",
+    "comment": [
+      "The LDAP group filter."
+    ]
+  },
+  "LC_AD_GC_HOST": {
+    "value": "<Optional>",
+    "comment": [
+      "The Global Catalog host for the LDAP"
+    ]
+  },
+  "LC_AD_GC_PORT": {
+    "value": "<Optional>",
+    "comment": [
+      "The Global Catalog port for the LDAP"
+    ]
+  }
+}

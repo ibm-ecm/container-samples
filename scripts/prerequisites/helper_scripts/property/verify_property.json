@@ -1,0 +1,8 @@
+{
+  "CONTENT_VERIFICATION_ENABLE": {
+    "value": "<Required>",
+    "comment": [
+      "Enable/disable FNCM / BAN verification."
+    ]
+  }
+}

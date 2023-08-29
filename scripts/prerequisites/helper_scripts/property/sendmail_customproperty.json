@@ -1,0 +1,38 @@
+{
+  "JAVA_MAIL_HOST": {
+    "value": "<Required>",
+    "comment": [
+      "The name of the Send Mail server to connect."
+    ]
+  },
+  "JAVA_MAIL_PORT": {
+    "value": "465",
+    "comment": [
+      "The port of the Send Mail server to connect."
+    ]
+  },
+  "JAVAMAIL_SENDER": {
+    "value": "<Required>",
+    "comment": [
+      "Send Mail sender name."
+    ]
+  },
+  "JAVAMAIL_USERNAME": {
+    "value": "<Required>",
+    "comment": [
+      "Send Mail admin username."
+    ]
+  },
+  "JAVAMAIL_PASSWORD": {
+    "value": "<Required>",
+    "comment": [
+      "Send Mail admin password."
+    ]
+  },
+  "JAVAMAIL_SSL": {
+    "value": true,
+    "comment": [
+      "Enable SSL for Send Mail connection."
+    ]
+  }
+}

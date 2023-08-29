@@ -1,0 +1,144 @@
+# ####################################################
+# ##     Filenet Content Manager Version            ##
+# ####################################################
+# FNCM S version to be deployed - Valid values: [1; 2]
+# 1. 5.5.8
+# 2. 5.5.11
+FNCM_VERSION = 2
+
+
+
+# ####################################################
+# ##              License and Platform              ##
+# ####################################################
+
+# Choose the licensing model for the Product you are installing.
+# IBM Content Foundation:
+# "ICF.PVUProd"
+# "ICF.PVUNonProd"
+# "ICF.UVU"
+# "ICF.CU"
+# IBM Filenet Content Manager:
+# "FNCM.PVUProd"
+# "FNCM.PVUNonProd"
+# "FNCM.UVU"
+# "FNCM.CU"
+# IBM Cloud Pak for Business Automation:
+# "CP4BA.NonProd"
+# "CP4BA.Prod"
+# "CP4BA.User"
+LICENSE = "CP4BA.User"
+
+# Platform of choice - Valid values: [1; 2; 3]
+# 1. OCP
+# 2. ROKS
+# 3. CNCF
+PLATFORM = 1
+
+# Do you want to configure ingress - Valid values: [true; false]
+# This value will be ignored for platforms other than 'CNCF'
+INGRESS = false
+
+# ####################################################
+# ##              Optional Components               ##
+# ####################################################
+
+#if 5.5.11 or above is being deployed cpe graphql and ban can be set to false, if deploying 5.5.8 the default value for cpe graphql and ban will be true
+
+# Deploy Content Search Services (CSS).
+CSS = false
+
+# Deploy Content Management Interoperability Services (CMIS).
+CMIS = false
+
+# Deploy Task Manager (TM).
+TM = false
+
+# Deploy Content Platform Engine (CPE).
+CPE = true
+
+# Deploy Grahql (GRAPHQL).
+GRAPHQL = true
+
+# Deploy Navigator (BAN).
+BAN = true
+
+# ####################################################
+# ##           Common Database Properties           ##
+# ####################################################
+
+# Provide the database type from your infrastructure. - Valid values: [1; 2; 3; 4; 5]
+# 1. IBM Db2
+# 2. IBM Db2 HADR
+# 3. Oracle
+# 4. Microsoft SQL Server
+# 5. PostgreSQL
+DATABASE_TYPE = 1
+
+# Is ssl enabled for this database - Valid values: [true; false]
+DATABASE_SSL_ENABLE = true
+
+# Number of object stores to use - Valid values: [1; 2; 3; 4...]
+DATABASE_OBJECT_STORE_COUNT = 1
+
+# ####################################################
+# ##          Custom Component Properties           ##
+# ####################################################
+
+#JAVA SEND MAIL SUPPORT
+#This is a optional component level property that can be set to true in case java sendmail for email support should be set up
+#DEFAULT value will be false
+#Valid values: [true; false]
+SENDMAIL_SUPPORT = false
+
+#ICC FOR EMAIL SETUP SUPPORT
+#This is a optional component level property that can be set to true in case ICC for email support should be set up
+#DEFAULT value will be false
+#Valid values: [true; false]
+ICC_SUPPORT = false
+
+#CUSTOM TASK MANAGER GROUP
+#This is a optional component level property that can be set to true in case Custom Task Manager Groups should be set up
+#DEFAULT value will be false
+#Valid values: [true; false]
+TM_CUSTOM_GROUP_SUPPORT = false
+
+# ####################################################
+# ##              Content Init/Verify               ##
+# ####################################################
+
+#if 5.5.11 is deployed and cpe is not being deployed content init and content verify will default to false
+# Initialize content? - Valid values: [true; false]
+CONTENT_INIT = true
+
+# Verify content? - Valid values: [true; false]
+CONTENT_VERIFY = true
+
+# ####################################################
+# ##                 LDAP Properties                ##
+# ####################################################
+
+# First LDAP (Required)
+[LDAP]
+# The type of LDAP server -  Valid values: [1,2,3,4,5,6,7]
+#                       1. Microsoft Active Directory
+#                       2. IBM Security Directory Server
+#                       3. NetIQ eDirectory
+#                       4. Oracle Internet Directory
+#                       5. Oracle Directory Server Enterprise Edition
+#                       6. Oracle Unified Directory
+#                       7. CA eTrust
+LDAP_TYPE = 1
+
+# Enable SSL for LDAP connection. - Valid values: [true; false]
+LDAP_SSL_ENABLE = true
+
+#[LDAP2]
+#LDAP_TYPE = 3
+#LDAP_SSL_ENABLE = false
+
+# Additional LDAP's - uncomment the section below by removing the leading '#' and space
+# Change 'LDAPx' to 'LDAP2' for a second LDAP, 'LDAP3' for a third and so on...
+# [LDAPx]
+# LDAP_TYPE=
+# LDAP_SSL_ENABLE=

@@ -1,0 +1,15 @@
+# YAML template for sample storage class
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    cp4ba: test-only
+  name: ${sample_pvc_name}
+spec:
+  accessModes:
+    - ${sc_mode}
+  resources:
+    requests:
+      storage: 10Mi
+  storageClassName: ${sc_name}

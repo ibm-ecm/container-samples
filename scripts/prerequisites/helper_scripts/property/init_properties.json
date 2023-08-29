@@ -1,0 +1,20 @@
+{
+  "CONTENT_INITIALIZATION_ENABLE": {
+    "value": "<Required>",
+    "comment": [
+      "Enable/disable FNCM / BAN initialization."
+    ]
+  },
+  "GCD_ADMIN_USER_NAME": {
+    "value": ["<Required>"],
+    "comment": [
+      "Usernames for GCD administrators."
+    ]
+  },
+  "GCD_ADMIN_GROUPS_NAME": {
+    "value": ["<Required>"],
+    "comment": [
+      "Names for GCD administrator groups."
+    ]
+  }
+}

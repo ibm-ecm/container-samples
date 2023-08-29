@@ -1,0 +1,20 @@
+{
+  "ARCHIVE_USER_ID": {
+    "value": "<Required>",
+    "comment": [
+      "Archive user ID which has domain-wide read access to all documents to be indexed."
+    ]
+  },
+  "ARCHIVE_PASSWORD": {
+    "value": "<Required>",
+    "comment": [
+      "Archive User password."
+    ]
+  },
+  "P8_DOMAIN_NAME": {
+    "value": "P8DOMAIN",
+    "comment": [
+      "IBM FileNet P8 domain symbolic name."
+    ]
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "SLOW_FILE_STORAGE_CLASSNAME": {
+    "value": "<Required>",
+    "comment": [
+      "Storage class name for slow file storage."
+    ]
+  },
+  "MEDIUM_FILE_STORAGE_CLASSNAME": {
+    "value": "<Required>",
+    "comment": [
+      "Storage class name for medium file storage."
+    ]
+  },
+  "FAST_FILE_STORAGE_CLASSNAME": {
+    "value": "<Required>",
+    "comment": [
+      "Storage class name for fast file storage."
+    ]
+  }
+}

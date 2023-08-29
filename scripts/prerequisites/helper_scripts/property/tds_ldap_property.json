@@ -1,0 +1,26 @@
+{
+  "LDAP_USER_NAME_ATTRIBUTE": {
+    "value": "*:uid"
+  },
+  "LDAP_USER_DISPLAY_NAME_ATTR": {
+    "value": "uid"
+  },
+  "LDAP_GROUP_NAME_ATTRIBUTE": {
+    "value": "*:cn"
+  },
+  "LDAP_GROUP_DISPLAY_NAME_ATTR": {
+    "value": "cn"
+  },
+  "LDAP_GROUP_MEMBERSHIP_ID_MAP": {
+    "value": "groupofnames:member"
+  },
+  "LDAP_GROUP_MEMBERSHIP_SEARCH_FILTER": {
+    "value": "(|(&(objectclass=groupofnames)(member=%v))(&(objectclass=groupofuniquenames)(uniquemember=%v)))"
+  },
+  "LC_USER_FILTER": {
+    "value": "(&(uid=%v)(objectclass=person))"
+  },
+  "LC_GROUP_FILTER": {
+    "value": "(&(cn=%v)(|(objectclass=groupofnames)(objectclass=groupofuniquenames)(objectclass=groupofurls)))"
+  }
+}

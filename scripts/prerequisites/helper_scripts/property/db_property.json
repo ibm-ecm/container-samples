@@ -1,0 +1,87 @@
+{
+  "DATABASE_TYPE": {
+    "value": "<Required>",
+    "comment": [
+      "Provide the database type from your infrastructure."
+    ]
+  },
+  "DATABASE_SSL_ENABLE": {
+    "value": "<Required>",
+    "comment": [
+      "The parameter is used to support database connection over SSL for database."
+    ]
+  },
+  "OS_LABEL": {
+    "value": "<Required>",
+    "comment": [
+      "Label of the Object Store."
+    ]
+  },
+  "DATASOURCE_NAME": {
+    "value": "<Required>",
+    "comment": [
+      "Datasource name for the database."
+    ]
+  },
+  "DATASOURCE_NAME_XA": {
+    "value": "<Required>",
+    "comment": [
+      "Datasource XA name for the database."
+    ]
+  },
+  "DATABASE_SERVERNAME": {
+    "value": "<Required>",
+    "comment": [
+      "Provide the database server name or IP address of the database server."
+    ]
+  },
+  "DATABASE_PORT": {
+    "value": "<Required>",
+    "comment": [
+      "Provide the database server port."
+    ]
+  },
+  "DATABASE_NAME": {
+    "value": "<Required>",
+    "comment": [
+      "Provide the name of the database"
+    ]
+  },
+  "DATABASE_USERNAME": {
+    "value": "<Required>",
+    "comment": [
+      "Provide the username of the database."
+    ]
+  },
+  "DATABASE_PASSWORD": {
+    "value": "<Required>",
+    "comment": [
+      "Provide the password of the database."
+    ]
+  },
+  "SSL_MODE": {
+    "value": "<Required>",
+    "comment": [
+      "SSL mode for database connection",
+      "Options: [require, verify-ca, verify-full]"
+    ]
+  },
+  "ORACLE_JDBC_URL": {
+    "value": "<Required>",
+    "comment": [
+      "The JDBC URL for Oracle database."
+    ]
+  },
+  "HADR_STANDBY_SERVERNAME": {
+    "value": "<Required>",
+    "comment": [
+      "Standby Database server name or IP address."
+    ]
+  },
+  "HADR_STANDBY_PORT": {
+    "value": "<Required>",
+    "comment": [
+      "Standby database server port."
+    ]
+  }
+}

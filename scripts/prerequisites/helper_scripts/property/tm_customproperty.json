@@ -1,0 +1,38 @@
+{
+  "TASK_ADMIN_GROUP_NAMES": {
+    "value": ["taskAdmins"],
+    "comment": [
+      "List of groups for Task Admin."
+    ]
+  },
+  "TASK_ADMIN_USER_NAMES": {
+    "value": [],
+    "comment": [
+      "List of users for Task Admin."
+    ]
+  },
+  "TASK_USER_GROUP_NAMES": {
+    "value": ["taskUsers"],
+    "comment": [
+      "List of groups for Task User."
+    ]
+  },
+  "TASK_USER_USER_NAMES": {
+    "value": [],
+    "comment": [
+      "List of users for Task User."
+    ]
+  },
+  "TASK_AUDITOR_GROUP_NAMES": {
+    "value": ["taskAuditors"],
+    "comment": [
+      "List of groups for Task Auditor."
+    ]
+  },
+  "TASK_AUDITOR_USER_NAMES": {
+    "value": [],
+    "comment": [
+      "List of users for Task Auditor"
+    ]
+  }
+}

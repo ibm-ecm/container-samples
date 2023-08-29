@@ -1,0 +1,38 @@
+{
+  "CPE": {
+    "value": false,
+    "comment": [
+      "Deploy Content Platform Engine (CPE)."
+    ]
+  },
+  "GRAPHQL": {
+    "value": false,
+    "comment": [
+      "Deploy Graphql (GRAPHQL)."
+    ]
+  },
+  "BAN": {
+    "value": false,
+    "comment": [
+      "Deploy Business Automation Navigator (BAN)."
+    ]
+  },
+  "CSS": {
+    "value": false,
+    "comment": [
+      "Deploy Content Search Services (CSS)."
+    ]
+  },
+  "CMIS": {
+    "value": false,
+    "comment": [
+      "Deploy Content Management Interoperability Services (CMIS)."
+    ]
+  },
+  "TM": {
+    "value": false,
+    "comment": [
+      "Deploy Task Manager (TM)."
+    ]
+  }
+}

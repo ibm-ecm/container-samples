@@ -1,0 +1,20 @@
+{
+  "FNCM_Version": {
+    "value": "<Required>",
+    "comment": [
+      "Selected FileNet Content Manager Version "
+    ]
+  },
+  "LICENSE": {
+    "value": "<Required>",
+    "comment": [
+      "Selected deployment license."
+    ]
+  },
+  "PLATFORM": {
+    "value": "<Required>",
+    "comment": [
+      "Platform type."
+    ]
+  }
+}

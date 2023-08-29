@@ -1,0 +1,40 @@
+{
+  "INGRESS_ENABLED": {
+    "value": true,
+    "comment": [
+      "Enable ingress creation on your CNCF Cluster"
+    ]
+  },
+  "INGRESS_HOSTNAME": {
+    "value": "<Required>",
+    "comment": [
+      "Hostname for the generated ingress"
+    ]
+  },
+  "INGRESS_ANNOTATIONS": {
+    "value": [],
+    "comment": [
+      "Annotations for the generated ingress",
+      "Example: kubernetes.io/ingress.class: nginx"
+    ]
+  },
+  "INGRESS_TLS_ENABLED": {
+    "value": false,
+    "comment": [
+      "Enable TLS on the generated ingress"
+    ]
+  },
+  "INGRESS_TLS_SECRET_NAME": {
+    "value": "<Optional>",
+    "comment": [
+      "TLS secret name for the generated ingress"
+    ]
+  },
+  "SERVICE_TYPE": {
+    "value": "ClusterIP",
+    "comment": [
+      "Created service types",
+      "Options: ClusterIP, NodePort"
+    ]
+  }
+}
