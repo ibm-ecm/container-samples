@@ -48,10 +48,18 @@ spec:
     ## The deployment type as selected.
     sc_deployment_type: production
 
-    ## Specify the license model for FNCM.
-    ## Choose the licensing model. Required. The expected values are ICF.PVUNonProd, ICF.PVUProd, ICF.UVU, ICF.CU, FNCM.PVUNonProd, FNCM.PVUProd, FNCM.UVU, or FNCM.CU
-    ## Choose one of these licensing model if you traded up to Cloud Pak for Business Automation from Standalone FileNet Content Manager. The expected values are CP4BA.NonProd, CP4BA.Prod, CP4BA.User
-    sc_fncm_license_model: <Required>
+    ## Choose the licensing model for the Product you are installing.
+    ## IBM Content Foundation:
+    ## - ICF.PVUNonProd
+    ## - ICF.PVUProd
+    ## - ICF.UVU
+    ## - ICF.CU
+    ## IBM Filenet Content Manager:
+    ## - FNCM.PVUNonProd
+    ## - FNCM.PVUProd
+    ## - FNCM.UVU
+    ## - FNCM.CU
+    sc_fncm_license_model: "<Required>"
     
     ## Optional: You can specify a profile size for CloudPak - valid values are small,medium,large - default is small.
     sc_deployment_profile_size: "small"
@@ -115,7 +123,7 @@ spec:
     #open_id_connect_providers:
     ## Set a provider name that will be used in your redirect URL.
     #- provider_name: ""
-      ## Set a display name for the sign in button in Navigator.
+      ## Set a display name for the sign-in button in Navigator.
       #display_name: "Single Sign on"
       ## Enter your OIDC secret names for the ECM and Navigator Components.
       #client_oidc_secret:
@@ -154,9 +162,9 @@ spec:
       ###
       ### User defined parameters.
       ### If you do not see a parameter that is needed for your OpenId Connect identity provider,
-      ### you can use this section to define key value pairs separated by the delimeter `:`.
-      ### If you want to change the default delimeter, add `DELIM=<NEW_DELIMETER>` infront of your
-      ### key value pair. Ex: 'DELIM=;myKey;myValue'.  In this example, the new delimeter is `;` and
+      ### you can use this section to define key value pairs separated by the delimiter `:`.
+      ### If you want to change the default delimiter, add `DELIM=<NEW_DELIMITER>` in-front of your
+      ### key value pair. Ex: 'DELIM=;myKey;myValue'.  In this example, the new delimiter is `;` and
       ### the key value pair is set to `myKey;myValue` instead of `myKey:myValue`.
       ####
       ##oidc_ud_param:
@@ -187,41 +195,40 @@ spec:
     ## The port of the LDAP server to connect.  Some possible values are: 389, 636, etc.
     lc_ldap_port: "<Required>"
 
-    ## The LDAP bind secret for LDAP authentication.  The secret is expected to have ldapUsername and ldapPassword keys.  Refer to Knowledge Center for more info.
+    ## The LDAP bind secret for LDAP authentication.  The secret is expected to have ldapUsername and ldapPassword keys.  Refer to IBM Documentation for more info.
     lc_bind_secret: ldap-bind-secret 
 
     ## The LDAP base DN.  For example, "dc=example,dc=com", "dc=abc,dc=com", etc
     lc_ldap_base_dn: "<Required>"
 
-    ## Enable SSL/TLS for LDAP communication. Refer to Knowledge Center for more info.
+    ## Enable SSL/TLS for LDAP communication. Refer to IBM Documentation for more info.
     lc_ldap_ssl_enabled: true
-    
+
     ## The name of the secret that contains the LDAP SSL/TLS certificate.
     lc_ldap_ssl_secret_name: "<Required>"
 
-    ## The LDAP user name attribute.  One possible value is "*:cn" for TDS and "user:sAMAccountName" for AD. Refer to Knowledge Center for more info.
+    ## The LDAP user name attribute. Semicolon-separated list that must include the first RDN user distinguished names. One possible value is "*:uid" for TDS and "user:sAMAccountName" for AD. Refer to IBM Documentation for more info.
     lc_ldap_user_name_attribute: "<Required>"
 
-    ## The LDAP user display name attribute. One possible value is "cn" for TDS and "sAMAccountName" for AD. Refer to Knowledge Center for more info.
+    ## The LDAP user display name attribute. One possible value is "cn" for TDS and "sAMAccountName" for AD. Refer to IBM Documentation for more info.
     lc_ldap_user_display_name_attr: "<Required>"
 
     ## The LDAP group base DN.  For example, "dc=example,dc=com", "dc=abc,dc=com", etc
     lc_ldap_group_base_dn: "<Required>"
 
-    ## The LDAP group name attribute.  One possible value is "*:cn" for TDS and "*:cn" for AD. Refer to Knowledge Center for more info.
+    ## The LDAP group name attribute.  One possible value is "*:cn" for TDS and "*:cn" for AD. Refer to IBM Documentation for more info.
     lc_ldap_group_name_attribute: "*:cn"
 
-    ## The LDAP group display name attribute.  One possible value for both TDS and AD is "cn". Refer to Knowledge Center for more info.
+    ## The LDAP group display name attribute.  One possible value for both TDS and AD is "cn". Refer to IBM Documentation for more info.
     lc_ldap_group_display_name_attr: "cn"
 
-    ## The LDAP group membership search filter string.  One possible value is "(|(&(objectclass=groupofnames)(member={0}))(&(objectclass=groupofuniquenames)(uniquemember={0})))" for TDS
-    ## and "(&(cn=%v)(objectcategory=group))" for AD.
+    ## The LDAP group membership search filter string.  One possible value is "(|(&(objectclass=groupofnames)(member={0}))(&(objectclass=groupofuniquenames)(uniquemember={0})))" for TDS and AD
     lc_ldap_group_membership_search_filter: "<Required>"
 
     ## The LDAP group membership ID map.  One possible value is "groupofnames:member" for TDS and "memberOf:member" for AD.
     lc_ldap_group_member_id_map: "<Required>"
-    
-    ## Uncomment the necessary section (depending if you are using Active Directory (ad) or Tivoli Directory Service (tds)) accordingly.
+
+    ## Uncomment the necessary section (depending on if you are using Active Directory (ad) or Tivoli Directory Service (tds)) accordingly.
     ## NetIQ eDirectory (ed)
     ## Oracle (oracle) - OID, OUD and ODSEE
     #ad:
@@ -271,25 +278,25 @@ spec:
     ## The LDAP base DN.  For example, "dc=example,dc=com", "dc=abc,dc=com", etc
     #lc_ldap_base_dn: "<Required>"
 
-    ## Enable SSL/TLS for LDAP communication. Refer to Knowledge Center for more info.
+    ## Enable SSL/TLS for LDAP communication. Refer to IBM Documentation for more info.
     #lc_ldap_ssl_enabled: true
 
     ## The name of the secret that contains the LDAP SSL/TLS certificate.
     #lc_ldap_ssl_secret_name: "<Required>"
 
-    ## The LDAP user name attribute.  One possible value is "*:cn" for TDS and "user:sAMAccountName" for AD. Refer to Knowledge Center for more info.
+    ## The LDAP user name attribute.  One possible value is "*:cn" for TDS and "user:sAMAccountName" for AD. Refer to IBM Documentation for more info.
     #lc_ldap_user_name_attribute: "<Required>"
 
-    ## The LDAP user display name attribute. One possible value is "cn" for TDS and "sAMAccountName" for AD. Refer to Knowledge Center for more info.
+    ## The LDAP user display name attribute. One possible value is "cn" for TDS and "sAMAccountName" for AD. Refer to IBM Documentation for more info.
     #lc_ldap_user_display_name_attr: "<Required>"
 
     ## The LDAP group base DN.  For example, "dc=example,dc=com", "dc=abc,dc=com", etc
     #lc_ldap_group_base_dn: "<Required>"
 
-    ## The LDAP group name attribute.  One possible value is "*:cn" for TDS and "*:cn" for AD. Refer to Knowledge Center for more info.
+    ## The LDAP group name attribute.  One possible value is "*:cn" for TDS and "*:cn" for AD. Refer to IBM Documentation for more info.
     #lc_ldap_group_name_attribute: "*:cn"
 
-    ## The LDAP group display name attribute.  One possible value for both TDS and AD is "cn". Refer to Knowledge Center for more info.
+    ## The LDAP group display name attribute.  One possible value for both TDS and AD is "cn". Refer to IBM Documentation for more info.
     #lc_ldap_group_display_name_attr: "cn"
 
     ## The LDAP group membership search filter string.  One possible value is "(|(&(objectclass=groupofnames)(member={0}))(&(objectclass=groupofuniquenames)(uniquemember={0})))" for TDS and AD
@@ -343,25 +350,25 @@ spec:
     ## The LDAP base DN.  For example, "dc=example,dc=com", "dc=abc,dc=com", etc
     #lc_ldap_base_dn: "<Required>"
 
-    ## Enable SSL/TLS for LDAP communication. Refer to Knowledge Center for more info.
+    ## Enable SSL/TLS for LDAP communication. Refer to IBM Documentation for more info.
     #lc_ldap_ssl_enabled: true
 
     ## The name of the secret that contains the LDAP SSL/TLS certificate.
     #lc_ldap_ssl_secret_name: "<Required>"
 
-    ## The LDAP user name attribute.  One possible value is "*:cn" for TDS and "user:sAMAccountName" for AD. Refer to Knowledge Center for more info.
+    ## The LDAP user name attribute.  One possible value is "*:cn" for TDS and "user:sAMAccountName" for AD. Refer to IBM Documentation for more info.
     #lc_ldap_user_name_attribute: "<Required>"
 
-    ## The LDAP user display name attribute. One possible value is "cn" for TDS and "sAMAccountName" for AD. Refer to Knowledge Center for more info.
+    ## The LDAP user display name attribute. One possible value is "cn" for TDS and "sAMAccountName" for AD. Refer to IBM Documentation for more info.
     #lc_ldap_user_display_name_attr: "<Required>"
 
     ## The LDAP group base DN.  For example, "dc=example,dc=com", "dc=abc,dc=com", etc
     #lc_ldap_group_base_dn: "<Required>"
 
-    ## The LDAP group name attribute.  One possible value is "*:cn" for TDS and "*:cn" for AD. Refer to Knowledge Center for more info.
+    ## The LDAP group name attribute.  One possible value is "*:cn" for TDS and "*:cn" for AD. Refer to IBM Documentation for more info.
     #lc_ldap_group_name_attribute: "*:cn"
 
-    ## The LDAP group display name attribute.  One possible value for both TDS and AD is "cn". Refer to Knowledge Center for more info.
+    ## The LDAP group display name attribute.  One possible value for both TDS and AD is "cn". Refer to IBM Documentation for more info.
     #lc_ldap_group_display_name_attr: "cn"
 
     ## The LDAP group membership search filter string.  One possible value is "(|(&(objectclass=groupofnames)(member={0}))(&(objectclass=groupofuniquenames)(uniquemember={0})))" for TDS and AD
@@ -566,7 +573,7 @@ spec:
     ## LDAP user and password, CPE username and password, keystore password, and LTPA passs, etc.
     fncm_secret_name: ibm-fncm-secret
 
-    ## By default all the components create ingress and routes with required annotations. In case any custom annotation is needed for the environment provide below.
+    ## By default, all the components create ingress and routes with required annotations. In case any custom annotation is needed for the environment provide below.
     #    route_ingress_annotations:
     #      - haproxy.router.openshift.io/balance: roundrobin
     route_ingress_annotations:
@@ -601,7 +608,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cpe
-        tag: ga-558-p8cpe
+        tag: ga-558-p8cpe-if001
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -676,7 +683,7 @@ spec:
         existing_pvc_for_cpe_bootstrapstore: "cpe-bootstrapstore"
         existing_pvc_for_cpe_fnlogstore: "cpe-fnlogstore"
 
-      ## Default values for both rediness and liveness probes.  Modify these values to meet your requirements.
+      ## Default values for both readiness and liveness probes.  Modify these values to meet your requirements.
       probe:
         readiness:
           initial_delay_seconds: 180
@@ -708,7 +715,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/css
-        tag: ga-558-p8css
+        tag: ga-558-p8css-if001
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -761,7 +768,7 @@ spec:
         existing_pvc_for_index: "css-indexstore"
         existing_pvc_for_css_customstore: "css-customstore"
 
-      ## Default values for both rediness and liveness probes.  Modify these values to meet your requirements.
+      ## Default values for both readiness and liveness probes.  Modify these values to meet your requirements.
       probe:
         readiness:
           initial_delay_seconds: 60
@@ -793,7 +800,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cmis
-        tag: ga-306-cmis-la101
+        tag: ga-306-cmis-la105
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -821,9 +828,9 @@ spec:
         ## This is the default cpu percentage before autoscaling occurs.
         target_cpu_utilization_percentage: "<Required>"
 
-      ## Below are the default CMIS Production settings.  Make the necessary changes as you see fit.  Refer to Knowledge Center documentation for details.
+      ## Below are the default CMIS Production settings.  Make the necessary changes as you see fit.  Refer to IBM Documentation for details.
       cmis_production_setting:
-        ## By default, this parameter is set by the Operator using the CPE service endpoint (e.g., "http://{{ meta.name }}-cpe-sateless-svc:9080/wsi/FNCEWS40MTOM")
+        ## By default, this parameter is set by the Operator using the CPE service endpoint (e.g., "https://{{ meta.name }}-cpe-stateless-svc:9443/wsi/FNCEWS40MTOM")
         ## Stateless service point is used for balanced use of CPE pods by CMIS
         ## If you want to change to a different endpoint, you can specify a new endpoint using the cpe_url parameter
         cpe_url:
@@ -902,7 +909,7 @@ spec:
         existing_pvc_for_cmis_cfgstore: "cmis-cfgstore"
         existing_pvc_for_cmis_logstore: "cmis-logstore"
 
-      ## Default values for both rediness and liveness probes.  Modify these values to meet your requirements.
+      ## Default values for both readiness and liveness probes.  Modify these values to meet your requirements.
       probe:
         readiness:
           initial_delay_seconds: 90
@@ -935,7 +942,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/graphql
-        tag: ga-558-p8cgql
+        tag: ga-558-p8cgql-if001
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -963,7 +970,7 @@ spec:
         ## This is the default cpu percentage before autoscaling occurs.
         target_cpu_utilization_percentage: "<Required>"
 
-      ## Below are the default CMIS Production settings.  Make the necessary changes as you see fit.  Refer to Knowledge Center documentation for details.
+      ## Below are the default CMIS Production settings.  Make the necessary changes as you see fit.  Refer to IBM Documentation for details.
       graphql_production_setting:
         time_zone: Etc/UTC
 
@@ -1001,7 +1008,7 @@ spec:
         existing_pvc_for_graphql_cfgstore: "graphql-cfgstore"
         existing_pvc_for_graphql_logstore: "graphql-logstore"
 
-      ## Default values for both rediness and liveness probes.  Modify these values to meet your requirements.
+      ## Default values for both readiness and liveness probes.  Modify these values to meet your requirements.
       probe:
         readiness:
           initial_delay_seconds: 120
@@ -1033,7 +1040,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/extshare
-        tag: ga-3011-es
+        tag: ga-3011-es-if003
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1057,7 +1064,7 @@ spec:
         ## This is the default cpu percentage before autoscaling occurs.
         target_cpu_utilization_percentage: "<Required>"
 
-      ## Below are the default External Share Production settings.  Make the necessary changes as you see fit.  Refer to Knowledge Center documentation for details.
+      ## Below are the default External Share Production settings.  Make the necessary changes as you see fit.  Refer to IBM Documentation for details.
       es_production_setting:
         time_zone: Etc/UTC
 
@@ -1088,7 +1095,7 @@ spec:
         existing_pvc_for_es_cfgstore: "es-cfgstore"
         existing_pvc_for_es_logstore: "es-logstore"
 
-      ## Default values for both rediness and liveness probes.  Modify these values to meet your requirements.
+      ## Default values for both readiness and liveness probes.  Modify these values to meet your requirements.
       probe:
         readiness:
           initial_delay_seconds: 180
@@ -1120,7 +1127,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/taskmgr
-        tag: ga-3011-tm
+        tag: ga-3011-tm-if003
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1144,7 +1151,7 @@ spec:
         ## This is the default cpu percentage before autoscaling occurs.
         target_cpu_utilization_percentage: "<Required>"
 
-      ## Below are the default TM Production settings.  Make the necessary changes as you see fit.  Refer to Knowledge Center documentation for details.
+      ## Below are the default TM Production settings.  Make the necessary changes as you see fit.  Refer to IBM Documentation for details.
       tm_production_setting:
         time_zone: Etc/UTC
 
@@ -1163,7 +1170,7 @@ spec:
         license: accept
 
         ## All users/groups belong to one of three roles (Admin, User, or Auditor) that are specific to Task Manager.
-        ## Each role takes a list of users/groups (e.g., groups: [taskAdmins, taskAdmins2]).  Refer to Knowledge Center documentation for details.
+        ## Each role takes a list of users/groups (e.g., groups: [taskAdmins, taskAdmins2]).  Refer to IBM Documentation for details.
         security_roles_to_group_mapping:
            task_admins:
              groups: [taskAdmins]
@@ -1190,7 +1197,7 @@ spec:
         existing_pvc_for_tm_logstore: "tm-logstore"
         existing_pvc_for_tm_pluginstore: "tm-pluginstore"
 
-      ## Default values for both rediness and liveness probes.  Modify these values to meet your requirements.
+      ## Default values for both readiness and liveness probes.  Modify these values to meet your requirements.
       probe:
         readiness:
           initial_delay_seconds: 120
@@ -1214,7 +1221,7 @@ spec:
     ## Navigator secret that contains user credentials for LDAP and database
     ban_secret_name: ibm-ban-secret
 
-    ## By default all the components create ingress and routes with required annotations. In case any custom annotation is needed for the environment provide below.
+    ## By default, all the components create ingress and routes with required annotations. In case any custom annotation is needed for the environment provide below.
     #    route_ingress_annotations:
     #      - haproxy.router.openshift.io/balance: roundrobin
     #route_ingress_annotations:
@@ -1243,7 +1250,7 @@ spec:
     image:
       ## The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/ban/navigator
-      tag: ga-3011-icn
+      tag: ga-3011-icn-if003
 
       ## This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
@@ -1326,7 +1333,7 @@ spec:
       existing_pvc_for_icnvw_logstore: "icn-vw-logstore"
       existing_pvc_for_icn_aspera: "icn-asperastore"
 
-    ## Default values for both rediness and liveness probes.  Modify these values to meet your requirements.
+    ## Default values for both readiness and liveness probes.  Modify these values to meet your requirements.
     probe:
       readiness:
         initial_delay_seconds: 120
@@ -1364,92 +1371,92 @@ spec:
 #    ic_domain_creation:
 #      domain_name: "P8DOMAIN"
 #      encryption_key: "128"
-#  ## Optional configuration for managed realm
-#  #  ic_ldap_managed_realm:
-#  #  - managed_realm_name: "externalManaged"
-#  #    managed_realm_base_dn: "dc=externalManaged,dc=managed"
-#  #    managed_realm_principal_cat: "External"
-#  #    managed_realm_auth_realm_name: ""
-#  #    managed_realm_uncon_user_cleanup_interval:
-#  #    managed_realm_exclude_from_auth_user: true
-#  #    managed_realm_identity_rules:
-#  #    # ALLOW, ALLOW_SELF_REGISTER, BLOCK
-#  #    - identity_rule_type: ALLOW_SELF_REGISTER # ALLOW, ALLOW_SELF_REGISTER, BLOCK
-#  #      email_suffix: "gmail.com"
+##   ## Optional configuration for managed realm
+##    ic_ldap_managed_realm:
+##      - managed_realm_name: "externalManaged"
+##        managed_realm_base_dn: "dc=externalManaged,dc=managed"
+##        managed_realm_principal_cat: "External"
+##        managed_realm_auth_realm_name: ""
+##        managed_realm_uncon_user_cleanup_interval: 60
+##        managed_realm_exclude_from_auth_user: true
+##        managed_realm_identity_rules:
+##          # ALLOW, ALLOW_SELF_REGISTER, BLOCK
+##          - identity_rule_type: ALLOW_SELF_REGISTER # ALLOW, ALLOW_SELF_REGISTER, BLOCK
+##            email_suffix: "gmail.com"
 #    ic_ldap_creation:
 #      ic_ldap_admin_user_name:
-#      - "<Required>" # user name for P8 domain admin, for example, "CEAdmin".  This parameter accepts a list of values.
+#        - "<Required>" # user name for P8 domain admin, for example, "CEAdmin".  This parameter accepts a list of values.
 #      ic_ldap_admins_groups_name:
-#      - "<Required>" # group name for P8 domain admin, for example, "P8Administrators".  This parameter accepts a list of values.
+#        - "<Required>" # group name for P8 domain admin, for example, "P8Administrators".  This parameter accepts a list of values.
 #      ic_ldap_name: "ldap_name"
 #    ic_obj_store_creation:
 #      object_stores:
-#      - oc_cpe_obj_store_display_name: "OS01" # Required display name of the object store, for example, "OS01"
-#        oc_cpe_obj_store_symb_name: "OS01" # Required symbolic name of the object store, for example, "OS01"
-#        oc_cpe_obj_store_conn:
-#          name: "objectstore1_connection"
-#          site_name: "InitialSite"
-#          dc_os_datasource_name: "FNOS1DS" # This value must match with the non-XA datasource name in the "datasource_configuration" above.
-#          dc_os_xa_datasource_name: "FNOS1DSXA" # This value must match with the XA datasource name in the "datasource_configuration" above.
-#        oc_cpe_obj_store_admin_user_groups:
-#        - "<Required>" # user name and group name for object store admin, for example, "CEAdmin" or "P8Administrators".  This parameter accepts a list of values.
-#        # Array of users
-#        oc_cpe_obj_store_basic_user_groups:
-#        oc_cpe_obj_store_addons: true
-#        oc_cpe_obj_store_addons_list:
-#        # "5.2.1 Base Application Extensions"
-#        - "{CE460ADD-0000-0000-0000-000000000004}"
-#        # "5.2.1 Base Content Engine Extensions"
-#        - "{CE460ADD-0000-0000-0000-000000000001}"
-#        # "5.2.1 Process Engine Extensions"
-#        - "{CE460ADD-0000-0000-0000-000000000003}"
-#        # "5.2.1 Publishing Extensions"
-#        - "{CE460ADD-0000-0000-0000-000000000005}"
-#        # "5.2.1 Stored Search Extensions"
-#        - "{CE511ADD-0000-0000-0000-000000000006}"
-#        # "5.2.1 Workplace Access Roles Extensions"
-#        - "{CE460ADD-0000-0000-0000-000000000008}"
-#        # "5.2.1 Workplace Base Extensions"
-#        - "{CE460ADD-0000-0000-0000-000000000007}"
-#        # "5.2.1 Workplace E-mail Extensions"
-#        - "{CE460ADD-0000-0000-0000-000000000009}"
-#        # "5.2.1 Workplace Forms Extensions"
-#        - "{CE460ADD-0000-0000-0000-00000000000A}"
-#        #  "5.2.1 Workplace Templates Extensions"
-#        - "{CE460ADD-0000-0000-0000-00000000000B}"
-#        # "5.2.1 Workplace XT Extensions"
-#        - "{CE460ADD-0000-0000-0000-00000000000D}"
-#        # "5.2.1 Thumbnail Extensions"
-#        - "{CE511ADD-0000-0000-0000-00000000000F}"
-#        # "5.2.1 Teamspace Extensions"
-#        - "{CE511ADD-0000-0000-0000-000000000010}"
-#        # "5.2.1 Custom Role Extensions
-#        - "{CE511ADD-0000-0000-0000-000000000015}"
-#        # "5.5.2 Core Collaboration Extensions"
-#        - "{CE552ADD-0000-0000-0000-00000000001C}"
-#        # "5.2.1 Social Collaboration Role Extensions"
-#        - "{CE521ADD-0000-0000-0000-000000000016}"
-#        # "5.5.1 Social Collaboration Base Extensions"
-#        - "{CE551ADD-0000-0000-0000-000000000011}"
-#        oc_cpe_obj_store_enable_compression: false
-#        oc_cpe_obj_store_asa_name: "demo_storage"
-#        oc_cpe_obj_store_asa_file_systems_storage_device_name: "demo_file_system_storage"
-#        oc_cpe_obj_store_asa_root_dir_path: "/opt/ibm/asa/os01_storagearea1"
-#        oc_cpe_obj_store_enable_workflow: false
-#        oc_cpe_obj_store_workflow_region_name: "design_region_name"
-#        oc_cpe_obj_store_workflow_region_number: 1
-#        oc_cpe_obj_store_workflow_data_tbl_space: "VWDATA_TS"
-#        oc_cpe_obj_store_workflow_index_tbl_space: ""
-#        oc_cpe_obj_store_workflow_blob_tbl_space: ""
-#        oc_cpe_obj_store_workflow_admin_group: "P8Administrators"
-#        oc_cpe_obj_store_workflow_config_group: "P8Administrators"
-#        oc_cpe_obj_store_workflow_date_time_mask: "mm/dd/yy hh:tt am"
-#        oc_cpe_obj_store_workflow_locale: "en"
-#        oc_cpe_obj_store_workflow_pe_conn_point_name: "pe_conn_os1"
-#        # Enable the content event emitter only when deploying BAI.
-#        # Default value is false if not specified in the CR.
-#        oc_cpe_obj_store_enable_content_event_emitter: false
-#        # Enable/disable object store database compression.  Default is false.
+#        - oc_cpe_obj_store_display_name: "OS01" # Required display name of the object store, for example, "OS01"
+#          oc_cpe_obj_store_symb_name: "OS01" # Required symbolic name of the object store, for example, "OS01"
+#          oc_cpe_obj_store_conn:
+#            name: "OS01_dbconnection"
+#            site_name: "InitialSite"
+#            dc_os_datasource_name: "FNOS1DS" # This value must match with the non-XA datasource name in the "datasource_configuration" above.
+#            dc_os_xa_datasource_name: "FNOS1DSXA" # This value must match with the XA datasource name in the "datasource_configuration" above.
+#          oc_cpe_obj_store_admin_user_groups:
+#            - "<Required>" # user name and group name for object store admin, for example, "CEAdmin" or "P8Administrators".  This parameter accepts a list of values.
+#          # Array of users
+#          oc_cpe_obj_store_basic_user_groups:
+#          oc_cpe_obj_store_addons: true
+#          oc_cpe_obj_store_addons_list:
+#            # "5.2.1 Base Application Extensions"
+#            - "{CE460ADD-0000-0000-0000-000000000004}"
+#            # "5.2.1 Base Content Engine Extensions"
+#            - "{CE460ADD-0000-0000-0000-000000000001}"
+#            # "5.2.1 Process Engine Extensions"
+#            - "{CE460ADD-0000-0000-0000-000000000003}"
+#            # "5.2.1 Publishing Extensions"
+#            - "{CE460ADD-0000-0000-0000-000000000005}"
+#            # "5.2.1 Stored Search Extensions"
+#            - "{CE511ADD-0000-0000-0000-000000000006}"
+#            # "5.2.1 Workplace Access Roles Extensions"
+#            - "{CE460ADD-0000-0000-0000-000000000008}"
+#            # "5.2.1 Workplace Base Extensions"
+#            - "{CE460ADD-0000-0000-0000-000000000007}"
+#            # "5.2.1 Workplace E-mail Extensions"
+#            - "{CE460ADD-0000-0000-0000-000000000009}"
+#            # "5.2.1 Workplace Forms Extensions"
+#            - "{CE460ADD-0000-0000-0000-00000000000A}"
+#            #  "5.2.1 Workplace Templates Extensions"
+#            - "{CE460ADD-0000-0000-0000-00000000000B}"
+#            # "5.2.1 Workplace XT Extensions"
+#            - "{CE460ADD-0000-0000-0000-00000000000D}"
+#            # "5.2.1 Thumbnail Extensions"
+#            - "{CE511ADD-0000-0000-0000-00000000000F}"
+#            # "5.2.1 Teamspace Extensions"
+#            - "{CE511ADD-0000-0000-0000-000000000010}"
+#            # "5.2.1 Custom Role Extensions
+#            - "{CE511ADD-0000-0000-0000-000000000015}"
+#            # "5.5.2 Core Collaboration Extensions"
+#            - "{CE552ADD-0000-0000-0000-00000000001C}"
+#            # "5.2.1 Social Collaboration Role Extensions"
+#            - "{CE521ADD-0000-0000-0000-000000000016}"
+#            # "5.5.1 Social Collaboration Base Extensions"
+#            - "{CE551ADD-0000-0000-0000-000000000011}"
+#          oc_cpe_obj_store_enable_compression: false
+#          oc_cpe_obj_store_asa_name: "demo_storage"
+#          oc_cpe_obj_store_asa_file_systems_storage_device_name: "demo_file_system_storage"
+#          oc_cpe_obj_store_asa_root_dir_path: "/opt/ibm/asa/os01_storagearea1"
+#          oc_cpe_obj_store_enable_workflow: false
+#          oc_cpe_obj_store_workflow_region_name: "design_region_name"
+#          oc_cpe_obj_store_workflow_region_number: 1
+#          oc_cpe_obj_store_workflow_data_tbl_space: "VWDATA_TS"
+#          oc_cpe_obj_store_workflow_index_tbl_space: ""
+#          oc_cpe_obj_store_workflow_blob_tbl_space: ""
+#          oc_cpe_obj_store_workflow_admin_group: "P8Administrators"
+#          oc_cpe_obj_store_workflow_config_group: "P8Administrators"
+#          oc_cpe_obj_store_workflow_date_time_mask: "mm/dd/yy hh:tt am"
+#          oc_cpe_obj_store_workflow_locale: "en"
+#          oc_cpe_obj_store_workflow_pe_conn_point_name: "pe_conn_os1"
+#          # Enable the content event emitter only when deploying BAI.
+#          # Default value is false if not specified in the CR.
+#          oc_cpe_obj_store_enable_content_event_emitter: false
+#          # Enable/disable object store database compression.  Default is false.
 #    ic_css_creation:
 #      - css_site_name: "Initial Site"
 #        css_text_search_server_name: "{{ meta.name }}-css-1"
@@ -1473,28 +1480,28 @@ spec:
 #        indexing_languages: "en"
 #    ic_icn_init_info:
 #      icn_repos:
-#      - add_repo_id: "OS01repo"
-#        add_repo_ce_wsi_url: "http://{{ meta.name }}-cpe-stateless-svc.{{ meta.namespace }}.svc:9080/wsi/FNCEWS40MTOM/"
-#        add_repo_os_sym_name: "OS01"
-#        add_repo_os_dis_name: "OS01"
-#        add_repo_workflow_enable: false
-#        add_repo_work_conn_pnt: "pe_conn_os1:1"
-#        add_repo_protocol: "FileNetP8WSI"
-#      ## If you have more than 1 object store, uncomment this section for initialization of the object store.
-#      # - add_repo_id: "test_repo2"
-#      #   add_repo_ce_wsi_url: "http://{{ meta.name }}-cpe-stateless-svc.{{ meta.namespace }}.svc:9080/wsi/FNCEWS40MTOM/"
-#      #   add_repo_os_sym_name: "OS02"
-#      #   add_repo_os_dis_name: "OS02"
-#      #   add_repo_workflow_enable: true
-#      #   add_repo_work_conn_pnt: "pe_conn_os02:1"
-#      #   add_repo_protocol: "FileNetP8WSI"
+#        - add_repo_id: "OS01repo"
+#          add_repo_ce_wsi_url: "https://{{ meta.name }}-cpe-stateless-svc.{{ meta.namespace }}.svc:9443/wsi/FNCEWS40MTOM/"
+#          add_repo_os_sym_name: "OS01"
+#          add_repo_os_dis_name: "OS01"
+#          add_repo_workflow_enable: false
+#          add_repo_work_conn_pnt: "pe_conn_os1:1"
+#          add_repo_protocol: "FileNetP8WSI"
+##        ## If you have more than 1 object store, uncomment this section for initialization of the object store.
+##        - add_repo_id: "test_repo2"
+##          add_repo_ce_wsi_url: "https://{{ meta.name }}-cpe-stateless-svc.{{ meta.namespace }}.svc:9443/wsi/FNCEWS40MTOM/"
+##          add_repo_os_sym_name: "OS02"
+##          add_repo_os_dis_name: "OS02"
+##          add_repo_workflow_enable: true
+##          add_repo_work_conn_pnt: "pe_conn_os02:1"
+##          add_repo_protocol: "FileNetP8WSI"
 #      icn_desktop:
-#      - add_desktop_id: "desktop1"
-#        add_desktop_name: "icn_desktop"
-#        add_desktop_description: "This is ICN desktop"
-#        add_desktop_is_default: false
-#        add_desktop_repo_id: "OS01repo"
-#        add_desktop_repo_workflow_enable: false
+#        - add_desktop_id: "desktop1"
+#          add_desktop_name: "icn_desktop"
+#          add_desktop_description: "This is ICN desktop"
+#          add_desktop_is_default: false
+#          add_desktop_repo_id: "OS01repo"
+#          add_desktop_repo_workflow_enable: false
 #
 #  ########################################################################
 #  ######## IBM FileNet Content Manager Verification configuration ######
@@ -1504,24 +1511,24 @@ spec:
 #  ## process includes creation of a CPE folder, a CPE document, a CBR search, verifying the workflow configuration,
 #  ## and validation of the ICN desktop.
 #  verify_configuration:
-#     vc_cpe_verification:
-#       vc_cpe_folder:
-#       - folder_cpe_obj_store_name: "OS01"
-#         folder_cpe_folder_path: "/TESTFOLDER"
-#       vc_cpe_document:
-#       - doc_cpe_obj_store_name: "OS01"
-#         doc_cpe_folder_name: "/TESTFOLDER"
-#         doc_cpe_doc_title: "test_title"
-#         DOC_CPE_class_name: "Document"
-#         doc_cpe_doc_content: "This is a simple document test"
-#         doc_cpe_doc_content_name: "doc_content_name"
-#       vc_cpe_cbr:
-#       - cbr_cpe_obj_store_name: "OS01"
-#         cbr_cpe_class_name: "Document"
-#         cbr_cpe_search_string: "is a simple"
-#       vc_cpe_workflow:
-#       - workflow_cpe_enabled: false
-#         workflow_cpe_connection_point: "pe_conn_os1"
-#     vc_icn_verification:
-#       - vc_icn_repository: "OS01repo"
-#         vc_icn_desktop_id: "desktop1"
+#    vc_cpe_verification:
+#      vc_cpe_folder:
+#        - folder_cpe_obj_store_name: "OS01"
+#          folder_cpe_folder_path: "/TESTFOLDER"
+#      vc_cpe_document:
+#        - doc_cpe_obj_store_name: "OS01"
+#          doc_cpe_folder_name: "/TESTFOLDER"
+#          doc_cpe_doc_title: "test_title"
+#          doc_cpe_class_name: "Document"
+#          doc_cpe_doc_content: "This is a simple document test"
+#          doc_cpe_doc_content_name: "doc_content_name"
+#      vc_cpe_cbr:
+#        - cbr_cpe_obj_store_name: "OS01"
+#          cbr_cpe_class_name: "Document"
+#          cbr_cpe_search_string: "is a simple"
+#      vc_cpe_workflow:
+#        - workflow_cpe_enabled: false
+#          workflow_cpe_connection_point: "pe_conn_os1"
+#    vc_icn_verification:
+#      - vc_icn_repository: "OS01repo"
+#        vc_icn_desktop_id: "desktop1"
