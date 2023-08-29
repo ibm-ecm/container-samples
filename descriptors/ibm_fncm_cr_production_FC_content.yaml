@@ -59,6 +59,10 @@ spec:
     ## - FNCM.PVUProd
     ## - FNCM.UVU
     ## - FNCM.CU
+    ## IBM Cloud Pak for Business Automation:
+    ## - CP4BA.NonProd
+    ## - CP4BA.Prod
+    ## - CP4BA.User
     sc_fncm_license_model: "<Required>"
     
     ## Optional: You can specify a profile size for CloudPak - valid values are small,medium,large - default is small.
@@ -608,7 +612,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cpe
-        tag: ga-558-p8cpe-if002
+        tag: ga-558-p8cpe-if003
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -715,7 +719,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/css
-        tag: ga-558-p8css-if002
+        tag: ga-558-p8css-if003
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -800,7 +804,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cmis
-        tag: ga-306-cmis-la201
+        tag: ga-306-cmis-la304
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -942,7 +946,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/graphql
-        tag: ga-558-p8cgql-if002
+        tag: ga-558-p8cgql-if003
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1040,7 +1044,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/extshare
-        tag: ga-3011-es-if005
+        tag: ga-3011-es-if008
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1127,7 +1131,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/taskmgr
-        tag: ga-3011-tm-if005
+        tag: ga-3011-tm-if008
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1250,7 +1254,7 @@ spec:
     image:
       ## The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/ban/navigator
-      tag: ga-3011-icn-if005
+      tag: ga-3011-icn-if008
 
       ## This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
