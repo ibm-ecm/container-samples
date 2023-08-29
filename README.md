@@ -4,6 +4,7 @@ This repository includes folders and resources to help you install the IBM FileN
 
 | Release        | Tag      | Date           |
 |----------------|----------|----------------|
+| FNCM 5.5.8-IF2 | v5.5.8.2 | 07 / 27 / 2022 |
 | FNCM 5.5.8-IF1 | v5.5.8.1 | 03 / 30 / 2022 |
 | FNCM 5.5.8 GA  | v5.5.8.0 | 12 / 17 / 2021 |
 
