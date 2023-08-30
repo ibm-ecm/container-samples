@@ -612,7 +612,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cpe
-        tag: ga-558-p8cpe-if004
+        tag: ga-558-p8cpe-if005
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -620,6 +620,19 @@ spec:
       ## Logging for workloads.  This is the default setting.
       log:
        format: json
+
+      ## Set securityContext for CPE deployment.
+      security_context:
+        ## Controls which group IDs containers add. For example "supplemental_groups: [1000620001,1000620002]"
+        supplemental_groups:
+        ## This can take an array of key value pairs to assign SELinux labels to a Container, for example
+        ## selinux_options:
+          ## level: "s0:c123,c456"
+          ## type: "spc_t
+        selinux_options:
+        # Defines behavior for changing ownership and permission of the volume before being exposed inside a Pod. This field has two possible values (Always,OnRootMismatch)
+        # For example fs_groupchangepolicy: "OnRootMismatch"
+        fs_groupchangepolicy:
 
       ## The initial resources (CPU, memory) requests and limits.  If more resources are needed,
       ## make the changes here to meet your requirement.
@@ -667,6 +680,18 @@ spec:
 
         # Enable/disable FIPS (default value is "false")
         disable_fips: false
+
+        ## This section is optional, and it takes a list of configmaps.
+        ## A configmap can hold files or environment data, but it cannot a mix of both.
+        ## The volume_path is optional for a configmap that holds files as its data and if it's not specified,
+        ## then the files will be mounted to the overrides directory.  If the configmap data holds environment variables
+        ## then is_env is required and set it to true.
+
+        #custom_configmap:
+        # - name: <name of configmap>
+        #   volume_path:  # optional
+        # - name: <name of configmap>
+        #   is_env: # required if the configmap holds environment variables.
 
       ## Enable/disable monitoring where metrics can be sent to Graphite or scraped by Prometheus
       monitor_enabled: false
@@ -719,7 +744,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/css
-        tag: ga-558-p8css-if004
+        tag: ga-558-p8css-if005
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -804,7 +829,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cmis
-        tag: ga-307-cmis-if001
+        tag: ga-307-cmis-la207
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -899,6 +924,17 @@ spec:
         # The license must be set to "accept" in order for the component to install.  This is the default value.
         license: accept
 
+        ## This section is optional, and it takes a list of configmaps.
+        ## A configmap can hold files or environment data, but it cannot a mix of both.
+        ## The volume_path is optional for a configmap that holds files as its data and if it's not specified,
+        ## then the files will be mounted to the overrides directory.  If the configmap data holds environment variables
+        ## then is_env is required and set it to true.
+        #custom_configmap:
+        # - name: <name of configmap>
+        #   volume_path:  # optional
+        # - name: <name of configmap>
+        #   is_env: # required if the configmap holds environment variables.
+
       ## Enable/disable monitoring where metrics can be sent to Graphite or scraped by Prometheus
       monitor_enabled: false
       ## Enable/disable logging where logs can be sent to Elasticsearch.
@@ -946,7 +982,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/graphql
-        tag: ga-558-p8cgql-if004
+        tag: ga-558-p8cgql-if005
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -998,6 +1034,17 @@ spec:
 
         enable_graph_iql: false
 
+        ## This section is optional, and it takes a list of configmaps.
+        ## A configmap can hold files or environment data, but it cannot a mix of both.
+        ## The volume_path is optional for a configmap that holds files as its data and if it's not specified,
+        ## then the files will be mounted to the overrides directory.  If the configmap data holds environment variables
+        ## then is_env is required and set it to true.
+        #custom_configmap:
+        # - name: <name of configmap>
+        #   volume_path:  # optional
+        # - name: <name of configmap>
+        #   is_env: # required if the configmap holds environment variables.
+
       ## Enable/disable monitoring where metrics can be sent to Graphite or scraped by Prometheus
       monitor_enabled: false
       ## Enable/disable logging where logs can be sent to Elasticsearch.
@@ -1044,7 +1091,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/extshare
-        tag: ga-3011-es-la901
+        tag: ga-3011-es-la1201
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1083,6 +1130,17 @@ spec:
         # The license must be set to "accept" in order for the component to install.  This is the default value.
         license: accept
         allowed_origins:
+
+        ## This section is optional, and it takes a list of configmaps.
+        ## A configmap can hold files or environment data, but it cannot a mix of both.
+        ## The volume_path is optional for a configmap that holds files as its data and if it's not specified,
+        ## then the files will be mounted to the overrides directory.  If the configmap data holds environment variables
+        ## then is_env is required and set it to true.
+        #custom_configmap:
+        # - name: <name of configmap>
+        #   volume_path:  # optional
+        # - name: <name of configmap>
+        #   is_env: # required if the configmap holds environment variables.
 
       ## Enable/disable monitoring where metrics can be sent to Graphite or scraped by Prometheus
       monitor_enabled: false
@@ -1131,7 +1189,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/taskmgr
-        tag: ga-3011-tm-la901
+        tag: ga-3011-tm-la1201
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1172,6 +1230,17 @@ spec:
         ## Then set the following: jvm_customize_options="-Dmy.test.jvm.arg1=123,-Dmy.test.jvm.arg2=abc,-XX:+SomeJVMSettings,-XshowSettings:vm"
         jvm_customize_options: "-Dcom.ibm.ecm.task.StartUpListener.defaultLogLevel=FINE"
         license: accept
+
+        ## This section is optional, and it takes a list of configmaps.
+        ## A configmap can hold files or environment data, but it cannot a mix of both.
+        ## The volume_path is optional for a configmap that holds files as its data and if it's not specified,
+        ## then the files will be mounted to the overrides directory.  If the configmap data holds environment variables
+        ## then is_env is required and set it to true.
+        #custom_configmap:
+        # - name: <name of configmap>
+        #   volume_path:  # optional
+        # - name: <name of configmap>
+        #   is_env: # required if the configmap holds environment variables.
 
         ## All users/groups belong to one of three roles (Admin, User, or Auditor) that are specific to Task Manager.
         ## Each role takes a list of users/groups (e.g., groups: [taskAdmins, taskAdmins2]).  Refer to IBM Documentation for details.
@@ -1254,7 +1323,7 @@ spec:
     image:
       ## The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/ban/navigator
-      tag: ga-3011-icn-la901
+      tag: ga-3011-icn-la1201
 
       ## This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
@@ -1262,6 +1331,19 @@ spec:
     ## Logging for workloads.  This is the default setting.
     log:
       format: json
+
+    ## Set securityContext for CPE deployment.
+    security_context:
+      ## Controls which group IDs containers add. For example "supplemental_groups: [1000620001,1000620002]"
+      supplemental_groups:
+      ## This can take an array of key value pairs to assign SELinux labels to a Container, for example
+      ## selinux_options:
+        ## level: "s0:c123,c456"
+        ## type: "spc_t
+      selinux_options:
+      # Defines behavior for changing ownership and permission of the volume before being exposed inside a Pod. This field has two possible values (Always,OnRootMismatch)
+      # For example fs_groupchangepolicy: "OnRootMismatch"
+      fs_groupchangepolicy:
 
     ## The initial resources (CPU, memory) requests and limits.  If more resources are needed,
     ## make the changes here to meet your requirement.
@@ -1321,6 +1403,18 @@ spec:
       ## The WalkMe URL references a WalkMe snippet.  This snippet is a piece of JavaScript code that allows WalkMe to be displayed in the application.
       ## Each WalkMe Editor account has a unique snippet code that can be accessed inside the Editor.
       #  walkme_url: https://cdn.walkme.com/users/4e7c687193414395aa0411837a9eee4b/test/walkme_4e7c687193414395aa0411837a9eee4b_https.js
+
+      ## This section is optional, and it takes a list of configmaps.
+      ## A configmap can hold files or environment data, but it cannot a mix of both.
+      ## The volume_path is optional for a configmap that holds files as its data and if it's not specified,
+      ## then the files will be mounted to the overrides directory.  If the configmap data holds environment variables
+      ## then is_env is required and set it to true.
+
+      #custom_configmap:
+      # - name: <name of configmap>
+      #   volume_path:  # optional
+      # - name: <name of configmap>
+      #   is_env: # required if the configmap holds environment variables.
 
     ## Default settings for monitoring
     monitor_enabled: false
