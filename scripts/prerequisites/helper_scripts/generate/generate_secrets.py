@@ -18,6 +18,8 @@ import os
 
 import yaml
 
+from helper_scripts.utilities.utilites import collect_visible_files
+
 
 def represent_str(dumper, data):
     if '\n' in data:
@@ -68,20 +70,14 @@ class GenerateSecrets:
     def create_ssl_secrets(self):
         # if any ssl cert folders exists that means ssl was enabled for either ldap or DB
         if os.path.exists(self._ssl_cert_folder):
-            ssl_folders = os.listdir(self._ssl_cert_folder)
             ssl_cert_folder = self._ssl_cert_folder
             self._logger.info("Creating ssl secrets")
-            ssl_folders = os.listdir(ssl_cert_folder)
-
-            # remove any hidden files that might be picked up
-            for folder in ssl_folders:
-                if folder.startswith("."):
-                    ssl_folders.remove(folder)
+            ssl_folders = collect_visible_files(ssl_cert_folder)
 
             # iterating through folders gcd, os , ldap2 etc
             for item in ssl_folders:
                 folderpath = os.path.join(ssl_cert_folder, item)
-                ssl_certs = os.listdir(folderpath)
+                ssl_certs = collect_visible_files(folderpath)
 
                 # processing data to generate ldap ssl secrets
                 if "ldap" in item:
@@ -113,7 +109,7 @@ class GenerateSecrets:
                     ssl_secret_data["data"] = {}
                     # if DB type is postgres we need to go through multiple folders which have multiple certs
                     if self._db_properties["DATABASE_TYPE"] == "postgresql":
-                        postgres_cert_folders = os.listdir(folderpath)
+                        postgres_cert_folders = collect_visible_files(folderpath)
                         # Use these three variables to decide if certs are present and if all are empty we will use dbpassword to create ssl cert
                         clientkey_present = True
                         clientcert_present = True
@@ -126,7 +122,7 @@ class GenerateSecrets:
                                 continue
                             current_postgres_folder = os.path.join(folderpath, postgres_folder)
                             # listing the certs present in the sub folder
-                            postgres_cert = os.listdir(current_postgres_folder)
+                            postgres_cert = collect_visible_files(current_postgres_folder)
                             sub_folder_cert = ""
                             for folder_item in postgres_cert:
                                 if any(ext in folder_item for ext in [".crt", ".cer", ".pem", ".cert", ".key"]):
@@ -153,7 +149,7 @@ class GenerateSecrets:
                                 continue
                             current_postgres_folder = os.path.join(folderpath, postgres_folder)
                             # listing the certs present in the sub folder
-                            postgres_cert = os.listdir(current_postgres_folder)
+                            postgres_cert = collect_visible_files(current_postgres_folder)
                             sub_folder_cert = ""
                             ssl_secret_data["stringData"] = {}
                             # finding only pem or cert files to use
@@ -350,7 +346,7 @@ class GenerateSecrets:
 
             #creating the masterkey secret
             iccmasterkey_filepath = os.path.join(self._generate_secrets_folder, "icc-masterkey-txt.yaml")
-            file_list = os.listdir(self._icc_folder)
+            file_list = collect_visible_files(self._icc_folder)
             encoded_data = ""
             for file in file_list:
                 if file.endswith('.txt'):

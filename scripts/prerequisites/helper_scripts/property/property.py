@@ -19,6 +19,7 @@ from tomlkit import comment
 from tomlkit import document
 from tomlkit import nl
 from tomlkit import table
+from tomlkit import string
 from tomlkit.toml_file import TOMLFile
 
 
@@ -723,6 +724,14 @@ class Property:
         doc.add(nl())
         for i in note:
             doc.add(comment(f'{i}'))
+        cred_list = ['PASSWORD', 'SECRET', 'USERNAME', 'GROUPS_NAME', 'ADMIN_USER', 'LOGIN_USER', 'BIND_DN', 'USER_ID', "NAMES"]
+        if any(ele in key for ele in cred_list):
+            if isinstance(value, list):
+                for i in range(len(value)):
+                    value[i] = string(value[i], multiline=True)
+            else:
+                value = string(value, multiline=True)
+
         doc.add(key, value)
 
     @staticmethod
@@ -730,6 +739,15 @@ class Property:
         section.add(nl())
         for i in note:
             section.add(comment(f'{i}'))
+        cred_list = ['PASSWORD', 'SECRET', 'USERNAME', 'GROUPS_NAME', 'ADMIN_USER', 'LOGIN_USER', 'BIND_DN', 'USER_ID', "NAMES"]
+        if any(ele in key for ele in cred_list):
+            if isinstance(value, list):
+                for i in range(len(value)):
+                    value[i] = string(value[i], multiline=True)
+            else:
+                value = string(value, multiline=True)
+
+
         section.add(key, value)
 
     def populate_ldap_propertyfile(self):

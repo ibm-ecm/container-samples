@@ -1,4 +1,11 @@
--- Creating DB named: ${gcd_name} 
+-- **********************************************************
+-- IBM FileNet Content Manager GCD preparation script for DB2
+-- **********************************************************
+-- Usage:
+-- Connect to the DB2 instance using the DB2 command-line processor with a user having administrative privileges
+-- db2 -vtf createGCDDB.sql
+
+-- Creating DB named: ${gcd_name}
 CREATE DATABASE ${gcd_name} AUTOMATIC STORAGE YES USING CODESET UTF-8 TERRITORY US PAGESIZE 32 K;
 
 CONNECT TO ${gcd_name};

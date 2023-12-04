@@ -216,7 +216,7 @@ def generate_gather_results(property_folder: str, selection_summary: dict, moved
     return layout
 
 
-def generate_generate_results(generate_folder: str, required_fields: dict, certs=[],masterkey_present=True) -> Layout:
+def generate_generate_results(generate_folder: str, required_fields: dict, certs=[],masterkey_present=True, incorrect_naming_conv=[]) -> Layout:
     # Build Layout for display
     layout = Layout()
     layout.split_column(
@@ -238,7 +238,7 @@ def generate_generate_results(generate_folder: str, required_fields: dict, certs
     left_panel_list = []
 
     # Display error screen if there are missing values
-    if len(required_fields) != 0 or len(certs) != 0 or masterkey_present == False:
+    if len(required_fields) != 0 or len(certs) != 0 or masterkey_present == False or len(incorrect_naming_conv) > 0:
 
         message = Text("Issues Found", style="bold red", justify="center")
         result_panel = Panel(message)
@@ -252,6 +252,8 @@ def generate_generate_results(generate_folder: str, required_fields: dict, certs
             "2. If there are missing SSL certificates, add them to respective folder under ./propertyFile/ssl-certs\n"
             "3. If ICC for email set up was requested then make sure masterkey.txt file has been added under ./propertyFile/icc\n"
             "4. Rerun the below command once all the <\"Required\"> values are filled \n"
+            "5. If there are any database naming convention errors, review the list of requirements below: \n"
+            "   - DB2 Database name needs to be less than 9 characters\n"
         )
         command = Panel.fit(
             Syntax("python3 prerequisites.py generate", "bash", theme="ansi_dark")
@@ -313,6 +315,13 @@ def generate_generate_results(generate_folder: str, required_fields: dict, certs
             error_table.add_column("Missing", style="red")
             error_table.add_row("masterkey.txt")
 
+            error_tables.append(error_table)
+
+        if len(incorrect_naming_conv) > 0:
+            error_table = Table(title="Incorrect DBNAME Conventions")
+            error_table.add_column("Database(s)", style="red")
+            for db in incorrect_naming_conv:
+                error_table.add_row(db)
             error_tables.append(error_table)
 
         error_table_output = Columns(error_tables)
@@ -486,12 +495,7 @@ def check_ssl_folders(db_prop, ldap_prop, ssl_cert_folder) -> list:
     missing_cert = {}
     # if any ssl cert folders exists that means ssl was enabled for either ldap or DB
     if os.path.exists(ssl_cert_folder):
-        ssl_folders = os.listdir(ssl_cert_folder)
-
-        # remove any hidden files that might be picked up
-        for folder in ssl_folders:
-            if folder.startswith("."):
-                ssl_folders.remove(folder)
+        ssl_folders = collect_visible_files(ssl_cert_folder)
 
         # checking to see if any changes to ssl value have been made after folders were created
         skipped_folders = []
@@ -500,7 +504,7 @@ def check_ssl_folders(db_prop, ldap_prop, ssl_cert_folder) -> list:
                 if "LDAP_SSL_ENABLED" not in list(ldap_prop[folder.upper()].keys()):
                     skipped_folders.append(folder)
                 else:
-                    if not ldap_prop[folder.upper()]["LDAP_SSL_ENABLED"]:
+                    if ldap_prop[folder.upper()]["LDAP_SSL_ENABLED"]:
                         skipped_folders.append(folder)
             else:
                 if "DATABASE_SSL_ENABLE" not in list(db_prop.keys()):
@@ -513,7 +517,7 @@ def check_ssl_folders(db_prop, ldap_prop, ssl_cert_folder) -> list:
         # if db type is not postgres we have a standard folder structure of ssl certs
         if db_prop["DATABASE_TYPE"].lower() != "postgresql":
             for folder in ssl_folders:
-                ssl_certs = os.listdir(os.path.join(ssl_cert_folder, folder))
+                ssl_certs = collect_visible_files(os.path.join(ssl_cert_folder, folder))
                 if not ssl_certs:
                     missing_cert[folder] = ["certificate"]
         else:
@@ -521,25 +525,22 @@ def check_ssl_folders(db_prop, ldap_prop, ssl_cert_folder) -> list:
             for folder in ssl_folders:
                 if "ldap" not in folder.lower():
                     sub_folder_path = os.path.join(ssl_cert_folder, folder)
-                    sub_folders = os.listdir(sub_folder_path)
-                    for sub_folder in sub_folders:
-                        if sub_folder.startswith("."):
-                            sub_folders.remove(sub_folder)
+                    sub_folders = collect_visible_files(sub_folder_path)
 
                 server_ca = False
                 clientkey = False
                 clientcert = False
                 for sub_folder in sub_folders:
                     if "serverca" in sub_folder.lower():
-                        server_ca_items = os.listdir(os.path.join(sub_folder_path, sub_folder))
+                        server_ca_items = collect_visible_files(os.path.join(sub_folder_path, sub_folder))
                         if server_ca_items:
                             server_ca = True
                     if "clientkey" in sub_folder.lower():
-                        clientkey_items = os.listdir(os.path.join(sub_folder_path, sub_folder))
+                        clientkey_items = collect_visible_files(os.path.join(sub_folder_path, sub_folder))
                         if clientkey_items:
                             clientkey = True
                     if "clientcert" in sub_folder.lower():
-                        clientcert_items = os.listdir(os.path.join(sub_folder_path, sub_folder))
+                        clientcert_items = collect_visible_files(os.path.join(sub_folder_path, sub_folder))
                         if clientcert_items:
                             clientcert = True
 
@@ -618,7 +619,7 @@ def check_ssl_folders(db_prop, ldap_prop, ssl_cert_folder) -> list:
                                 missing_cert[folder].append("serverca")
                     # base logic for ldap cert folder
                 else:
-                    ssl_certs = os.listdir(os.path.join(ssl_cert_folder, folder))
+                    ssl_certs = collect_visible_files(os.path.join(ssl_cert_folder, folder))
                     if not ssl_certs:
                         if folder not in missing_cert:
                             missing_cert[folder] = []
@@ -638,7 +639,7 @@ def check_icc_masterkey(custom_component_prop,icc_folder):
         return True
     #the file to create the secret has to be in .txt format
     if os.path.exists(icc_folder):
-        file_list = os.listdir(icc_folder)
+        file_list = collect_visible_files(icc_folder)
         if not file_list:
             return False
         else:
@@ -646,3 +647,14 @@ def check_icc_masterkey(custom_component_prop,icc_folder):
                 if file.endswith('.txt'):
                     return True
             return False
+        
+def check_dbname(db_prop):
+    incorrect_naming_convention = []
+    if db_prop["DATABASE_TYPE"].lower() == "db2":
+        for db in db_prop["db_list"]:
+            if len(db_prop[db]["DATABASE_NAME"]) > 8:
+                incorrect_naming_convention.append(db)
+    return incorrect_naming_convention
+
+def collect_visible_files(folder_path: str) -> [str]:
+    return[file for file in os.listdir(folder_path) if not file.startswith('.')]

@@ -17,13 +17,16 @@ import subprocess
 import time
 
 import typer
-from OpenSSL import crypto
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
 from rich.panel import Panel
 from rich import print
 from rich.syntax import Syntax
 from rich.text import Text
 
 from helper_scripts.property.read_prop import *
+from helper_scripts.utilities.utilites import collect_visible_files
 
 
 class Validate:
@@ -175,6 +178,15 @@ class Validate:
             progress.log(Panel.fit(Text(f"Validating {os_id} Database Connection", style="bold cyan")))
             self.validate_db(os_id, task3, progress)
 
+    def parse_shell_command (self, parameter):
+        # Create a function to escape any single quotes in the password
+        # This is needed for the DB connection jar
+
+        # Escape any single quotes in the password
+        parameter = parameter.replace("'", "'\\''")
+
+        return parameter
+
     def validate_db(self, db_label, task3, progress):
         db_servername = self._db_prop[db_label]['DATABASE_SERVERNAME']
         db_port = self._db_prop[db_label]['DATABASE_PORT']
@@ -182,6 +194,10 @@ class Validate:
         db_user = self._db_prop[db_label]['DATABASE_USERNAME']
         db_pwd = self._db_prop[db_label]['DATABASE_PASSWORD']
         db_type = self._db_prop['DATABASE_TYPE']
+
+        # Escape any single quotes in the password & username
+        db_pwd = self.parse_shell_command(db_pwd)
+        db_user = self.parse_shell_command(db_user)
 
         connected_str = Text("\nChecked DB connection for " \
                              + f"\"{db_name}\" " \
@@ -207,9 +223,9 @@ class Validate:
                 jar_cmd = "java -Duser.language=en -Duser.country=US -cp " \
                           + f"\"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           + f"{self._DB_CONNECTION_JAR_PATH}\" " \
-                          + f"DB2Connection -h {db_servername} " \
-                          + f"-p {db_port} -db {db_name} " \
-                          + f"-u {db_user} -pwd {db_pwd} " \
+                          + f"DB2Connection -h '{db_servername}' " \
+                          + f"-p {db_port} -db '{db_name}' " \
+                          + f"-u '{db_user}' -pwd '{db_pwd}' " \
                           + f"-ssl -ca \"{cert}\""
             elif db_type == "oracle":
                 cert = self.__get_file_from_folder(file_dir=cert_dir,
@@ -233,7 +249,7 @@ class Validate:
                           + f"\"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           + f"{self._DB_CONNECTION_JAR_PATH}\" " \
                           + f"OracleConnection -url \"{self._db_prop[db_label]['ORACLE_JDBC_URL']}\" " \
-                          + f"-u {db_user} -pwd {db_pwd} " \
+                          + f"-u '{db_user}' -pwd '{db_pwd}' " \
                           + f"-ssl -trustorefile \"{truststore_path}\" -trustoretype \"{truststore_type}\" " \
                           + f"-trustorePwd \"{truststore_pwd}\""
             elif db_type == "sqlserver":
@@ -260,8 +276,8 @@ class Validate:
                 jar_cmd = "java -Duser.language=en -Duser.country=US -cp " \
                           + f"\"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           + f"{self._DB_CONNECTION_JAR_PATH}\" " \
-                          + f"SQLConnection -h {db_servername} -p {db_port} -d {db_name} " \
-                          + f"-u {db_user} -pwd {db_pwd} -ssl \"{SSL_CONNECTION_STR}\""
+                          + f"SQLConnection -h '{db_servername}' -p {db_port} -d '{db_name}' " \
+                          + f"-u '{db_user}' -pwd '{db_pwd}' -ssl \"{SSL_CONNECTION_STR}\""
             elif db_type == "postgresql":
                 ca_key_crt_extensions = [".crt", ".cer", ".pem", ".cert", ".key"]
                 auth_str = ""
@@ -294,30 +310,30 @@ class Validate:
                 jar_cmd = "java -Duser.language=en -Duser.country=US -Dcom.ibm.jsse2.overrideDefaultTLS=true " \
                           f"-cp \"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           f"{self._DB_CONNECTION_JAR_PATH}\" " \
-                          f"PostgresConnection -h {db_servername} -p {db_port} -db {db_name} " \
-                          f"-u {db_user} -pwd {db_pwd} -sslmode {self._db_prop['SSL_MODE']} " \
+                          f"PostgresConnection -h '{db_servername}' -p {db_port} -db '{db_name}' " \
+                          f"-u '{db_user}' -pwd '{db_pwd}' -sslmode {self._db_prop['SSL_MODE']} " \
                           f"{auth_str}"
         else:
             if db_type == "db2":
                 jar_cmd = "java -Duser.language=en -Duser.country=US " \
                           + f"-cp \"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           + f"{self._DB_CONNECTION_JAR_PATH}\" DB2Connection " \
-                          + f"-h {db_servername} -p {db_port} -db {db_name} -u {db_user} -pwd {db_pwd}"
+                          + f"-h '{db_servername}' -p {db_port} -db '{db_name}' -u '{db_user}' -pwd '{db_pwd}'"
             elif db_type == "oracle":
                 jar_cmd = "java -Duser.language=en -Duser.country=US " \
                           + f"-cp \"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           + f"{self._DB_CONNECTION_JAR_PATH}\" OracleConnection " \
-                          + f"-url {self._db_prop[db_label]['ORACLE_JDBC_URL']} -u {db_user} -pwd {db_pwd}"
+                          + f"-url {self._db_prop[db_label]['ORACLE_JDBC_URL']} -u '{db_user}' -pwd '{db_pwd}'"
             elif db_type == "sqlserver":
                 jar_cmd = "java -Duser.language=en -Duser.country=US " \
                           + f"-cp \"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           + f"{self._DB_CONNECTION_JAR_PATH}\" SQLConnection " \
-                          + f"-h {db_servername} -p {db_port} -d {db_name} -u {db_user} -pwd {db_pwd} -ssl 'encrypt=false'"
+                          + f"-h '{db_servername}' -p {db_port} -d '{db_name}' -u '{db_user}' -pwd '{db_pwd}' -ssl 'encrypt=false'"
             elif db_type == "postgresql":
                 jar_cmd = "java -Duser.language=en -Duser.country=US -Dcom.ibm.jsse2.overrideDefaultTLS=true " \
                           + f"-cp \"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           + f"{self._DB_CONNECTION_JAR_PATH}\" PostgresConnection " \
-                          + f"-h {db_servername} -p {db_port} -db {db_name} -u {db_user} -pwd {db_pwd} -sslmode disable"
+                          + f"-h '{db_servername}' -p {db_port} -db '{db_name}' -u '{db_user}' -pwd '{db_pwd}' -sslmode disable"
 
         db_is_connected = self.__check_connection_with_jar(jar_cmd, progress)
         if db_is_connected:
@@ -346,7 +362,7 @@ class Validate:
         # list to store files
         res = []
         # Iterate directory
-        for file in os.listdir(dir_path):
+        for file in collect_visible_files(dir_path):
             # check only text files
             if len(extensions) != 0:
                 if file.endswith(tuple(extensions)):
@@ -372,11 +388,11 @@ class Validate:
                 os.remove(output_path)
 
             # Create LDAP .der file
-            cert_file = open(input_cert_path).read()
-            cert_pem = crypto.load_certificate(crypto.FILETYPE_PEM, cert_file)
-            cert_der = crypto.dump_certificate(crypto.FILETYPE_ASN1, cert_pem)
-            with open(output_path, "wb") as outfile:
-                outfile.write(cert_der)
+            with open(input_cert_path, 'rb') as cert_file:
+                cert_file = cert_file.read()
+            cert_der = x509.load_pem_x509_certificate(cert_file, default_backend())
+            with open(output_path, 'wb') as file:
+                file.write(cert_der.public_bytes(serialization.Encoding.PEM))
 
         except Exception as e:
             self._logger.exception(
@@ -392,9 +408,19 @@ class Validate:
                 os.remove(output_path)
 
             # Create LDAP .der file
-            key_data = open(input_key_path).read()
-            key = crypto.load_privatekey(crypto.FILETYPE_PEM, key_data)
-            pkcs8_key = crypto.dump_privatekey(crypto.FILETYPE_ASN1, key)
+            with open(input_key_path, 'rb') as key_data:
+                key = serialization.load_pem_private_key(
+                    key_data.read(),
+                    password=None,
+                    backend=default_backend()
+                )
+            
+            pkcs8_key = key.private_bytes(
+                encoding=serialization.Encoding.DER,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption()
+            )
+
             with open(output_path, "wb") as outfile:
                 outfile.write(pkcs8_key)
 
@@ -436,6 +462,9 @@ class Validate:
         ldap_base_dn = self._ldap_prop[ldap_id]["LDAP_BASE_DN"]
         ldap_port = self._ldap_prop[ldap_id]["LDAP_PORT"]
 
+        ldap_bind_dn_pwd = self.parse_shell_command(ldap_bind_dn_pwd)
+        ldap_bind_dn = self.parse_shell_command(ldap_bind_dn)
+
         ldap_is_connected = None
         jar_cmd = ""
 
@@ -450,8 +479,8 @@ class Validate:
 
         # Test for non-SSL connections
         if not self._ldap_prop[ldap_id]["LDAP_SSL_ENABLED"]:
-            jar_cmd = f"java -jar \"{self._LDAP_JAR_PATH}\" -u \"ldap://{ldap_server}:{ldap_port}\" " \
-                      + f"-b \"{ldap_base_dn}\" -D \"{ldap_bind_dn}\" -w \"{ldap_bind_dn_pwd}\""
+            jar_cmd = f"java -jar '{self._LDAP_JAR_PATH}' -u 'ldap://{ldap_server}:{ldap_port}' " \
+                      + f"-b '{ldap_base_dn}' -D '{ldap_bind_dn}' -w '{ldap_bind_dn_pwd}'"
 
         # Test for SSL connections
         else:
@@ -470,10 +499,10 @@ class Validate:
                                                            storetype="JKS",
                                                            truststore_pwd=truststore_pwd)
             # Validate LDAP connection over SSL
-            jar_cmd = f"java -Djavax.net.ssl.trustStore=\"{truststore_path}\" " \
-                      + f"-Djavax.net.ssl.trustStorePassword={truststore_pwd} -jar \"{self._LDAP_JAR_PATH}\" " \
-                      + f"-u \"ldaps://{ldap_server}:{ldap_port}\" -b \"{ldap_base_dn}\" -D \"{ldap_bind_dn}\" " \
-                      + f"-w \"{ldap_bind_dn_pwd}\""
+            jar_cmd = f"java -Djavax.net.ssl.trustStore='{truststore_path}' " \
+                      + f"-Djavax.net.ssl.trustStorePassword={truststore_pwd} -jar '{self._LDAP_JAR_PATH}' " \
+                      + f"-u 'ldaps://{ldap_server}:{ldap_port}' -b '{ldap_base_dn}' -D '{ldap_bind_dn}' " \
+                      + f"-w '{ldap_bind_dn_pwd}'"
         ldap_is_connected = self.__check_connection_with_jar(jar_cmd, progress)
         self.is_validated[ldap_id] = ldap_is_connected
         if ldap_is_connected:
@@ -628,3 +657,4 @@ class Validate:
         response = self.kubectl_apply(os.path.join(os.getcwd(), "generatedFiles", "ibm_fncm_cr_production.yaml"))
         print(Panel.fit(Text(response.strip(), style="bold cyan")))
         return True
+    

@@ -96,8 +96,15 @@ class ReadPropDb(ReadProp):
         # Forcing lowercase on postgres db names
         if self._toml_dict["DATABASE_TYPE"] == "postgresql":
             self._logger.info("Forcing lowercase on postgres db names...")
-            self._toml_dict["GCD"]["DATABASE_NAME"] = self._toml_dict["GCD"]["DATABASE_NAME"].lower()
-            self._toml_dict["ICN"]["DATABASE_NAME"] = self._toml_dict["ICN"]["DATABASE_NAME"].lower()
+
+            toml_dict_keys = self._toml_dict.keys()
+
+            if "GCD" in toml_dict_keys:
+                self._toml_dict["GCD"]["DATABASE_NAME"] = self._toml_dict["GCD"]["DATABASE_NAME"].lower()
+
+            if "ICN" in toml_dict_keys:
+                self._toml_dict["ICN"]["DATABASE_NAME"] = self._toml_dict["ICN"]["DATABASE_NAME"].lower()
+
             for os_id in self._toml_dict["_os_ids"]:
                 self._toml_dict[os_id]["DATABASE_NAME"] = self._toml_dict[os_id]["DATABASE_NAME"].lower()
 
@@ -105,7 +112,23 @@ class ReadPropDb(ReadProp):
         super().__init__(propertyfile, logger)
         self.__find_os_ids()
         self.__force_postgres_dbnames()
-        self._toml_dict["db_number"] = len(self._toml_dict["_os_ids"]) + 2
+
+        # Calculate DB number based on sections in property file
+        db_keys = self._toml_dict.keys()
+
+        db_list = self._toml_dict["_os_ids"].copy()
+        db_number = len(db_list)
+
+        if "GCD" in db_keys:
+            db_number += 1
+            db_list.append("GCD")
+
+        if "ICN" in db_keys:
+            db_number += 1
+            db_list.append("ICN")
+
+        self._toml_dict["db_number"] = db_number
+        self._toml_dict["db_list"] = db_list
 
 
 class ReadPropLdap(ReadProp):

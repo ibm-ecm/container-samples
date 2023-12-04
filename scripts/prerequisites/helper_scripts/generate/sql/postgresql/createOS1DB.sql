@@ -1,15 +1,22 @@
+-- *************************************************************************
+-- IBM FileNet Content Manager ObjectStore preparation script for PostgreSQL
+-- *************************************************************************
+-- Usage:
+-- Use psql command-line processor to execute the template file using -f option and user with administrative privileges
+-- psql -h 127.0.0.1 -U dbaUser -f ./createOS1DB.sql
+
 -- create user ${youruser1}
 CREATE ROLE ${youruser1} WITH INHERIT LOGIN ENCRYPTED PASSWORD '${yourpassword}';
 
+-- please modify location follow your requirement
+create tablespace ${os_name}_tbs owner ${youruser1} location '/pgsqldata/${os_name}';
+grant create on tablespace ${os_name}_tbs to ${youruser1};
+
 -- create database ${os_name}
-create database ${os_name} owner ${youruser1} template template0 encoding UTF8 ;
+create database ${os_name} owner ${youruser1} tablespace ${os_name}_tbs template template0 encoding UTF8 ;
 revoke connect on database ${os_name} from public;
 grant all privileges on database ${os_name} to ${youruser1};
 grant connect, temp, create on database ${os_name} to ${youruser1};
-
--- please modify location follow your requirement
-create tablespace ${os_name}_tbs owner ${youruser1} location '/pgsqldata/${os_name}';
-grant create on tablespace ${os_name}_tbs to ${youruser1};  
 
 -- create a schema for ${os_name} and set the default
 -- connect to the respective database before executing the below commands

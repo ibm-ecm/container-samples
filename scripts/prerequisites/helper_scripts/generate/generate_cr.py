@@ -30,7 +30,9 @@ class GenerateCR:
     def write_cr_template(self):
         # write the updated YAML file with preserved comments
         with open(self._generated_cr, 'w') as file:
-            ruamel.yaml.YAML().dump(self._merged_data, file)
+            yaml = ruamel.yaml.YAML()
+            yaml.representer.ignore_aliases = lambda *args: True
+            yaml.dump(self._merged_data, file)
 
     def __init__(self, db_properties, ldap_properties=None, usergroup_properties=None, deployment_properties=None,
                  ingress_properties=None, customcomponent_properties=None, logger=None):
@@ -273,6 +275,22 @@ class GenerateCR:
                         if optional_component.lower() == prop_key.lower():
                             self._generated_base_dict["spec"]["content_optional_components"][optional_component] = \
                                 self._deployment_properties[prop_key]
+
+            # removing sc_deployment_patterns:content if one of cpe, graphql,ban is not selected (5.5.11 and above only)
+            if self._deployment_properties["FNCM_Version"] != "5.5.8":
+                component_check_list = ["cpe", "graphql", "ban"]
+                for component in component_check_list:
+                    if not self._generated_base_dict["spec"]["content_optional_components"][component]:
+                        self._generated_base_dict["spec"]["shared_configuration"].ca.items[
+                            'root_ca_secret'][2] = None
+                        self._generated_base_dict["spec"]["shared_configuration"].pop(
+                            "sc_deployment_patterns")
+                        self._generated_base_dict["spec"][
+                            "shared_configuration"].yaml_set_comment_before_after_key("sc_deployment_type",
+                                                                                      before="\n# The deployment type as selected.",
+                                                                                      indent=4)
+                        break
+
             self._generated_base_dict["spec"]["shared_configuration"]["sc_deployment_platform"] = \
                 self._deployment_properties["PLATFORM"]
             # when roks is enabled we need to have a ingress parameter set to false
@@ -383,6 +401,10 @@ class GenerateCR:
             for admin_user_group in self._usergroup_properties["OS"]["CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS"]:
                 self._generated_init_dict["spec"]["initialize_configuration"]["ic_obj_store_creation"]["object_stores"][
                     0]["oc_cpe_obj_store_admin_user_groups"].append(admin_user_group)
+            if self._usergroup_properties['FNCM_LOGIN_USER'] not in self._generated_init_dict["spec"]["initialize_configuration"]["ic_obj_store_creation"][
+                "object_stores"][0]["oc_cpe_obj_store_admin_user_groups"]:
+                self._generated_init_dict["spec"]["initialize_configuration"]["ic_obj_store_creation"]["object_stores"][
+                    0]["oc_cpe_obj_store_admin_user_groups"].append(self._usergroup_properties['FNCM_LOGIN_USER'])  
             os_list = list(self._db_properties["_os_ids"])
             for os_number in range(1, len(os_list)):
                 obj_store = {}
@@ -398,6 +420,8 @@ class GenerateCR:
                     for admin_user_group in self._usergroup_properties[os_list[os_number]][
                         "CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS"]:
                         obj_store["oc_cpe_obj_store_admin_user_groups"].append(admin_user_group)
+                    if self._usergroup_properties["FNCM_LOGIN_USER"] not in obj_store["oc_cpe_obj_store_admin_user_groups"]:
+                        obj_store["oc_cpe_obj_store_admin_user_groups"].append(self._usergroup_properties["FNCM_LOGIN_USER"])  
 
                 self._generated_init_dict["spec"]["initialize_configuration"]["ic_obj_store_creation"][
                     "object_stores"].append(obj_store)

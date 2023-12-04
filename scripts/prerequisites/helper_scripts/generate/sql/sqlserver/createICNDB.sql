@@ -1,3 +1,11 @@
+-- ******************************************************
+-- IBM Content Navigator preparation script for SQLServer
+-- ******************************************************
+-- Usage:
+-- Use sqlcmd command-line tool to execute the template file using -i option and
+-- user with privileges to create databases and filegroups
+-- sqlcmd -S serverName\instanceName -U dbaUser -P dbaPassword -i C:\createICNDB.sql
+
 -- create IBM CONTENT NAVIGATOR database
 CREATE DATABASE ${icn_name}
 GO

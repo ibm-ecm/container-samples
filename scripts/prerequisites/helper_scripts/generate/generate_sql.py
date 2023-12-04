@@ -15,6 +15,13 @@ import os
 import string
 
 
+# Function to escape single quotes for yaml and sql
+def parse_yaml_sql(parameter):
+    if parameter:
+        parameter = parameter.replace("'", "''")
+    return parameter
+
+
 # Class to create GCD, ICN, and OS db scripts
 class GenerateSql:
     # Stores the template for the db scripts for reuse
@@ -71,8 +78,8 @@ class GenerateSql:
         try:
             path = os.path.join(self._dest_path, "createGCD.sql")
             finished_output = self._gcd_template.safe_substitute(gcd_name=self._dbprop['GCD']['DATABASE_NAME'],
-                                                                 youruser1=self._dbprop['GCD']['DATABASE_USERNAME'],
-                                                                 yourpassword=self._dbprop['GCD']['DATABASE_PASSWORD'])
+                                                                 youruser1=parse_yaml_sql(self._dbprop['GCD']['DATABASE_USERNAME']),
+                                                                 yourpassword=parse_yaml_sql(self._dbprop['GCD']['DATABASE_PASSWORD']))
             with open(path, "w", encoding='UTF-8') as output:
                 output.write(finished_output)
 
@@ -85,8 +92,8 @@ class GenerateSql:
         try:
             path = os.path.join(self._dest_path, "createICN.sql")
             finished_output = self._icn_template.safe_substitute(icn_name=self._dbprop['ICN']['DATABASE_NAME'],
-                                                                 youruser1=self._dbprop['ICN']['DATABASE_USERNAME'],
-                                                                 yourpassword=self._dbprop['ICN']['DATABASE_PASSWORD'])
+                                                                 youruser1=parse_yaml_sql(self._dbprop['ICN']['DATABASE_USERNAME']),
+                                                                 yourpassword=parse_yaml_sql(self._dbprop['ICN']['DATABASE_PASSWORD']))
             with open(path, "w", encoding='UTF-8') as output:
                 output.write(finished_output)
 
@@ -101,8 +108,8 @@ class GenerateSql:
                 path = os.path.join(self._dest_path, f"create{self._dbprop[os_id]['OS_LABEL']}.sql")
                 finished_output = self._os_template.safe_substitute(
                     os_name=self._dbprop[os_id.upper()]['DATABASE_NAME'],
-                    youruser1=self._dbprop[os_id.upper()]['DATABASE_USERNAME'],
-                    yourpassword=self._dbprop[os_id.upper()]['DATABASE_PASSWORD'])
+                    youruser1=parse_yaml_sql(self._dbprop[os_id.upper()]['DATABASE_USERNAME']),
+                    yourpassword=parse_yaml_sql(self._dbprop[os_id.upper()]['DATABASE_PASSWORD']))
                 with open(path, "w", encoding='UTF-8') as output:
                     output.write(finished_output)
 

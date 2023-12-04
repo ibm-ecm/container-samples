@@ -19,7 +19,6 @@
 #  - the main should pass the parsed arguments to the function
 #  - the main should print the output of the function
 
-
 import fnmatch
 import logging
 import os
@@ -52,10 +51,10 @@ from helper_scripts.property import property as p
 from helper_scripts.property.read_prop import *
 from helper_scripts.utilities.utilites import zip_folder, \
     create_generate_folder, generate_gather_results, generate_generate_results, generate_validate_results, \
-    clear, check_ssl_folders , check_icc_masterkey
+    clear, check_ssl_folders , check_icc_masterkey, check_dbname, collect_visible_files
 from helper_scripts.validate import validate as v
 
-__version__ = "1.4.0"
+__version__ = "1.6.7"
 
 app = typer.Typer()
 state = {
@@ -184,7 +183,7 @@ def gather(
 
             clear(console)
             # Get all files in the directory as list by type
-            files = os.listdir(move)
+            files = collect_visible_files(move)
             gcd_file = fnmatch.filter(files, "*gcd*.xml")
             os_files = fnmatch.filter(files, "*os*.xml")
             ldap_files = fnmatch.filter(files, "*ldap*.xml")
@@ -345,6 +344,7 @@ def generate():
         ingress_prop = ReadPropIngress(os.path.join(prop_folder, "fncm_ingress.toml"), state["logger"])
         ingress_prop_present = True
 
+    incorrect_naming_convention = check_dbname(db_prop.to_dict())
     missing_certs = check_ssl_folders(db_prop.to_dict(), ldap_prop.to_dict(), ssl_cert_folder)
     masterkey_present = check_icc_masterkey(customcomponent_prop_dict,icc_folder)
     os.path.join(os.getcwd(), "generatedFiles")
@@ -352,8 +352,8 @@ def generate():
 
     # check of there are missing values in the property files
     # if there are missing values, then exit the program
-    if len(db_prop.required_fields) > 0 or len(missing_certs) > 0 or masterkey_present == False:
-        layout = generate_generate_results(generated_folder, db_prop.required_fields, missing_certs,masterkey_present)
+    if len(db_prop.required_fields) > 0 or len(missing_certs) > 0 or masterkey_present == False or len(incorrect_naming_convention):
+        layout = generate_generate_results(generated_folder, db_prop.required_fields, missing_certs,masterkey_present, incorrect_naming_convention)
         print(layout)
         exit(1)
     else:

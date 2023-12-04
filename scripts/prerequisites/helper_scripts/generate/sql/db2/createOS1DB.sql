@@ -1,3 +1,10 @@
+-- ******************************************************************
+-- IBM FileNet Content Manager ObjectStore preparation script for DB2
+-- ******************************************************************
+-- Usage:
+-- Connect to the DB2 instance using the DB2 command-line processor with a user having administrative privileges
+-- db2 -vtf createOS1DB.sql
+
 -- Creating DB named: ${os_name}
 CREATE DATABASE ${os_name} AUTOMATIC STORAGE YES USING CODESET UTF-8 TERRITORY US PAGESIZE 32 K;
 

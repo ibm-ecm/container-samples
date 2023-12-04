@@ -13,7 +13,7 @@ Prerequisites
 Before proceeding with the installation, please ensure that you have the following prerequisites in place:
 
 - Operating System: Windows, Linux, or macOS
-- Java Semeru 11: Installed and properly configured on your system
+- Java 8, Semeru 11: Installed and properly configured on your system
 - Kubernetes: Installed and properly configured on your system
 - Python: Installed on your system (Python 3.8 or later)
 - FileNet Standalone CASE Package: Downloaded and available for installation
@@ -26,7 +26,7 @@ Installation Steps
 Follow the steps below to install and set up the FileNet Deployment Preparation Script:
 
 1. Download the installer package from the provided source.
-2. Extract the contents of the CASE package to a directory of your choice.
+2. Extract the contents of the CASE package or container-samples repo to a directory of your choice.
 3. Open a terminal or command prompt and navigate to the directory where the installer package was extracted::
 
     cd ./container-samples/scripts/prerequisites
@@ -51,6 +51,15 @@ Once the installation is complete, you can use the FileNet Deployment Preparatio
    - Follow the prompts and provide the required information about your desired deployment.
    - Optionally, include the `--move <folder-location>` flag to indicate that you are moving your existing traditional deployment to a containerized environment.
 
+    .. note::
+        All passwords, usernames and client secrets are triple quoted to preserve special characters.
+        If your passwords, usernames or client secrets contain a '\\' they will be need to escaped with an additional '\\'.
+
+        For example:
+
+        `"\"\";?.*\\\\)[&^%'$\"\"\#\@!~\"\"" -> ';?.*\\)[&^%'$\"\"\#\@!~'`
+
+
 2. **Generate Mode**: This mode generates SQL templates and YAML files based on the gathered information.
 
    - Open a terminal or command prompt.
@@ -71,7 +80,8 @@ Once the installation is complete, you can use the FileNet Deployment Preparatio
 
    - The script will validate the connections to external services such as the database services and directory services (LDAPs), as well as the usage of the provided storage classes.
 
-**Note:** The FileNet Deployment Preparation Script can also be run from the FileNet Standalone Operator.
+    .. note::
+        The FileNet Deployment Preparation Script can also be run from the FileNet Standalone Operator.
 
 
 Troubleshooting

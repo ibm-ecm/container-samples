@@ -1,3 +1,11 @@
+-- ****************************************************************
+-- IBM FileNet Content Manager GCD preparation script for SQLServer
+-- ****************************************************************
+-- Usage:
+-- Use sqlcmd command-line tool to execute the template file using -i option and
+-- user with privileges to create databases and filegroups
+-- sqlcmd -S serverName\instanceName -U dbaUser -P dbaPassword -i C:\createGCDDB.sql
+
 -- create Content Platform Engine GCD database, you could update FILENAME as your requirement.
 -- Please make sure you change the drive and path to your MSSQL database.
 CREATE DATABASE ${gcd_name}
