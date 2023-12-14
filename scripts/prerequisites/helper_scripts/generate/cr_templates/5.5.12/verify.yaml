@@ -1,0 +1,30 @@
+spec:
+  verify_configuration:
+    ########################################################################
+    ######## IBM FileNet Content Manager Verification configuration ######
+    ########################################################################
+    ## After the initialization process (see section above), the verification process will take place.
+    ## The verification process ensures that the FNCM and BAN components are functioning correctly.  The verification
+    ## process includes creation of a CPE folder, a CPE document, a CBR search, verifying the workflow configuration,
+    ## and validation of the ICN desktop.
+    vc_cpe_verification:
+      vc_cpe_folder:
+        - folder_cpe_obj_store_name: "OS01"
+          folder_cpe_folder_path: "/TESTFOLDER"
+      vc_cpe_document:
+        - doc_cpe_obj_store_name: "OS01"
+          doc_cpe_folder_name: "/TESTFOLDER"
+          doc_cpe_doc_title: "test_title"
+          DOC_CPE_class_name: "Document"
+          doc_cpe_doc_content: "This is a simple document test"
+          doc_cpe_doc_content_name: "doc_content_name"
+      vc_cpe_cbr:
+        - cbr_cpe_obj_store_name: "OS01"
+          cbr_cpe_class_name: "Document"
+          cbr_cpe_search_string: "is a simple"
+      vc_cpe_workflow:
+        - workflow_cpe_enabled: false
+          workflow_cpe_connection_point: "pe_conn_os1"
+    vc_icn_verification:
+      - vc_icn_repository: "OS01repo"
+        vc_icn_desktop_id: "desktop1"

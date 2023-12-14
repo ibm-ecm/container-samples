@@ -70,14 +70,10 @@ class ReadProp():
 
         self._logger = logger
         self._prop_filepath = propertyfile
-
-        try:
-            self._toml_dict = toml.loads(open(self._prop_filepath, encoding="utf-8").read())
-        except Exception as e:
-            self._logger.exception(
-                f"Exception from ReadProp.py script - error loading {self._prop_filepath} file -  {str(e)}")
-
+        self._toml_dict = None
+        self._toml_dict = toml.loads(open(self._prop_filepath, encoding="utf-8").read())
         self.__recurse_check_values(self._toml_dict)
+
 
     def to_dict(self):
         return self._toml_dict
@@ -144,6 +140,31 @@ class ReadPropLdap(ReadProp):
         super().__init__(propertyfile, logger)
         self.__find_ldap_ids()
 
+class ReadPropIdp(ReadProp):
+    def __find_idp_ids(self):
+        idp_ids = []
+        for key in self._toml_dict.keys():
+            if "IDP" in key:
+                idp_ids.append(key)
+        self._toml_dict["_idp_ids"] = idp_ids
+        self._toml_dict["idp_number"] = len(self._toml_dict["_idp_ids"])
+
+    def __init__(self, propertyfile, logger):
+        super().__init__(propertyfile, logger)
+        self.__find_idp_ids()
+
+class ReadPropSCIM(ReadProp):
+    def __find_scim_ids(self):
+        scim_ids = []
+        for key in self._toml_dict.keys():
+            if "SCIM" in key:
+                scim_ids.append(key)
+        self._toml_dict["_scim_ids"] = scim_ids
+        self._toml_dict["scim_number"] = len(self._toml_dict["_scim_ids"])
+
+    def __init__(self, propertyfile, logger):
+        super().__init__(propertyfile, logger)
+        self.__find_scim_ids()
 
 class ReadPropUsergroup(ReadProp):
     def __init__(self, propertyfile, logger):

@@ -14,13 +14,10 @@ import inspect
 import os
 import string
 
-
-# Function to escape single quotes for yaml and sql
 def parse_yaml_sql(parameter):
     if parameter:
         parameter = parameter.replace("'", "''")
     return parameter
-
 
 # Class to create GCD, ICN, and OS db scripts
 class GenerateSql:

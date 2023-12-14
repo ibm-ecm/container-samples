@@ -1,12 +1,11 @@
 # ####################################################
 # ##     Filenet Content Manager Version            ##
 # ####################################################
-# FNCM S version to be deployed - Valid values: [1; 2]
+# Filenet Content Manager version to be deployed - Valid values: [1; 2; 3]
 # 1. 5.5.8
 # 2. 5.5.11
-FNCM_VERSION = 2
-
-
+# 3. 5.5.12
+FNCM_VERSION = 3
 
 # ####################################################
 # ##              License and Platform              ##
@@ -27,7 +26,7 @@ FNCM_VERSION = 2
 # "CP4BA.NonProd"
 # "CP4BA.Prod"
 # "CP4BA.User"
-LICENSE = "CP4BA.User"
+LICENSE = "FNCM.PVUNonProd"
 
 # Platform of choice - Valid values: [1; 2; 3]
 # 1. OCP
@@ -38,6 +37,25 @@ PLATFORM = 1
 # Do you want to configure ingress - Valid values: [true; false]
 # This value will be ignored for platforms other than 'CNCF'
 INGRESS = false
+
+# ####################################################
+# ##       Authentication and Authorization         ##
+# ####################################################
+# Authentication type - Valid values: [1; 2; 3]
+# SCIM_IDP is only supported for versions 5.5.11 and above
+# 1. LDAP
+# 2. LDAP_IDP
+# 3. SCIM_IDP
+AUTHENTICATION = 3
+
+
+# Do you want to configure restricted internet access - Valid values: [true; false]
+# Only for versions 5.5.12 and above
+RESTRICTED_INTERNET_ACCESS = true
+
+# Enable/disable FIPS mode for the deployment (default value is "false")
+# Only for versions 5.5.12 and above
+FIPS_SUPPORT = true
 
 # ####################################################
 # ##              Optional Components               ##
@@ -63,6 +81,9 @@ GRAPHQL = true
 # Deploy Navigator (BAN).
 BAN = true
 
+# Deploy External Share (ES).
+ES = true
+
 # ####################################################
 # ##           Common Database Properties           ##
 # ####################################################
@@ -70,10 +91,10 @@ BAN = true
 # Provide the database type from your infrastructure. - Valid values: [1; 2; 3; 4; 5]
 # 1. IBM Db2
 # 2. IBM Db2 HADR
-# 3. Oracle
-# 4. Microsoft SQL Server
-# 5. PostgreSQL
-DATABASE_TYPE = 1
+# 3. Microsoft SQL Server
+# 4. PostgreSQL
+# 5. Oracle
+DATABASE_TYPE = 5
 
 # Is ssl enabled for this database - Valid values: [true; false]
 DATABASE_SSL_ENABLE = true
@@ -118,7 +139,7 @@ CONTENT_VERIFY = true
 # ##                 LDAP Properties                ##
 # ####################################################
 
-# First LDAP (Required)
+# If Authentication type includes LDAP, provide the following properties.
 [LDAP]
 # The type of LDAP server -  Valid values: [1,2,3,4,5,6,7]
 #                       1. Microsoft Active Directory
@@ -128,7 +149,7 @@ CONTENT_VERIFY = true
 #                       5. Oracle Directory Server Enterprise Edition
 #                       6. Oracle Unified Directory
 #                       7. CA eTrust
-LDAP_TYPE = 1
+LDAP_TYPE = 2
 
 # Enable SSL for LDAP connection. - Valid values: [true; false]
 LDAP_SSL_ENABLE = true
@@ -142,3 +163,21 @@ LDAP_SSL_ENABLE = true
 # [LDAPx]
 # LDAP_TYPE=
 # LDAP_SSL_ENABLE=
+
+# ####################################################
+# ##           Identity Provider Properties         ##
+# ####################################################
+
+# If Authentication type includes IDP, provide the following properties.
+[IDP]
+# Set to true if the IDP provides a discovery endpoint url. - Valid values: [true; false]
+DISCOVERY_ENABLED = true
+
+# The discovery endpoint url must end with '/.well-known/openid-configuration'
+DISCOVERY_URL = "https://discovery-url/.well-known/openid-configuration"
+
+# Additional IDP's - uncomment the section below by removing the leading '#' and space
+# Change 'IDPx' to 'IDP2' for a second IDP, 'IDP3' for a third and so on...
+# [IDPx]
+# DISCOVERY_ENABLED=
+# DISCOVERY_URL=

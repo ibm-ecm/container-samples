@@ -65,131 +65,165 @@ class GenerateSecrets:
         xor_result_string = "{xor}" + xor_encoded_bytes.decode()
         return xor_result_string
 
-    # function to create ssl secrets
-    # pending case to take care of postgres scenario
-    def create_ssl_secrets(self):
-        # if any ssl cert folders exists that means ssl was enabled for either ldap or DB
+    def create_ldap_ssl_secrets(self):
+        # if SSL is enabled on the Database or the LDAP server then we need to create ssl secrets
+
+        # if any of the ldap servers have ssl enabled then we need to create ssl secrets
+        # Check is any of the ldap server has ssl enabled
+        ldap_ssl = {}
+
+        for ldap in self._ldap_properties['_ldap_ids']:
+            ldap_ssl[ldap.lower()] = self._ldap_properties[ldap]["LDAP_SSL_ENABLED"]
+        ldap_ssl_enabled = any([value for value in ldap_ssl.values()])
+
         if os.path.exists(self._ssl_cert_folder):
-            ssl_cert_folder = self._ssl_cert_folder
             self._logger.info("Creating ssl secrets")
+            ssl_cert_folder = self._ssl_cert_folder
             ssl_folders = collect_visible_files(ssl_cert_folder)
 
+            # remove any hidden files that might be picked up and remove the trusted-certs folder
+            for folder in ssl_folders:
+                if folder.startswith(".") or folder == "trusted-certs":
+                    ssl_folders.remove(folder)
+
+            ldap_folders = list(filter(lambda x: "ldap" in x, ssl_folders))
+
             # iterating through folders gcd, os , ldap2 etc
-            for item in ssl_folders:
+            for item in ldap_folders:
                 folderpath = os.path.join(ssl_cert_folder, item)
                 ssl_certs = collect_visible_files(folderpath)
 
                 # processing data to generate ldap ssl secrets
-                if "ldap" in item:
-                    for cert in ssl_certs:
-                        if any(ext in cert for ext in [".crt", ".cer", ".pem", ".cert", ".key"]):
-                            certfolderpath = os.path.join(folderpath, cert)
-                            # Read binary data from SSL certificate file
-                            with open(certfolderpath, "rb") as file:
-                                binary_data = file.read()
-                            # Encode binary data to base64
-                            encoded_data = base64.b64encode(binary_data).decode('utf-8')
+                # only create the ldap ssl secret if ldap ssl is enabled
+                # create the ldap ssl secret only if the ldap server has ssl enabled
+                if ldap_ssl_enabled and "ldap" in item:
+                    if ldap_ssl[item]:
 
-                            sslsecret_filepath = os.path.join(self._generate_ssl_secrets_folder,
-                                                              "ibm-" + item + "-ssl-secret.yaml")
-                            ssl_secret_data = {"apiVersion": "v1", "kind": "Secret",
-                                               "metadata": {"name": "ibm-" + item + "-ssl-secret"}, "type": "Opaque",
-                                               "data": {"tls.crt": encoded_data}}
+                        for cert in ssl_certs:
+                            if any(ext in cert for ext in [".crt", ".cer", ".pem", ".cert", ".key", ".arm"]):
+                                certfolderpath = os.path.join(folderpath, cert)
+                                # Read binary data from SSL certificate file
+                                with open(certfolderpath, "rb") as file:
+                                    binary_data = file.read()
+                                # Encode binary data to base64
+                                encoded_data = base64.b64encode(binary_data).decode('utf-8')
 
-                            # write the secret data into a yaml
-                            with open(sslsecret_filepath, 'w+') as file:
-                                yaml.dump(ssl_secret_data, file)
-                                logging.info(
-                                    "SSl secret ibm-" + item + "-ssl-secret has been created at---- " + sslsecret_filepath)
+                                sslsecret_filepath = os.path.join(self._generate_ssl_secrets_folder,
+                                                                  "ibm-" + item + "-ssl-secret.yaml")
+                                ssl_secret_data = {"apiVersion": "v1", "kind": "Secret",
+                                                   "metadata": {"name": "ibm-" + item + "-ssl-secret"}, "type": "Opaque",
+                                                   "data": {"tls.crt": encoded_data}}
 
-                # processing data to generate db ssl secrets
-                else:
-                    ssl_secret_data = {"apiVersion": "v1", "kind": "Secret",
-                                       "metadata": {"name": "ibm-" + item + "-ssl-secret"}, "type": "Opaque"}
-                    ssl_secret_data["data"] = {}
-                    # if DB type is postgres we need to go through multiple folders which have multiple certs
-                    if self._db_properties["DATABASE_TYPE"] == "postgresql":
-                        postgres_cert_folders = collect_visible_files(folderpath)
-                        # Use these three variables to decide if certs are present and if all are empty we will use dbpassword to create ssl cert
-                        clientkey_present = True
-                        clientcert_present = True
-                        servercert_present = True
+                                # write the secret data into a yaml
+                                with open(sslsecret_filepath, 'w+') as file:
+                                    yaml.dump(ssl_secret_data, file)
+                                    logging.info(
+                                        "SSl secret ibm-" + item + "-ssl-secret has been created at---- " + sslsecret_filepath)
 
-                        # check if we have cert auth or server auth
-                        for postgres_folder in postgres_cert_folders:
-                            # sometimes there are folders that start with . (hidden folders)
-                            if postgres_folder.startswith(".") == True:
-                                continue
-                            current_postgres_folder = os.path.join(folderpath, postgres_folder)
-                            # listing the certs present in the sub folder
-                            postgres_cert = collect_visible_files(current_postgres_folder)
-                            sub_folder_cert = ""
-                            for folder_item in postgres_cert:
-                                if any(ext in folder_item for ext in [".crt", ".cer", ".pem", ".cert", ".key"]):
-                                    sub_folder_cert = folder_item
-                            # checking to see which subfolders are empty or not
+    # function to create ssl secrets
+    def create_ssl_db_secrets(self):
+        # if SSL is enabled on the Database or the LDAP server then we need to create ssl secrets
+        # if any ssl cert folders exists that means ssl was enabled for either ldap or DB
+
+        if os.path.exists(self._ssl_cert_folder):
+            self._logger.info("Creating ssl secrets")
+            ssl_cert_folder = self._ssl_cert_folder
+            ssl_folders = os.listdir(ssl_cert_folder)
+
+            # remove any hidden files that might be picked up and remove the trusted-certs folder
+            for folder in ssl_folders:
+                if folder.startswith(".") or folder == "trusted-certs":
+                    ssl_folders.remove(folder)
+
+            db_folders = list(filter(lambda x: "ldap" not in x, ssl_folders))
+
+            if "CPE" in self._deployment_properties.keys():
+                if not self._deployment_properties["CPE"]:
+                    db_folders.remove("gcd")
+                    db_folders = list(filter(lambda x: "os" not in x, db_folders))
+
+            if "BAN" in self._deployment_properties.keys():
+                if not self._deployment_properties["BAN"]:
+                    db_folders = list(filter(lambda x: "icn" not in x, db_folders))
+
+            # processing data to generate db ssl secrets
+            for item in db_folders:
+                folderpath = os.path.join(ssl_cert_folder, item)
+                ssl_certs = collect_visible_files(folderpath)
+                ssl_secret_data = {"apiVersion": "v1", "kind": "Secret",
+                                   "metadata": {"name": "ibm-" + item + "-ssl-secret"}, "type": "Opaque",
+                                   "data": {}}
+                # if DB type is postgres we need to go through multiple folders which have multiple certs
+                if self._db_properties["DATABASE_TYPE"] == "postgresql":
+                    postgres_cert_folders = collect_visible_files(folderpath)
+                    # Use these three variables to decide if certs are present and if all are empty we will use dbpassword to create ssl cert
+                    clientkey_present = True
+                    clientcert_present = True
+                    servercert_present = True
+
+                    # check if we have cert auth or server auth
+                    for postgres_folder in postgres_cert_folders:
+                        # sometimes there are folders that start with . (hidden folders)
+                        if postgres_folder.startswith("."):
+                            continue
+                        current_postgres_folder = os.path.join(folderpath, postgres_folder)
+                        # listing the certs present in the sub folder
+                        postgres_cert = collect_visible_files(current_postgres_folder)
+                        sub_folder_cert = ""
+                        for folder_item in postgres_cert:
+                            if any(ext in folder_item for ext in [".crt", ".cer", ".pem", ".cert", ".key", ".arm"]):
+                                sub_folder_cert = folder_item
+                        # checking to see which subfolders are empty or not
+                        if "clientkey" in postgres_folder:
+                            if not sub_folder_cert:
+                                clientkey_present = False
+                        if "clientcert" in postgres_folder:
+                            if not sub_folder_cert:
+                                clientcert_present = False
+                        if "serverca" in postgres_folder:
+                            if not sub_folder_cert:
+                                servercert_present = False
+
+                    # if client_auth is false that means server auth is true
+                    client_auth = False
+                    if clientkey_present and clientcert_present:
+                        client_auth = True
+                    # parsing through the 3 postgres ssl sub folders to generate the secret parameters
+                    for postgres_folder in postgres_cert_folders:
+                        # skipping hidden folders in case its present
+                        if postgres_folder.startswith("."):
+                            continue
+                        current_postgres_folder = os.path.join(folderpath, postgres_folder)
+                        # listing the certs present in the sub folder
+                        postgres_cert = collect_visible_files(current_postgres_folder)
+                        sub_folder_cert = ""
+                        ssl_secret_data["stringData"] = {}
+                        # finding only pem or cert files to use
+                        for folder_item in postgres_cert:
+                            if any(ext in folder_item for ext in [".crt", ".cer", ".pem", ".cert", ".key", ".arm"]):
+                                sub_folder_cert = folder_item
+                        if client_auth:
                             if "clientkey" in postgres_folder:
-                                if not sub_folder_cert:
-                                    clientkey_present = False
+                                # Read binary data from SSL certificate file
+
+                                if sub_folder_cert:
+                                    with open(os.path.join(current_postgres_folder, sub_folder_cert), "rb") as file:
+                                        binary_data = file.read()
+                                    # Encode binary data to base64
+                                    encoded_data = base64.b64encode(binary_data).decode('utf-8')
+                                    ssl_secret_data["data"]['clientkey.pem'] = encoded_data
+
                             if "clientcert" in postgres_folder:
-                                if not sub_folder_cert:
-                                    clientcert_present = False
-                            if "serverca" in postgres_folder:
-                                if not sub_folder_cert:
-                                    servercert_present = False
+                                # Read binary data from SSL certificate file
+                                if sub_folder_cert:
+                                    with open(os.path.join(current_postgres_folder, sub_folder_cert), "rb") as file:
+                                        binary_data = file.read()
+                                    # Encode binary data to base64
+                                    encoded_data = base64.b64encode(binary_data).decode('utf-8')
+                                    ssl_secret_data["data"]['clientcert.pem'] = encoded_data
 
-                        # if client_auth is false that means server auth is true
-                        client_auth = False
-                        if clientkey_present and clientcert_present:
-                            client_auth = True
-                        # parsing through the 3 postgres ssl sub folders to generate the secret parameters
-                        for postgres_folder in postgres_cert_folders:
-                            # skipping hidden folders in case its present
-                            if postgres_folder.startswith(".") == True:
-                                continue
-                            current_postgres_folder = os.path.join(folderpath, postgres_folder)
-                            # listing the certs present in the sub folder
-                            postgres_cert = collect_visible_files(current_postgres_folder)
-                            sub_folder_cert = ""
-                            ssl_secret_data["stringData"] = {}
-                            # finding only pem or cert files to use
-                            for folder_item in postgres_cert:
-                                if any(ext in folder_item for ext in [".crt", ".cer", ".pem", ".cert", ".key"]):
-                                    sub_folder_cert = folder_item
-                            if client_auth:
-                                if "clientkey" in postgres_folder:
-                                    # Read binary data from SSL certificate file
-
-                                    if sub_folder_cert:
-                                        with open(os.path.join(current_postgres_folder, sub_folder_cert), "rb") as file:
-                                            binary_data = file.read()
-                                        # Encode binary data to base64
-                                        encoded_data = base64.b64encode(binary_data).decode('utf-8')
-                                        ssl_secret_data["data"]['clientkey.pem'] = encoded_data
-
-                                if "clientcert" in postgres_folder:
-                                    # Read binary data from SSL certificate file
-                                    if sub_folder_cert:
-                                        with open(os.path.join(current_postgres_folder, sub_folder_cert), "rb") as file:
-                                            binary_data = file.read()
-                                        # Encode binary data to base64
-                                        encoded_data = base64.b64encode(binary_data).decode('utf-8')
-                                        ssl_secret_data["data"]['clientcert.pem'] = encoded_data
-
-                                # for modes other thatn require serverca is a must
-                                if self._db_properties["SSL_MODE"].lower() != "require":
-                                    if "serverca" in postgres_folder:
-                                        # Read binary data from SSL certificate file
-                                        if sub_folder_cert:
-                                            with open(os.path.join(current_postgres_folder, sub_folder_cert),
-                                                      "rb") as file:
-                                                binary_data = file.read()
-                                            # Encode binary data to base64
-                                            encoded_data = base64.b64encode(binary_data).decode('utf-8')
-                                            ssl_secret_data["data"]['serverca.pem'] = encoded_data
-
-                            else:
-                                # server auth is picked so that will be the parameter generated
+                            # for modes other thatn require serverca is a must
+                            if self._db_properties["SSL_MODE"].lower() != "require":
                                 if "serverca" in postgres_folder:
                                     # Read binary data from SSL certificate file
                                     if sub_folder_cert:
@@ -200,43 +234,55 @@ class GenerateSecrets:
                                         encoded_data = base64.b64encode(binary_data).decode('utf-8')
                                         ssl_secret_data["data"]['serverca.pem'] = encoded_data
 
-                                    dbpass = self._db_properties[item.upper()]["DATABASE_PASSWORD"]
-                                    ssl_secret_data["stringData"]["DBPassword"] = str(self.xor_password(dbpass))
-
-                        # adding ssl mode as a parameter for the secret
-                        ssl_secret_data["stringData"] = {}
-                        ssl_secret_data["stringData"]["sslmode"] = self._db_properties["SSL_MODE"].lower()
-
-                        # write the secret data into a yaml
-                        sslsecret_filepath = os.path.join(self._generate_ssl_secrets_folder,
-                                                          "ibm-" + item + "db-ssl-secret.yaml")
-                        with open(sslsecret_filepath, 'w+') as file:
-                            yaml.dump(ssl_secret_data, file)
-                            logging.info(
-                                "SSl secret ibm-" + item + "-ssl-secret has been created at---- " + sslsecret_filepath)
-
-                    # For all other DB types the ssl secrets are created using the same logic as we did to create ldap ssl secrets
-                    else:
-                        for cert in ssl_certs:
-                            if any(ext in cert for ext in [".crt", ".cer", ".pem", ".cert", ".key"]):
-                                certfolderpath = os.path.join(folderpath, cert)
+                        else:
+                            # server auth is picked so that will be the parameter generated
+                            if "serverca" in postgres_folder:
                                 # Read binary data from SSL certificate file
-                                with open(certfolderpath, "rb") as file:
-                                    binary_data = file.read()
-                                # Encode binary data to base64
-                                encoded_data = base64.b64encode(binary_data).decode('utf-8')
+                                if sub_folder_cert:
+                                    with open(os.path.join(current_postgres_folder, sub_folder_cert),
+                                              "rb") as file:
+                                        binary_data = file.read()
+                                    # Encode binary data to base64
+                                    encoded_data = base64.b64encode(binary_data).decode('utf-8')
+                                    ssl_secret_data["data"]['serverca.pem'] = encoded_data
 
-                                sslsecret_filepath = os.path.join(self._generate_ssl_secrets_folder,
-                                                                  "ibm-" + item + "db-ssl-secret.yaml")
-                                ssl_secret_data = {"apiVersion": "v1", "kind": "Secret",
-                                                   "metadata": {"name": "ibm-" + item + "-ssl-secret"},
-                                                   "type": "Opaque", "data": {"tls.crt": encoded_data}}
+                                dbpass = self._db_properties[item.upper()]["DATABASE_PASSWORD"]
+                                ssl_secret_data["stringData"]["DBPassword"] = str(self.xor_password(dbpass))
 
-                                # write the secret data into a yaml
-                                with open(sslsecret_filepath, 'w+') as file:
-                                    yaml.dump(ssl_secret_data, file)
-                                    logging.info(
-                                        "SSl secret ibm-" + item + "-ssl-secret has been created at---- " + sslsecret_filepath)
+                    # adding ssl mode as a parameter for the secret
+                    ssl_secret_data["stringData"] = {}
+                    ssl_secret_data["stringData"]["sslmode"] = self._db_properties["SSL_MODE"].lower()
+
+                    # write the secret data into a yaml
+                    sslsecret_filepath = os.path.join(self._generate_ssl_secrets_folder,
+                                                      "ibm-" + item + "db-ssl-secret.yaml")
+                    with open(sslsecret_filepath, 'w+') as file:
+                        yaml.dump(ssl_secret_data, file)
+                        logging.info(
+                            "SSl secret ibm-" + item + "-ssl-secret has been created at---- " + sslsecret_filepath)
+
+                # For all other DB types the ssl secrets are created using the same logic as we did to create ldap ssl secrets
+                else:
+                    for cert in ssl_certs:
+                        if any(ext in cert for ext in [".crt", ".cer", ".pem", ".cert", ".key", ".arm"]):
+                            certfolderpath = os.path.join(folderpath, cert)
+                            # Read binary data from SSL certificate file
+                            with open(certfolderpath, "rb") as file:
+                                binary_data = file.read()
+                            # Encode binary data to base64
+                            encoded_data = base64.b64encode(binary_data).decode('utf-8')
+
+                            sslsecret_filepath = os.path.join(self._generate_ssl_secrets_folder,
+                                                              "ibm-" + item + "db-ssl-secret.yaml")
+                            ssl_secret_data = {"apiVersion": "v1", "kind": "Secret",
+                                               "metadata": {"name": "ibm-" + item + "-ssl-secret"},
+                                               "type": "Opaque", "data": {"tls.crt": encoded_data}}
+
+                            # write the secret data into a yaml
+                            with open(sslsecret_filepath, 'w+') as file:
+                                yaml.dump(ssl_secret_data, file)
+                                logging.info(
+                                    "SSl secret ibm-" + item + "-ssl-secret has been created at---- " + sslsecret_filepath)
 
     # function to create ban secret
     def create_ban_secret(self):
@@ -259,12 +305,10 @@ class GenerateSecrets:
             stringData[stringDatafields[i]] = string_list[i]
         # check if java sendmail details are present
         if self._customcomponent_properties:
-            if "BAN" in self._customcomponent_properties.keys():
-                if "JAVAMAIL_USERNAME" in self._customcomponent_properties["BAN"].keys() and "JAVAMAIL_PASSWORD" in \
-                        self._customcomponent_properties["BAN"].keys():
-                    stringData["jMailUsername"] = self._customcomponent_properties["BAN"]["JAVAMAIL_USERNAME"]
-                    stringData["jMailPassword"] = self.xor_password(
-                        self._customcomponent_properties["BAN"]["JAVAMAIL_PASSWORD"])
+            if "SENDMAIL" in self._customcomponent_properties.keys():
+                stringData["jMailUsername"] = self._customcomponent_properties["SENDMAIL"]["JAVAMAIL_USERNAME"]
+                stringData["jMailPassword"] = self.xor_password(
+                    self._customcomponent_properties["SENDMAIL"]["JAVAMAIL_PASSWORD"])
         ban_data["stringData"] = stringData
 
         with open(bansecret_filepath, 'w+') as file:
@@ -288,15 +332,50 @@ class GenerateSecrets:
                 stringData['ldap' + self._ldap_properties[ldap]["LDAP_ID"] + 'Password'] = self.xor_password(
                     self._ldap_properties[ldap]["LDAP_BIND_DN_PASSWORD"])
 
-        # if '<Required>' in stringData.values():
-        #     self._logger.info("Certain fields in your property files which are required to be filled up have not been filled up, please check your ldap property files")
-        #     raise Exception("Certain fields in your property files which are required to be filled up have not been filled up, please check your ldap property files")
-
         ldap_data["stringData"] = stringData
         # writing the data to the ldap secret yaml
         with open(ldapsecret_filepath, 'w+') as file:
             yaml.dump(ldap_data, file)
             logging.info("Ldap secret ldap-bind-secret.yaml has been created at---- " + ldapsecret_filepath)
+
+    # Function to generate scim_secret
+    def create_scim_secret(self):
+        for scim in self._scim_properties['_scim_ids']:
+            self._logger.info(f"Creating SCIM secret for {scim}")
+            secret_name = f"ibm-{scim.lower()}-secret"
+
+            scimsecret_filepath = os.path.join(self._generate_secrets_folder, secret_name + ".yaml")
+            scim_data = {"apiVersion": "v1", "kind": "Secret", "metadata": {"name": secret_name}, "type": "Opaque"}
+            string_data = {'scimPassword': self.xor_password(self._scim_properties[scim]["SCIM_CLIENT_SECRET"]),
+                           'scimUsername': self._scim_properties[scim]["SCIM_CLIENT_ID"]}
+
+            scim_data["stringData"] = string_data
+
+            # writing the data to the ldap secret yaml
+            with open(scimsecret_filepath, 'w+') as file:
+                yaml.dump(scim_data, file)
+                logging.info(f"SCIM secret {secret_name} has been created -- {scimsecret_filepath}")
+
+
+    def create_idp_secret(self):
+
+        for idp in self._idp_properties['_idp_ids']:
+
+            self._logger.info(f"Creating IDP secret for {idp}")
+            secret_name = f"ibm-{idp.lower()}-oidc-secret"
+
+
+            idpsecret_filepath = os.path.join(self._generate_secrets_folder, secret_name + ".yaml")
+            idp_data = {"apiVersion": "v1", "kind": "Secret", "metadata": {"name": secret_name}, "type": "Opaque"}
+            string_data = {'client_id': self._idp_properties[idp]["CLIENT_ID"],
+                           'client_secret': self.xor_password(self._idp_properties[idp]["CLIENT_SECRET"])}
+
+            idp_data["stringData"] = string_data
+
+            # writing the data to the ldap secret yaml
+            with open(idpsecret_filepath, 'w+') as file:
+                yaml.dump(idp_data, file)
+                logging.info(f"IDP secret {secret_name} has been created -- {idpsecret_filepath}")
 
     # Function to generate fncm_secret
     def create_fncm_secret(self):
@@ -327,24 +406,26 @@ class GenerateSecrets:
             logging.info("FNCM secret ibm-fncm-secret.yaml has been created at---- " + fncmsecret_filepath)
 
 
+
     # Function to generate icc related secrets
     def create_icc_secrets(self):
-        #function creates the icc-masterkey-txt and ibm-icc-secret
+        # function creates the icc-masterkey-txt and ibm-icc-secret
         try:
             self._logger.info("Creating ICC secrets")
 
-            #creating the icc secret
+            # creating the icc secret
             iccsecret_filepath = os.path.join(self._generate_secrets_folder, "ibm-icc-secret.yaml")
             icc_data = {"apiVersion": "v1", "kind": "Secret", "metadata": {"name": "ibm-icc-secret"}, "type": "Opaque"}
             stringData = {}
-            stringData["archiveUserId"] = self._customcomponent_properties["CSS"]["ARCHIVE_USER_ID"]
-            stringData["archivePassword"] = self.xor_password(self._customcomponent_properties["CSS"]["ARCHIVE_PASSWORD"])
+            stringData["archiveUserId"] = self._customcomponent_properties["ICC"]["ARCHIVE_USER_ID"]
+            stringData["archivePassword"] = self.xor_password(
+                self._customcomponent_properties["ICC"]["ARCHIVE_PASSWORD"])
             icc_data["stringData"] = stringData
             with open(iccsecret_filepath, 'w+') as file:
                 yaml.dump(icc_data, file)
                 logging.info("ICC secret ibm-icc-secret.yaml has been created at---- " + iccsecret_filepath)
 
-            #creating the masterkey secret
+            # creating the masterkey secret
             iccmasterkey_filepath = os.path.join(self._generate_secrets_folder, "icc-masterkey-txt.yaml")
             file_list = collect_visible_files(self._icc_folder)
             encoded_data = ""
@@ -358,24 +439,58 @@ class GenerateSecrets:
                     encoded_data = base64.b64encode(binary_data).decode('utf-8')
                     break
             masterkey_secret_data = {"apiVersion": "v1", "kind": "Secret",
-                               "metadata": {"name": "icc-masterkey-txt"},
-                               "type": "Opaque", "data": {"MasterKey.txt": encoded_data}}
+                                     "metadata": {"name": "icc-masterkey-txt"},
+                                     "type": "Opaque", "data": {"MasterKey.txt": encoded_data}}
             with open(iccmasterkey_filepath, 'w+') as file:
                 yaml.dump(masterkey_secret_data, file)
                 logging.info("ICC secret icc-masterkey-txt.yaml has been created at---- " + iccmasterkey_filepath)
         except Exception as e:
-            self._logger.exception(f"Error found in create_icc_secrets function in generate_secrets script --- {str(e)}")
+            self._logger.exception(
+                f"Error found in create_icc_secrets function in generate_secrets script --- {str(e)}")
 
-    def __init__(self, db_properties=None, ldap_properties=None, usergroup_properties=None,customcomponent_properties=None, logger=None):
+    # Function to generate trusted certificate secrets
+    def create_trusted_secrets(self):
+        try:
+            if os.path.exists(self._trusted_certs_folder):
+                trusted_certs = collect_visible_files(self._trusted_certs_folder)
+                for i in range(len(trusted_certs)):
+                    if trusted_certs[i].startswith("."):
+                        continue
+                    file_name = "trusted-cert-" + str(i + 1) + "-secret.yaml"
+                    trusted_secret_file_path = os.path.join(self._generate_trusted_secrets_folder, file_name)
+                    trusted_cert_path = os.path.join(self._trusted_certs_folder, trusted_certs[i])
+                    with open(trusted_cert_path, "rb") as file:
+                        binary_data = file.read()
+                        # Encode binary data to base64
+                        encoded_data = base64.b64encode(binary_data).decode('utf-8')
+                    trusted_cert_secret_data = {"apiVersion": "v1", "kind": "Secret",
+                                                "metadata": {"name": "trusted-cert-" + str(i + 1) + "-secret"},
+                                                "type": "Opaque", "data": {"tls.crt": encoded_data}}
+                    with open(trusted_secret_file_path, "w+") as file:
+                        yaml.dump(trusted_cert_secret_data, file)
+                        logging.info("Trusted Cert secret for " + trusted_certs[
+                            i] + " has been created at---- " + trusted_secret_file_path)
+
+        except Exception as e:
+            self._logger.exception(
+                f"Error found in create_trusted_secrets function in generate_secrets script --- {str(e)}")
+
+    def __init__(self, db_properties=None, ldap_properties=None, idp_properties=None, usergroup_properties=None,
+                 customcomponent_properties=None, scim_properties=None, deployment_properties=None, logger=None):
         self._logger = logger
 
         self._db_properties = db_properties
         self._ldap_properties = ldap_properties
         self._usergroup_properties = usergroup_properties
+        self._idp_properties = idp_properties
         self._customcomponent_properties = customcomponent_properties
+        self._scim_properties = scim_properties
+        self._deployment_properties = deployment_properties
 
         self._generate_folder = os.path.join(os.getcwd(), "generatedFiles")
         self._ssl_cert_folder = os.path.join(os.getcwd(), "propertyFile", "ssl-certs")
         self._icc_folder = os.path.join(os.getcwd(), "propertyFile", "icc")
+        self._trusted_certs_folder = os.path.join(os.getcwd(), "propertyFile", "ssl-certs", "trusted-certs")
         self._generate_secrets_folder = os.path.join(self._generate_folder, "secrets")
         self._generate_ssl_secrets_folder = os.path.join(self._generate_folder, "ssl")
+        self._generate_trusted_secrets_folder = os.path.join(self._generate_folder, "ssl", "trusted-certs")

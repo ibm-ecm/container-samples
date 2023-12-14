@@ -72,6 +72,18 @@
       "The JDBC URL for Oracle database."
     ]
   },
+  "TABLESPACE_NAME": {
+    "value": "<Required>",
+    "comment": [
+      "Tablespace name for the database."
+    ]
+  },
+  "SCHEMA_NAME": {
+    "value": "<Required>",
+    "comment": [
+      "Schema name for the database."
+    ]
+  },
   "HADR_STANDBY_SERVERNAME": {
     "value": "<Required>",
     "comment": [

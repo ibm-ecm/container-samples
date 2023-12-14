@@ -44,6 +44,9 @@ class SilentGather(GatherOptions):
     def parse_envfile(self):
         try:
             self.silent_platform()
+            self.silent_fips_support()
+            self.silent_auth_type()
+            self.silent_idp()
             self.silent_optional_components()
             self.silent_sendmail_support()
             self.silent_icc_support()
@@ -53,6 +56,7 @@ class SilentGather(GatherOptions):
             self.silent_ldap()
             self.silent_initverify()
             self.silent_storage()
+            self.silent_egress_support()
 
             # self.error_check()
 
@@ -77,7 +81,7 @@ class SilentGather(GatherOptions):
                 self.ingress = self.__gather_var("INGRESS")
 
     def silent_version(self):
-        version = self.__gather_var("FNCM_VERSION", valid_values=[1, 2])
+        version = self.__gather_var("FNCM_VERSION", valid_values=[1, 2, 3])
         if version:
             self._fncm_version = self.Version.FNCMVersion(version).name
 
@@ -89,6 +93,25 @@ class SilentGather(GatherOptions):
             self._sendmail_support = False
         if "ban" not in self._optional_components:
             self._sendmail_support = False
+
+
+    def silent_egress_support(self):
+        egress_support = self.__gather_var("RESTRICTED_INTERNET_ACCESS")
+        if egress_support is not None:
+            self._egress_support = egress_support
+        else:
+            self._egress_support = False
+        if self._fncm_version in ["5.5.8", "5.5.11"]:
+            self._egress_support = False
+
+    def silent_fips_support(self):
+        fips_support = self.__gather_var("FIPS_SUPPORT")
+        if fips_support is not None:
+            self._fips_support = fips_support
+        else:
+            self._fips_support = False
+        if self._fncm_version in ["5.5.8","5.5.11"]:
+            self._fips_support = False
 
     def silent_icc_support(self):
         icc_support = self.__gather_var("ICC_SUPPORT")
@@ -113,6 +136,7 @@ class SilentGather(GatherOptions):
         cmis = self.__gather_var("CMIS")
         css = self.__gather_var("CSS")
         tm = self.__gather_var("TM")
+        es = self.__gather_var("ES")
 
         if cmis is not None and cmis is True:
             self._optional_components.append("cmis")
@@ -120,6 +144,8 @@ class SilentGather(GatherOptions):
             self._optional_components.append("css")
         if tm is not None and tm is True:
             self._optional_components.append("tm")
+        if es is not None and es is True:
+            self._optional_components.append("es")
         if self._fncm_version != "5.5.8":
             cpe = self.__gather_var("CPE")
             graphql = self.__gather_var("GRAPHQL")
@@ -131,34 +157,56 @@ class SilentGather(GatherOptions):
             if ban is None or ban is False:
                 self._optional_components.remove("ban")
 
-            if (
-                    "graphql" in self._optional_components or "cmis" in self._optional_components) and "cpe" not in self._optional_components:
-                print(
-                    "Note - CPE is required to deploy graphql or CMIS and will be added as a component to this deployment")
+            if ("graphql" in self._optional_components or "cmis" in self._optional_components) and "cpe" not in self._optional_components:
+                print("Note - CPE is required to deploy graphql or CMIS and will be added as a component to this deployment")
                 self._optional_components.append("cpe")
             if "tm" in self._optional_components and "ban" not in self._optional_components:
-                print(
-                    "Note - Navigator is required to deploy Task Manager and will be added as a component to this deployment")
+                print("Note - Navigator is required to deploy Task Manager and will be added as a component to this deployment")
                 self._optional_components.append("ban")
+            if "es" in self._optional_components and "ban" not in self._optional_components:
+                if self._auth_type in ("LDAP", "SCIM_IDP"):
+                    print("Note - External Share requires an LDAP_IDP Authentication type to be configured")
+                    self._auth_type = "LDAP_IDP"
+                print("Note - Navigator is required to deploy External Share and will be added as a component to this deployment")
+                self._optional_components.append("ban")
+
 
     def silent_ldap(self):
         self._ldap_number = self.__find_ldap_count()
         for i in range(self._ldap_number):
             ldap_id = f"LDAP{str(i + 1) if i > 0 else ''}"
             ldap_type = self.__gather_var("LDAP_TYPE", section_header=ldap_id, valid_values=[1, 2, 3, 4, 5, 6, 7])
-            # ldap_type = self.__gather_var("LDAP{}.TYPE".format(str(i+1) if i>0 else ''),
-            #                             ["Microsoft Active Directory", "IBM Tivoli Directory Server", 
-            #                             "NetIQ eDirectory", "Oracle Internet Directory",
-            #                             "Oracle Directory Server Enterprise Edition",
-            #                             "Oracle Unified Directory", "CA eTrust"])
             ldap_ssl = self.__gather_var("LDAP_SSL_ENABLE", section_header=ldap_id)
             if ldap_ssl:
-                self._ssl_directory_list.append(ldap_id)
+                self._ssl_directory_list.append(ldap_id.lower())
             if ldap_type is not None and ldap_ssl is not None:
                 self._ldap_info.append((self.Ldap(self.Ldap.ldapTypes(ldap_type), ldap_ssl, ldap_id)))
 
+    def silent_idp(self):
+        self._idp_number = self.__find_idp_count()
+        for i in range(self._idp_number):
+            idp_id = f"IDP{str(i + 1) if i > 0 else ''}"
+            idp_discovery_enabled = self.__gather_var("DISCOVERY_ENABLED", section_header=idp_id)
+            if idp_discovery_enabled:
+                idp_discovery_url = self.__gather_var("DISCOVERY_URL", section_header=idp_id, valid_values="url")
+            else:
+                idp_discovery_url = None
+
+            if idp_discovery_enabled is not None:
+                idp = self.Idp(idp_discovery_enabled, idp_id, idp_discovery_url)
+                idp.parse_discovery_url()
+                self._idp_info.append(idp)
+
+    def silent_auth_type(self):
+        auth_type = self.__gather_var("AUTHENTICATION", valid_values=[1, 2, 3])
+        if auth_type is not None:
+            self._auth_type = self.AuthType(auth_type).name
+
     def silent_db(self):
-        db_type = self.__gather_var("DATABASE_TYPE", valid_values=[1, 2, 3, 4, 5])
+        if self._fips_support:
+            db_type = self.__gather_var("DATABASE_TYPE", valid_values=[1, 2, 3, 4])
+        else:
+            db_type = self.__gather_var("DATABASE_TYPE", valid_values=[1, 2, 3, 4, 5])
         if db_type is not None:
             # self.db_type = self.__gather_var("DATABASE.TYPE",["db2", "db2HADR", "oracle", "sqlserver", "postgresql"])
             self.db_type = self.DatabaseType(db_type).name
@@ -186,17 +234,6 @@ class SilentGather(GatherOptions):
                                                                    "CP4BA.User"])
         if license_model is not None:
             self._license_model = license_model
-
-    # def silent_storage(self):
-    #     slow_storage_classname=self.__gather_var("STORAGE_CLASS.SLOW","")
-    #     if slow_storage_classname is not None:
-    #         self.slow_storage_classname=slow_storage_classname
-    #     medium_storage_classname=self.__gather_var("STORAGE_CLASS.MEDIUM","")
-    #     if medium_storage_classname is not None:
-    #         self.medium_storage_classname=medium_storage_classname
-    #     fast_storage_classname=self.__gather_var("STORAGE_CLASS.FAST","")
-    #     if fast_storage_classname is not None:
-    #         self.fast_storage_classname=fast_storage_classname
 
     def silent_initverify(self):
         content_initialize = self.__gather_var("CONTENT_INIT")
@@ -234,7 +271,7 @@ class SilentGather(GatherOptions):
             if type(valid_values) is list:
                 if prop_value not in valid_values:
 
-                    # Just extra formatting to match what is visisble in toml file for strings
+                    # Just extra formatting to match what is visible in toml file for strings
                     if type(prop_value) is str:
                         prop_value = f"\"{prop_value}\""
 
@@ -256,6 +293,15 @@ class SilentGather(GatherOptions):
                     error = f"Incorrect/missing parameter set in silent install file -  {prop_key}={prop_value} | Valid values - {valid_values}"
                     self._error_list.append(error)
                     return False
+
+            elif type(valid_values) is str:
+                if valid_values == "url":
+                    # Check if the url is valid
+                    if prop_value is None or not prop_value.endswith(".well-known/openid-configuration"):
+                        error = f"URL is empty or invalid in silent install file -  {prop_key}={prop_value} | Valid values - ends with .well-known/openid-configuration"
+                        self._error_list.append(error)
+                        return False
+
             return True
 
         except Exception as e:
@@ -264,9 +310,17 @@ class SilentGather(GatherOptions):
 
     # Return the count of ldap to use
     def __find_ldap_count(self):
-        max_ldap = 1
+        num_ldap = 0
         for key in self._envfile:
             # Parse the keys with more than 4 characters ie. LDAP2; LDAP3
-            if "LDAP" in key and len(key) > 4:
-                max_ldap = max(max_ldap, int(key[4:]))
-        return max_ldap
+            if "LDAP" in key:
+                num_ldap += 1
+        return num_ldap
+
+    def __find_idp_count(self):
+        num_idp = 0
+        for key in self._envfile:
+            # Parse the keys with more than 4 characters ie. IDP2; IDP3
+            if "IDP" in key:
+                num_idp += 1
+        return num_idp

@@ -1,3 +1,43 @@
+## 2.4.2 (2023-12-03)
+
+### Feat
+
+- added parsing of server hosts to remove protocols
+- added validation of TLS protocol and cipher suites
+- added option to allow self-signed certificate validation
+- added support for SCIM
+- added support for External Share
+- added support for IDP's (Identity Providers)
+- added support for External Share deployment
+- adding support for restricted internet access
+- fips support
+- adding additional validation including user/group ldap search, cert validation and storage class validation
+
+### Fix
+
+- special characters are honored through TOML and Validation shell commands
+- adding fips flag for java jdbc commands
+- adding a check for java version in validate mode
+- fips related checks for ssl mode and db password length
+- fixed issue with reapplying existing CR file
+- allow users to apply k8s secrets and CR without all checks passing
+- added graceful failure when reading invalid TOML files
+- SSL secrets are only generated for components that are selected
+- updating ldap connection logic to use pyopenssl and remove jks truststore logic
+- added supported for .arm certs
+- fixed extra empty SSL secrets being generated for non-SSL enabled Database and LDAP's
+- fixed user and group filter properties for CR generation
+- validate UI changes and storage class validation update
+- changed Oracle non-SSL JDBC URL to updated format
+- fixed 'Issue Found' section for custom component files
+
+### Refactor
+
+- switched ldap validation logic to use ldap3 library
+- refactored UI for issues
+- refactor CR generation to account for new auth types
+- refactor custom feature support to allow for expansion
+
 ## 1.6.7 (2023-12-02)
 
 ### Fix

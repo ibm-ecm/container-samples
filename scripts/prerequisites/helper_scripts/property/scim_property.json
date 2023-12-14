@@ -1,0 +1,51 @@
+{
+  "DISPLAY_NAME": {
+    "value": "<Required>",
+    "comment": [
+      "Display name of SCIM provider."
+    ]
+  },
+  "SCIM_SSL_ENABLED": {
+    "value": "<Required>",
+    "comment": [
+      "Enable SSL for SCIM connection."
+    ]
+  },
+  "SCIM_SERVER": {
+    "value": "<Required>",
+    "comment": [
+      "The host of the SCIM server."
+    ]
+  },
+    "SCIM_PORT": {
+    "value": "<Required>",
+    "comment": [
+      "The port of the SCIM server."
+    ]
+  },
+    "SCIM_CONTEXT_PATH": {
+    "value": "<Required>",
+    "comment": [
+      "Context route of the SCIM endpoint."
+    ]
+  },
+  "TOKEN_ENDPOINT": {
+    "value": "<Required>",
+    "comment": [
+      "Endpoint to retrieve tokens."
+    ]
+  },
+
+  "SCIM_CLIENT_ID": {
+    "value": "<Required>",
+    "comment": [
+      "OIDC client ID."
+    ]
+  },
+  "SCIM_CLIENT_SECRET": {
+    "value": "<Required>",
+    "comment": [
+      "OIDC client secret."
+    ]
+  }
+}

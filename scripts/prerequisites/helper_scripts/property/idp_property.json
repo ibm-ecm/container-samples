@@ -1,0 +1,89 @@
+{
+  "PROVIDER_NAME": {
+    "value": "<Required>",
+    "comment": [
+      "Name used within the redirect URL."
+    ]
+  },
+  "DISPLAY_NAME": {
+    "value": "<Required>",
+    "comment": [
+      "Sign-in button display name."
+    ]
+  },
+  "DISCOVERY_ENDPOINT": {
+    "value": "<Required>",
+    "comment": [
+      "OIDC discovery endpoint."
+    ]
+  },
+  "CLIENT_ID": {
+    "value": "<Required>",
+    "comment": [
+      "OIDC client ID."
+    ]
+  },
+  "CLIENT_SECRET": {
+    "value": "<Required>",
+    "comment": [
+      "OIDC client secret."
+    ]
+  },
+  "VALIDATION_METHOD": {
+    "value": "<Required>",
+    "comment": [
+      "Method of token validation.",
+        "Valid values are 'introspect' or 'userinfo'."
+    ]
+  },
+  "USER_IDENTIFIER": {
+    "value": "<Required>",
+    "comment": [
+      "Principle user JSON ID token attribute."
+    ]
+  },
+  "UNIQUE_USER_IDENTIFIER": {
+    "value": "<Required>",
+    "comment": [
+      "Unique user JSON ID token attribute."
+    ]
+  },
+  "USER_IDENTIFIER_TO_CREATE_SUBJECT": {
+    "value": "<Required>",
+    "comment": [
+      "Claim that represent a unique user."
+    ]
+  },
+  "ISSUER": {
+    "value": "<Required>",
+    "comment": [
+      "IDP Issuer."
+    ]
+  },
+  "TOKEN_ENDPOINT": {
+    "value": "<Required>",
+    "comment": [
+      "Endpoint to retrieve tokens."
+    ]
+  },
+  "INTROSPECT_ENDPOINT": {
+    "value": "<Required>",
+    "comment": [
+      "Endpoint to retrieve info about a token.",
+      "This is only required if the validation method is set to 'introspect'."
+    ]
+  },
+  "USERINFO_ENDPOINT": {
+    "value": "<Required>",
+    "comment": [
+      "Endpoint to retrieve info about the user.",
+        "This is only required if the validation method is set to 'userinfo'."
+    ]
+  },
+  "REVOCATION_ENDPOINT": {
+    "value": "<Required>",
+    "comment": [
+      "Endpoint to revoke tokens."
+    ]
+  }
+}

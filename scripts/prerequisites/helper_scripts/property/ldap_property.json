@@ -14,7 +14,7 @@
   "LDAP_SERVER": {
     "value": "<Required>",
     "comment": [
-      "The name of the LDAP server to connect"
+      "The host of the LDAP server."
     ]
   },
   "LDAP_PORT": {

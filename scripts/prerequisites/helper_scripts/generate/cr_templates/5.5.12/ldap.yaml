@@ -1,0 +1,73 @@
+spec:
+  ## The beginning section of LDAP configuration for FNCM
+  ldap_configuration:
+    ## The possible values are: "IBM Security Directory Server" 
+    ## or "Microsoft Active Directory" 
+    ## or "NetIQ eDirectory" 
+    ## or "Oracle Internet Directory"
+    ## or "Oracle Directory Server Enterprise Edition"
+    ## or "Oracle Unified Directory"
+    ## or "CA eTrust"
+    lc_selected_ldap_type: "<Required>"
+
+    ## The lc_ldap_precheck parameter is used to enable or disable LDAP connection check.
+    ## If set to "true", then LDAP connection check will be enabled.
+    ## if set to "false", then LDAP connection check will not be enabled.
+    lc_ldap_precheck: true
+
+    ## The name of the LDAP server to connect
+    lc_ldap_server: "<Required>"
+
+    ## The port of the LDAP server to connect.  Some possible values are: 389, 636, etc.
+    lc_ldap_port: "<Required>"
+
+    ## The LDAP bind secret for LDAP authentication.  The secret is expected to have ldapUsername and ldapPassword keys.  Refer to IBM Documentation for more info.
+    lc_bind_secret: ldap-bind-secret
+
+    ## The LDAP base DN.  For example, "dc=example,dc=com", "dc=abc,dc=com", etc
+    lc_ldap_base_dn: "<Required>"
+
+    ## Enable SSL/TLS for LDAP communication. Refer to IBM Documentation for more info.
+    lc_ldap_ssl_enabled: true
+
+    ## The name of the secret that contains the LDAP SSL/TLS certificate.
+    lc_ldap_ssl_secret_name: "<Required>"
+
+    ## The LDAP user name attribute. Semicolon-separated list that must include the first RDN user distinguished names. One possible value is "*:uid" for TDS and "user:sAMAccountName" for AD. Refer to IBM Documentation for more info.
+    lc_ldap_user_name_attribute: "<Required>"
+
+    ## The LDAP user display name attribute. One possible value is "cn" for TDS and "sAMAccountName" for AD. Refer to IBM Documentation for more info.
+    lc_ldap_user_display_name_attr: "<Required>"
+
+    ## The LDAP group base DN.  For example, "dc=example,dc=com", "dc=abc,dc=com", etc
+    lc_ldap_group_base_dn: "<Required>"
+
+    ## The LDAP group name attribute.  One possible value is "*:cn" for TDS and "*:cn" for AD. Refer to IBM Documentation for more info.
+    lc_ldap_group_name_attribute: "*:cn"
+
+    ## The LDAP group display name attribute.  One possible value for both TDS and AD is "cn". Refer to IBM Documentation for more info.
+    lc_ldap_group_display_name_attr: "cn"
+
+    ## The LDAP group membership search filter string.  One possible value is "(|(&(objectclass=groupofnames)(member={0}))(&(objectclass=groupofuniquenames)(uniquemember={0})))" for TDS and AD
+    lc_ldap_group_membership_search_filter: "<Required>"
+
+    ## The LDAP group membership ID map.  One possible value is "groupofnames:member" for TDS and "memberOf:member" for AD.
+    lc_ldap_group_member_id_map: "<Required>"
+
+    ad:
+      lc_ad_gc_host: "<Required>"
+      lc_ad_gc_port: "<Required>"
+      lc_user_filter: "(&(sAMAccountName=%v)(objectcategory=user))"
+      lc_group_filter: "(&(cn=%v)(objectcategory=group))"
+    tds:
+      lc_user_filter: "(&(cn=%v)(objectclass=person))"
+      lc_group_filter: "(&(cn=%v)(|(objectclass=groupofnames)(objectclass=groupofuniquenames)(objectclass=groupofurls)))"
+    ed:
+      lc_user_filter: "(&(objectclass=Person)(cn=%v))"
+      lc_group_filter: "(&(objectclass=groupOfNames)(cn=%v))"
+    oracle:
+      lc_user_filter: "(&(objectClass=person)(cn=%v))"
+      lc_group_filter: "(&(objectClass=group)(cn=%v))"
+    caet:
+      lc_user_filter: "(&(objectClass=person)(cn=%v))"
+      lc_group_filter: "(&(objectClass=group)(cn=%v))"

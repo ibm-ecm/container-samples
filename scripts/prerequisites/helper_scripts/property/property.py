@@ -39,10 +39,12 @@ class Property:
         self._property_folder = os.path.join(self._working_directory, 'propertyFile')
         self._ssl_directory_folder = os.path.join(self._property_folder, 'ssl-certs')
         self._icc_directory_folder = os.path.join(self._property_folder, 'icc')
+        self._trusted_certs_directory_folder = os.path.join(self._property_folder, 'ssl-certs', 'trusted-certs')
 
         # Create a dictionary of properties
         self._db_properties = self.__read_json("db_property.json")
         self._ldap_properties = self.__read_json("ldap_property.json")
+        self._idp_properties = self.__read_json("idp_property.json")
         self._common_credentials = self.__read_json("common_credentials.json")
         self._p8_credentials = self.__read_json("p8_credentials.json")
         self._icn_credentials = self.__read_json("icn_credentials.json")
@@ -56,6 +58,7 @@ class Property:
         self._sendmail_custom_properties = self.__read_json("sendmail_customproperty.json")
         self._icc_custom_properties = self.__read_json("icc_customproperty.json")
         self._tm_custom_properties = self.__read_json("tm_customproperty.json")
+        self._scim_properties = self.__read_json("scim_property.json")
 
     def move_ldap(self, path, move_dict, ldap_properties_list):
         if move_dict["LDAP"]:
@@ -136,6 +139,12 @@ class Property:
             if prop['@name'] == "JDBCDataSourceXAName":
                 db_properties[key]["DATASOURCE_NAME_XA"]['value'] = prop['value']
 
+            if prop['@name'] == "TableSpaceName":
+                db_properties[key]["TABLESPACE_NAME"]['value'] = prop['value']
+
+            if prop['@name'] == "DatabaseSchema":
+                db_properties[key]["SCHEMA_NAME"]['value'] = prop['value']
+
         if 'ORACLE_JDBC_URL' in db_properties[key]:
             jdbc_url = self.__create_oracle_jdbc_url(db_properties, key)
             db_properties[key]["ORACLE_JDBC_URL"]['value'] = jdbc_url
@@ -162,6 +171,7 @@ class Property:
     def create_property_structure(self):
         self.__create_property_folder()
         self.__create_ssl_folder()
+        self.__create_trusted_certs_folder()
         if self._gather.icc_support:
             self.__create_icc_folder()
 
@@ -177,13 +187,18 @@ class Property:
         if not os.path.exists(self._icc_directory_folder):
             os.makedirs(self._icc_directory_folder)
 
+    # Create a method that makes a directory path for icc support
+    def __create_trusted_certs_folder(self):
+        # Create a directory if it does not exist
+        if not os.path.exists(self._trusted_certs_directory_folder):
+            os.makedirs(self._trusted_certs_directory_folder)
+
     # Create a method that creates ssl folders
     def __create_ssl_folder(self):
+        # Create a directory if it does not exist
+        if not os.path.exists(self._ssl_directory_folder):
+            os.makedirs(self._ssl_directory_folder)
         if len(self._gather.ssl_directory_list) > 0:
-            # Create a directory if it does not exist
-            if not os.path.exists(self._ssl_directory_folder):
-                os.makedirs(self._ssl_directory_folder)
-
             for directory in self._gather.ssl_directory_list:
                 # Create a directory if it does not exist
                 if not os.path.exists(os.path.join(self._ssl_directory_folder, directory)):
@@ -201,11 +216,35 @@ class Property:
             deployment_dict['FNCM_Version']['value'] = self._gather.fncm_version
             deployment_dict['LICENSE']['value'] = self._gather.license_model
             deployment_dict['PLATFORM']['value'] = self._gather.platform
+            if self._gather.fncm_version in ["5.5.8", "5.5.11"]:
+                deployment_dict.pop('FIPS_SUPPORT')
+                deployment_dict.pop('RESTRICTED_INTERNET_ACCESS')
+            else:
+                deployment_dict['FIPS_SUPPORT']['value'] = self._gather.fips_support
+                deployment_dict['RESTRICTED_INTERNET_ACCESS']['value'] = self._gather.egress_support
             return deployment_dict
 
         except Exception as e:
             self._logger.exception(
-                "Exception from gather script in create_db_propertyfile function -  {}".format(str(e)))
+                "Exception from property script in __populate_deployment_dict function -  {}".format(str(e)))
+
+    def __populate_scim_dict(self):
+        try:
+            # Create a copy of the user group dictionary
+            scim_dict = copy.deepcopy(self._scim_properties)
+            scim_dict['SCIM_ENABLE']['value'] = self._gather.scim_support
+            scim_dict['SCIM_ENABLE']['value'] = self._gather.scim_support
+            scim_dict['SCIM_ENABLE']['value'] = self._gather.scim_support
+            scim_dict['SCIM_ENABLE']['value'] = self._gather.scim_support
+            scim_dict['SCIM_ENABLE']['value'] = self._gather.scim_support
+            scim_dict['SCIM_ENABLE']['value'] = self._gather.scim_support
+            scim_dict['SCIM_ENABLE']['value'] = self._gather.scim_support
+
+            return scim_dict
+
+        except Exception as e:
+            self._logger.exception(
+                "Exception from property script in __populate_scim_dict function -  {}".format(str(e)))
 
     def __populate_component_dict(self):
         try:
@@ -215,7 +254,7 @@ class Property:
             # for 5.5.8 cpe graphql and ban are a must and hence wont be in the toml files
             if self._gather.fncm_version == "5.5.8":
                 if len(self._gather.optional_components) > 0:
-                    optional_components = ["css", "cmis", "tm"]
+                    optional_components = ["css", "cmis", "tm", "es"]
                     for component in optional_components:
                         if component in self._gather.optional_components:
                             component_dict[component.upper()]['value'] = True
@@ -225,7 +264,7 @@ class Property:
             # for other releases cpe graphql and ban are optional and will be in toml files
             else:
                 if len(self._gather.optional_components) > 0:
-                    ecm_components = ["cpe", "graphql", "ban", "css", "cmis", "tm"]
+                    ecm_components = ["cpe", "graphql", "ban", "css", "cmis", "tm", "es"]
                     for component in ecm_components:
                         if component in self._gather.optional_components:
                             component_dict[component.upper()]['value'] = True
@@ -234,7 +273,7 @@ class Property:
 
         except Exception as e:
             self._logger.exception(
-                "Exception from gather script in create_db_propertyfile function -  {}".format(str(e)))
+                "Exception from property script in __populate_component_dict function -  {}".format(str(e)))
 
     def create_deployment_propertyfile(self):
         # Create a file
@@ -246,6 +285,9 @@ class Property:
         deployment_properties = self.__populate_deployment_dict()
 
         for key, value in deployment_properties.items():
+            if self._gather.fncm_version in ["5.5.8", "5.5.11"] and key in ["FIPS_SUPPORT",
+                                                                            "RESTRICTED_INTERNET_ACCESS"]:
+                continue
             self.__write_property(doc=deployment_doc,
                                   key=key,
                                   value=value['value'],
@@ -300,54 +342,70 @@ class Property:
     def create_custom_component_propertyfile(self):
         # Create a file
         custom_property_doc = document()
+
+        ban_features = [self._gather.sendmail_support]
+
+        # compute if header section needs to generated
         # this section of the file is for sendmail support details
-        if self._gather.sendmail_support:
+        if any(ban_features):
             custom_property_doc.add(comment("####################################################"))
             custom_property_doc.add(comment("##          IBM Content Navigator Options         ##"))
             custom_property_doc.add(comment("####################################################"))
-            ban_section = table()
-            for key, value in self._sendmail_custom_properties.items():
-                self.__write_property_table(section=ban_section,
-                                            key=key,
-                                            value=value['value'],
-                                            note=value['comment'])
 
-            custom_property_doc.add(nl())
-            custom_property_doc.add("BAN", ban_section)
-            custom_property_doc.add(nl())
+            if self._gather.sendmail_support:
+                sendmail_section = table()
+                for key, value in self._sendmail_custom_properties.items():
+                    self.__write_property_table(section=sendmail_section,
+                                                key=key,
+                                                value=value['value'],
+                                                note=value['comment'])
 
-        # this section of the file is for sendmail support details
-        if self._gather.icc_support:
+                custom_property_doc.add(nl())
+                custom_property_doc.add("SENDMAIL", sendmail_section)
+                custom_property_doc.add(nl())
+
+        # compute if header section needs to generated
+        css_features = [self._gather.icc_support]
+
+        # this section of the file is for ICC for Email support details
+        if any(css_features):
             custom_property_doc.add(nl())
             custom_property_doc.add(comment("####################################################"))
             custom_property_doc.add(comment("##      IBM Content Search Services Options       ##"))
             custom_property_doc.add(comment("####################################################"))
-            css_section = table()
-            for key, value in self._icc_custom_properties.items():
-                self.__write_property_table(section=css_section,
-                                            key=key,
-                                            value=value['value'],
-                                            note=value['comment'])
 
-            custom_property_doc.add(nl())
-            custom_property_doc.add("CSS", css_section)
-            custom_property_doc.add(nl())
+            if self._gather.icc_support:
+                icc_section = table()
+                for key, value in self._icc_custom_properties.items():
+                    self.__write_property_table(section=icc_section,
+                                                key=key,
+                                                value=value['value'],
+                                                note=value['comment'])
 
-        # this section of the file is for sendmail support details
-        if self._gather.tm_custom_groups:
+                custom_property_doc.add(nl())
+                custom_property_doc.add("ICC", icc_section)
+                custom_property_doc.add(nl())
+
+        # compute if header section needs to generated
+        tm_features = [self._gather.tm_custom_groups]
+        # this section of the file is for taskmanager custom groups support details
+        if any(tm_features):
             custom_property_doc.add(comment("####################################################"))
             custom_property_doc.add(comment("##            IBM Task Manager Options            ##"))
             custom_property_doc.add(comment("####################################################"))
-            tm_section = table()
-            for key, value in self._tm_custom_properties.items():
-                self.__write_property_table(section=tm_section,
-                                            key=key,
-                                            value=value['value'],
-                                            note=value['comment'])
 
-            custom_property_doc.add(nl())
-            custom_property_doc.add("TM", tm_section)
-            custom_property_doc.add(nl())
+            if self._gather.tm_custom_groups:
+                custom_groups_section = table()
+                for key, value in self._tm_custom_properties.items():
+                    self.__write_property_table(section=custom_groups_section,
+                                                key=key,
+                                                value=value['value'],
+                                                note=value['comment'])
+
+                custom_property_doc.add(nl())
+                custom_property_doc.add("PERMISSIONS", custom_groups_section)
+                custom_property_doc.add(nl())
+
         # Create a file
         f = TOMLFile(os.path.join(self._property_folder, 'fncm_components_options.toml'))
         f.write(custom_property_doc)
@@ -597,6 +655,8 @@ class Property:
             db_properties_dict['GCD'].pop('DATABASE_SSL_ENABLE')
             db_properties_dict['GCD'].pop('OS_LABEL')
             db_properties_dict['GCD'].pop('SSL_MODE')
+            db_properties_dict['GCD'].pop('TABLESPACE_NAME')
+            db_properties_dict['GCD'].pop('SCHEMA_NAME')
 
             db_properties_dict['GCD']['DATABASE_PORT']['value'] = db_port
             db_properties_dict['GCD']['DATASOURCE_NAME']['value'] = "FNGCDDS"
@@ -611,6 +671,8 @@ class Property:
             db_properties_dict['ICN'].pop('OS_LABEL')
             db_properties_dict['ICN'].pop('SSL_MODE')
             db_properties_dict['ICN'].pop('DATASOURCE_NAME_XA')
+            db_properties_dict['ICN']['TABLESPACE_NAME']['value'] = "ICNDB"
+            db_properties_dict['ICN']['SCHEMA_NAME']['value'] = "ICNDB"
             db_properties_dict['ICN']['DATABASE_PORT']['value'] = db_port
             db_properties_dict['ICN']['DATASOURCE_NAME']['value'] = "ECMClientDS"
             if self._gather.db_type == 'oracle':
@@ -624,6 +686,8 @@ class Property:
                     db_properties_dict['OS'].pop('DATABASE_SSL_ENABLE')
                     db_properties_dict['OS']['OS_LABEL']['value'] = 'os'
                     db_properties_dict['OS'].pop('SSL_MODE')
+                    db_properties_dict['OS'].pop('TABLESPACE_NAME')
+                    db_properties_dict['OS'].pop('SCHEMA_NAME')
                     db_properties_dict['OS']['DATABASE_PORT']['value'] = db_port
                     db_properties_dict['OS']['DATASOURCE_NAME']['value'] = "FNOS1DS"
                     db_properties_dict['OS']['DATASOURCE_NAME_XA']['value'] = "FNOS1DSXA"
@@ -635,6 +699,8 @@ class Property:
                     db_properties_dict[f"OS{i + 1}"].pop('DATABASE_SSL_ENABLE')
                     db_properties_dict[f"OS{i + 1}"]['OS_LABEL']['value'] = f"os{i + 1}"
                     db_properties_dict[f"OS{i + 1}"].pop('SSL_MODE')
+                    db_properties_dict[f"OS{i + 1}"].pop('TABLESPACE_NAME')
+                    db_properties_dict[f"OS{i + 1}"].pop('SCHEMA_NAME')
                     db_properties_dict[f"OS{i + 1}"]['DATABASE_PORT']['value'] = db_port
                     db_properties_dict[f"OS{i + 1}"]['DATASOURCE_NAME']['value'] = f"FNOS{i + 1}DS"
                     db_properties_dict[f"OS{i + 1}"]['DATASOURCE_NAME_XA']['value'] = f"FNOS{i + 1}DSXA"
@@ -652,19 +718,71 @@ class Property:
     def __create_oracle_jdbc_url(self, db_properties_dict, key) -> str:
         try:
             if self._gather.db_ssl and self._gather.db_type == 'oracle':
-                jdbc_url = 'jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCPS)(HOST={host})(PORT=2484))(' \
+                jdbc_url = 'jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCPS)(HOST={host})(PORT={port}))(' \
                            'CONNECT_DATA=(SERVICE_NAME={dbname})))'.format(
                     host=db_properties_dict[key]['DATABASE_SERVERNAME']['value'],
-                    dbname=db_properties_dict[key]['DATABASE_NAME']['value'])
+                    dbname=db_properties_dict[key]['DATABASE_NAME']['value'],
+                    port=db_properties_dict[key]['DATABASE_PORT']['value'])
             else:
-                jdbc_url = 'jdbc:oracle:thin:@{host}:1521:{dbname}'.format(
+                jdbc_url = 'jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={host})(PORT={port}))(' \
+                           'CONNECT_DATA=(SERVICE_NAME={dbname})))'.format(
                     host=db_properties_dict[key]['DATABASE_SERVERNAME']['value'],
-                    dbname=db_properties_dict[key]['DATABASE_NAME']['value'])
+                    dbname=db_properties_dict[key]['DATABASE_NAME']['value'],
+                    port=db_properties_dict[key]['DATABASE_PORT']['value'])
             return jdbc_url
 
         except Exception as e:
             self._logger.exception(
                 "Exception from gather script in create_oracle_jdbc_url function -  {}".format(str(e)))
+
+    def create_idp_propertyfile(self, idp_properties_list):
+        try:
+
+            # Create a file
+            idp_doc = document()
+
+            idp_doc.add(nl())
+            idp_doc.add(comment("####################################################"))
+            idp_doc.add(comment("##                  IDP Properties                ##"))
+            idp_doc.add(comment("####################################################"))
+
+            idp_section = table()
+
+            suffix = 'IDP'
+            # loop through the ldap_properties dictionary
+            for key, value in idp_properties_list[0].items():
+                self.__write_property_table(section=idp_section,
+                                            key=key,
+                                            value=value['value'],
+                                            note=value['comment'])
+
+            idp_doc.add(suffix, idp_section)
+
+            for i in range(1, self._gather.idp_number):
+                suffix = f"IDP{i + 1}"
+
+                idp_section = table()
+
+                idp_doc.add(nl())
+                idp_doc.add(comment("####################################################"))
+                idp_doc.add(comment(f"##               {suffix} Properties             ##"))
+                idp_doc.add(comment("####################################################"))
+
+                # loop through the db_properties dictionary
+                for key, value in idp_properties_list[i].items():
+                    self.__write_property_table(section=idp_section,
+                                                key=key,
+                                                value=value['value'],
+                                                note=value['comment'])
+
+                idp_doc.add(suffix, idp_section)
+
+            f = TOMLFile(os.path.join(self._property_folder, 'fncm_identity_provider.toml'))
+            f.write(idp_doc)
+
+        except Exception as e:
+            self._logger.exception(
+                "Exception from gather script in create_idp_propertyfile function -  {}".format(str(e)))
 
     # Create a method that creates a ldap property file
     def create_ldap_propertyfile(self, ldap_properties_list):
@@ -747,8 +865,101 @@ class Property:
             else:
                 value = string(value, multiline=True)
 
-
         section.add(key, value)
+
+    def populate_idp_propertyfile(self):
+        try:
+
+            idp_properties_list = []
+
+            for i in range(self._gather.idp_number):
+                idp_dict = self._gather.idp_info[i].to_dict()
+                idp_prop = copy.deepcopy(self._idp_properties)
+
+                idp_prop['PROVIDER_NAME']['value'] = idp_dict['id']
+                idp_prop['DISPLAY_NAME']['value'] = "{} SSO Login".format(idp_dict['id'])
+
+                if idp_dict['discovery_enabled']:
+                    idp_prop['DISCOVERY_ENDPOINT']['value'] = idp_dict["discovery_url"]
+                else:
+                    idp_prop.pop('DISCOVERY_ENDPOINT')
+
+                if idp_dict['token_url']:
+                    idp_prop['TOKEN_ENDPOINT']['value'] = idp_dict['token_url']
+
+                if idp_dict["issuer"]:
+                    idp_prop['ISSUER']['value'] = idp_dict["issuer"]
+
+                if idp_dict['introspect_url'] and idp_dict['validation_method'] == "introspect":
+                    idp_prop['INTROSPECT_ENDPOINT']['value'] = idp_dict['introspect_url']
+                    idp_prop.pop('USERINFO_ENDPOINT')
+
+                if idp_dict['userinfo_url'] and idp_dict['validation_method'] == "userinfo":
+                    idp_prop['USERINFO_ENDPOINT']['value'] = idp_dict['userinfo_url']
+                    idp_prop.pop('INTROSPECT_ENDPOINT')
+
+                if idp_dict['revoke_url']:
+                    idp_prop['REVOCATION_ENDPOINT']['value'] = idp_dict['revoke_url']
+
+                idp_prop['VALIDATION_METHOD']['value'] = idp_dict['validation_method']
+                idp_prop['USER_IDENTIFIER']['value'] = idp_dict['user_identifier']
+                idp_prop['UNIQUE_USER_IDENTIFIER']['value'] = idp_dict['unique_user_identifier']
+                idp_prop['USER_IDENTIFIER_TO_CREATE_SUBJECT']['value'] = idp_dict['user_identifier_to_sub']
+
+                idp_properties_list.append(idp_prop)
+
+            return idp_properties_list
+
+
+        except Exception as e:
+            self._logger.exception(
+                "Exception from gather script in create_ldap_propertyfile function -  {}".format(str(e)))
+
+    def create_scim_propertyfile(self, scim_properties):
+        try:
+
+            # Create a file
+            scim_doc = document()
+
+            scim_doc.add(nl())
+            scim_doc.add(comment("####################################################"))
+            scim_doc.add(comment("##                  SCIM Properties               ##"))
+            scim_doc.add(comment("####################################################"))
+
+            scim_section = table()
+
+            suffix = 'SCIM'
+            # loop through the ldap_properties dictionary
+            for key, value in scim_properties.items():
+                self.__write_property_table(section=scim_section,
+                                            key=key,
+                                            value=value['value'],
+                                            note=value['comment'])
+
+            scim_doc.add(suffix, scim_section)
+
+            f = TOMLFile(os.path.join(self._property_folder, 'fncm_scim_server.toml'))
+            f.write(scim_doc)
+
+        except Exception as e:
+            self._logger.exception(
+                "Exception from gather script in create_scim_propertyfile function -  {}".format(str(e)))
+
+    def populate_scim_propertyfile(self):
+        try:
+
+            idp_dict = self._gather.idp_info[0].to_dict()
+            scim_prop = copy.deepcopy(self._scim_properties)
+
+            scim_prop['DISPLAY_NAME']['value'] = "SCIM"
+            scim_prop['SCIM_SSL_ENABLED']['value'] = True
+            scim_prop['TOKEN_ENDPOINT']['value'] = idp_dict["token_url"]
+
+            return scim_prop
+
+        except Exception as e:
+            self._logger.exception(
+                "Exception from gather script in populate_scim_propertyfile function -  {}".format(str(e)))
 
     def populate_ldap_propertyfile(self):
         try:

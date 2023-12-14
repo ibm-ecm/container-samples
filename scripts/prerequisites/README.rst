@@ -5,7 +5,7 @@ Introduction
 ------------
 
 Welcome to the FileNet Deployment Prerequisite Script Installer! This readme provides instructions for installing and using the script that streamlines the preparation phase for deploying a FileNet Standalone system in containerized environments.
-For more details on the script and its usage, please refer to the provided `documentation <https://www.ibm.com/support/pages/node/6999079>`_.
+For more details on the script and its usage, please refer to the provided `documentation <https://www.ibm.com/docs/SSNW2F_5.5.12/com.ibm.p8.containers.doc/containers_tsk_script_prep.htm>`_.
 
 Prerequisites
 -------------
@@ -13,12 +13,14 @@ Prerequisites
 Before proceeding with the installation, please ensure that you have the following prerequisites in place:
 
 - Operating System: Windows, Linux, or macOS
-- Java 8, Semeru 11: Installed and properly configured on your system
+- Java 8, Semeru 11, Semeru 17: Installed and properly configured on your system
 - Kubernetes: Installed and properly configured on your system
 - Python: Installed on your system (Python 3.8 or later)
 - FileNet Standalone CASE Package: Downloaded and available for installation
 
-**Note:** The FileNet Deployment Prerequisites Script can also be run from the FileNet Standalone Operator, where all the prerequisites are already in place.
+    .. note::
+
+        The FileNet Deployment Prerequisites Script can also be run from the FileNet Standalone Operator, where all the prerequisites are already in place.
 
 Installation Steps
 ------------------
@@ -87,7 +89,7 @@ Once the installation is complete, you can use the FileNet Deployment Preparatio
 Troubleshooting
 ---------------
 
-If you encounter any issues during the installation or usage of the FileNet Deployment Preparation Script, please refer to the troubleshooting section in the provided `documentation <https://www.ibm.com/support/pages/node/6999079>`_. Additionally, feel free to reach out to our support team for further assistance.
+If you encounter any issues during the installation or usage of the FileNet Deployment Preparation Script, please refer to the troubleshooting section in the provided `documentation <https://www.ibm.com/docs/SSNW2F_5.5.12/com.ibm.p8.containers.doc/containers_tsk_script_prep.htm>`_. Additionally, feel free to reach out to our support team for further assistance.
 
 Conclusion
 ----------

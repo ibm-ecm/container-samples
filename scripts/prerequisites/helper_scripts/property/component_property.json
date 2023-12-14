@@ -34,5 +34,11 @@
     "comment": [
       "Deploy Task Manager (TM)."
     ]
+  },
+  "ES": {
+    "value": false,
+    "comment": [
+      "Deploy External Share (ES)."
+    ]
   }
 }

@@ -10,36 +10,36 @@
 ###############################################################################
 
 import inspect
-import os
-import shutil
+import re
+import ssl
 import string
 import subprocess
 import time
+from socket import socket, gaierror
 
+import ldap3
+import requests
 import typer
-from cryptography import x509
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import serialization
-from rich.panel import Panel
+from OpenSSL import SSL
+from ldap3 import Server, Connection, ALL
+from ldap3.core.exceptions import LDAPBindError
 from rich import print
-from rich.syntax import Syntax
-from rich.text import Text
+from urllib.parse import urlparse
 
-from helper_scripts.property.read_prop import *
-from helper_scripts.utilities.utilites import collect_visible_files
+from helper_scripts.utilities.utilites import *
+
+# Function to remove protocol from URL
+def remove_protocol(url):
+    hostname = urlparse(url).hostname
+    if hostname is None:
+        hostname = url
+    return hostname
 
 
 class Validate:
     # Is commandline keytool command present in this env?
     # None = Unchecked; True = Present; False = Not present
     _keytool_present = None
-
-    # Default paths for property files
-    # Used for validating property files in their preset location
-    # without passing in an ReadProp dictionary object in init
-    _DEFAULT_DB_PROP_PATH = os.path.join(os.getcwd(), "propertyFile", "fncm_db_server.toml")
-    _DEFAULT_LDAP_PROP_PATH = os.path.join(os.getcwd(), "propertyFile", "fncm_ldap_server.toml")
-    _DEFAULT_DEPLOY_PROP_PATH = os.path.join(os.getcwd(), "propertyFile", "fncm_deployment.toml")
 
     _STORAGE_CLASS_TEMPLATE_YAML = os.path.join(os.getcwd(), "helper_scripts", "validate", "templates",
                                                 "storage_class_sample.yaml")
@@ -50,30 +50,39 @@ class Validate:
 
     _TMP_DIR = os.path.join(os.getcwd(), "helper_scripts", "validate", "tmp")
 
+    _CIPHERS = bytes(
+        "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256",
+        'utf-8')
+
     # Cannot default prop to a ReadProp object because Readprop requires a logger to be pased in
-    def __init__(self, logger, db_prop=None,
+    def __init__(self, logger,
+                 db_prop=None,
                  ldap_prop=None,
-                 deploy_prop=None):
-        prop_obj = None
+                 deploy_prop=None,
+                 idp_prop=None,
+                 component_prop=None,
+                 user_group_prop=None,
+                 self_signed=False):
+
+        self.component_prop_present = False
         if db_prop:
             self._db_prop = db_prop
-        else:
-            prop_obj = ReadPropDb(self._DEFAULT_DB_PROP_PATH, logger)
-            self._db_prop = prop_obj.to_dict()
 
         if ldap_prop:
             self._ldap_prop = ldap_prop
-        else:
-            prop_obj = ReadPropLdap(self._DEFAULT_LDAP_PROP_PATH, logger)
-            self._ldap_prop = prop_obj.to_dict()
 
         if deploy_prop:
             self._deploy_prop = deploy_prop
-        else:
-            prop_obj = ReadProp(self._DEFAULT_DEPLOY_PROP_PATH, logger)
-            self._deploy_prop = prop_obj.to_dict()
 
-        self.required_fields = prop_obj.required_fields
+        if idp_prop:
+            self._idp_prop = idp_prop
+
+        if component_prop:
+            self._component_prop = component_prop
+            self.component_prop_present = True
+
+        if user_group_prop:
+            self._user_group_prop = user_group_prop
 
         if self._deploy_prop["FNCM_Version"] == "5.5.8":
             self._JDBC_DIR = os.path.join(self._JDBC_DIR, "java8")
@@ -96,6 +105,65 @@ class Validate:
         self.missing_tools = self.check_env_util()
 
         self.is_validated = {}
+        self.roundtriptime = 0
+
+        self._self_signed = self_signed
+
+        self._users_dict = self.get_users()
+        self._groups_dict = self.get_groups()
+        if "FIPS_SUPPORT" in self._deploy_prop.keys():
+            self.fips_enabled = self._deploy_prop["FIPS_SUPPORT"]
+        else:
+            self.fips_enabled = False
+
+    # Create getters and setters for all properties
+    @property
+    def db_prop(self):
+        return self._db_prop
+
+    @db_prop.setter
+    def db_prop(self, db_prop):
+        self._db_prop = db_prop
+
+    @property
+    def ldap_prop(self):
+        return self._ldap_prop
+
+    @ldap_prop.setter
+    def ldap_prop(self, ldap_prop):
+        self._ldap_prop = ldap_prop
+
+    @property
+    def deploy_prop(self):
+        return self._deploy_prop
+
+    @deploy_prop.setter
+    def deploy_prop(self, deploy_prop):
+        self._deploy_prop = deploy_prop
+
+    @property
+    def idp_prop(self):
+        return self._idp_prop
+
+    @idp_prop.setter
+    def idp_prop(self, idp_prop):
+        self._idp_prop = idp_prop
+
+    @property
+    def component_prop(self):
+        return self._component_prop
+
+    @component_prop.setter
+    def component_prop(self, component_prop):
+        self._component_prop = component_prop
+
+    @property
+    def user_group_prop(self):
+        return self._user_group_prop
+
+    @user_group_prop.setter
+    def user_group_prop(self, user_group_prop):
+        self._user_group_prop = user_group_prop
 
     def check_env_util(self) -> list:
         missing_tools = []
@@ -106,6 +174,11 @@ class Validate:
         self._java_present = self.__is_cmd_present("java")
         if not self._java_present:
             missing_tools.append("java")
+
+        if self._java_present:
+            self._java_correct_version = self.__check_java_version()
+            if not self._java_correct_version:
+                missing_tools.append("java_version")
 
         self._kubectl_present = self.__is_cmd_present("kubectl")
         if not self._kubectl_present:
@@ -135,6 +208,27 @@ class Validate:
         if not self._java_present:
             raise typer.Exit(code=1)
 
+    def __check_java_version(self):
+        try:
+            java_version_output = subprocess.check_output(['java', '-version'], stderr=subprocess.STDOUT, text=True)
+            version_match = re.search(r'"(\d+\.\d+\.\d+)', java_version_output)
+            java_version = version_match.group(1) if version_match else "Unknown"
+            if java_version != 'Unknown':
+                if self.deploy_prop["FNCM_Version"] == "5.5.8":
+                    if int(java_version.split(".")[1]) != 8:
+                        return False
+                if self.deploy_prop["FNCM_Version"] == "5.5.11":
+                    if int(java_version.split(".")[0]) != 11:
+                        return False
+
+                if self.deploy_prop["FNCM_Version"] == "5.5.12":
+                    if int(java_version.split(".")[0]) != 17:
+                        return False
+            return True
+        except subprocess.CalledProcessError as e:
+            # If 'java -version' returns a non-zero exit code, print the error
+            return False
+            #raise typer.Exit(code=1)
     def __check_keytool(self):
         if not self._keytool_present:
             raise typer.Exit(code=1)
@@ -168,15 +262,54 @@ class Validate:
         return directory
 
     def validate_all_db(self, task3, progress):
-        progress.log(Panel.fit(Text("Validating GCD Database Connection", style="bold cyan")))
-        self.validate_db("GCD", task3, progress)
+        db_type = self._db_prop['DATABASE_TYPE']
+        if db_type == "postgresql":
+            max_transactions = Panel.fit(Text(
+                "Ensure Postgresql Max Transactions has been configured.\n"
+                "Please see https://www.ibm.com/docs/SSNW2F_5.5.12/com.ibm.p8.performance.doc/p8ppi308.htm.",
+                style="bold green"))
+            progress.log(max_transactions)
+            progress.log()
+        if db_type == "sqlserver":
+            xa_enabled = Panel.fit(Text(
+                "Ensure XA Transactions have been enabled.\n"
+                "Please see https://www.ibm.com/docs/SSNW2F_5.5.12/com.ibm.p8.planprepare.doc/p8ppi027.htm.",
+                style="bold green"))
+            progress.log(xa_enabled)
+            progress.log()
 
-        progress.log(Panel.fit(Text("Validating ICN Database Connection", style="bold cyan")))
-        self.validate_db("ICN", task3, progress)
+        if self._deploy_prop["FNCM_Version"] == "5.5.8":
+            # Check for reachability and authentication of DB Server
+            progress.log(Panel.fit(Text("Validating GCD Database Connection", style="bold cyan")))
+            progress.log()
+            self.validate_db("GCD", task3, progress)
 
-        for os_id in self._db_prop["_os_ids"]:
-            progress.log(Panel.fit(Text(f"Validating {os_id} Database Connection", style="bold cyan")))
-            self.validate_db(os_id, task3, progress)
+            for os_id in self._db_prop["_os_ids"]:
+                progress.log(Panel.fit(Text(f"Validating {os_id} Database Connection", style="bold cyan")))
+                progress.log()
+                self.validate_db(os_id, task3, progress)
+
+            progress.log(Panel.fit(Text("Validating ICN Database Connection", style="bold cyan")))
+            progress.log()
+            self.validate_db("ICN", task3, progress)
+        else:
+            if "CPE" in self._deploy_prop.keys():
+                if self._deploy_prop["CPE"]:
+                    # Check for reachability and authentication of DB Server
+                    progress.log(Panel.fit(Text("Validating GCD Database Connection", style="bold cyan")))
+                    progress.log()
+                    self.validate_db("GCD", task3, progress)
+
+                    for os_id in self._db_prop["_os_ids"]:
+                        progress.log(Panel.fit(Text(f"Validating {os_id} Database Connection", style="bold cyan")))
+                        progress.log()
+                        self.validate_db(os_id, task3, progress)
+
+            if "BAN" in self._deploy_prop.keys():
+                if self._deploy_prop["BAN"]:
+                    progress.log(Panel.fit(Text("Validating ICN Database Connection", style="bold cyan")))
+                    progress.log()
+                    self.validate_db("ICN", task3, progress)
 
     def parse_shell_command (self, parameter):
         # Create a function to escape any single quotes in the password
@@ -188,16 +321,30 @@ class Validate:
         return parameter
 
     def validate_db(self, db_label, task3, progress):
-        db_servername = self._db_prop[db_label]['DATABASE_SERVERNAME']
+        db_servername = remove_protocol(self._db_prop[db_label]['DATABASE_SERVERNAME'])
         db_port = self._db_prop[db_label]['DATABASE_PORT']
         db_name = self._db_prop[db_label]['DATABASE_NAME']
         db_user = self._db_prop[db_label]['DATABASE_USERNAME']
         db_pwd = self._db_prop[db_label]['DATABASE_PASSWORD']
         db_type = self._db_prop['DATABASE_TYPE']
+        ssl_enabled = self._db_prop['DATABASE_SSL_ENABLE']
 
         # Escape any single quotes in the password & username
         db_pwd = self.parse_shell_command(db_pwd)
         db_user = self.parse_shell_command(db_user)
+
+        connected = False
+        # TODO: Add PyOpenSSL support for postgres SSL connections
+        if db_type == "postgresql" and ssl_enabled:
+            connected = True
+        else:
+            connected = self.validate_server(progress=progress, server=db_servername, port=db_port, ssl_enabled=ssl_enabled,
+                                         display_rtt=False)
+
+        if not connected:
+            self.is_validated[db_label] = connected
+            progress.advance(task3)
+            return connected
 
         connected_str = Text("\nChecked DB connection for " \
                              + f"\"{db_name}\" " \
@@ -213,14 +360,14 @@ class Validate:
         else:
             class_path_delim_char = ':'
 
-        if self._db_prop['DATABASE_SSL_ENABLE']:
+        if ssl_enabled:
             cert_dir = os.path.join(os.getcwd(), "propertyFile", "ssl-certs", db_label.lower())
             self.__create_tmp_folder()
 
             if db_type == "db2":
                 cert = self.__get_file_from_folder(file_dir=cert_dir,
                                                    extensions=[".crt", ".cer", ".pem", ".cert"])
-                jar_cmd = "java -Duser.language=en -Duser.country=US -cp " \
+                jar_cmd = "java " + f"-Dsemeru.fips={self.fips_enabled} -Duser.language=en -Duser.country=US -cp " \
                           + f"\"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           + f"{self._DB_CONNECTION_JAR_PATH}\" " \
                           + f"DB2Connection -h '{db_servername}' " \
@@ -245,7 +392,7 @@ class Validate:
                                                                alias=f"cp4ba{db_type.upper()}Certs",
                                                                storetype="PKCS12",
                                                                truststore_pwd=truststore_pwd)
-                jar_cmd = "java -Duser.language=en -Duser.country=US -cp " \
+                jar_cmd = "java " + f"-Dsemeru.fips={self.fips_enabled} -Duser.language=en -Duser.country=US -cp " \
                           + f"\"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           + f"{self._DB_CONNECTION_JAR_PATH}\" " \
                           + f"OracleConnection -url \"{self._db_prop[db_label]['ORACLE_JDBC_URL']}\" " \
@@ -273,13 +420,13 @@ class Validate:
                 SSL_CONNECTION_STR = "encrypt=true;trustServerCertificate=true;" \
                                      + f"trustStore=\"{truststore_path}\";" \
                                      + f"trustStorePassword={truststore_pwd}"
-                jar_cmd = "java -Duser.language=en -Duser.country=US -cp " \
+                jar_cmd = "java " + f"-Dsemeru.fips={self.fips_enabled} -Duser.language=en -Duser.country=US -cp " \
                           + f"\"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           + f"{self._DB_CONNECTION_JAR_PATH}\" " \
                           + f"SQLConnection -h '{db_servername}' -p {db_port} -d '{db_name}' " \
                           + f"-u '{db_user}' -pwd '{db_pwd}' -ssl \"{SSL_CONNECTION_STR}\""
             elif db_type == "postgresql":
-                ca_key_crt_extensions = [".crt", ".cer", ".pem", ".cert", ".key"]
+                ca_key_crt_extensions = [".crt", ".cer", ".pem", ".cert", ".key", ".arm"]
                 auth_str = ""
 
                 # CLIENT AUTH which uses clientkey and clientcert
@@ -307,7 +454,7 @@ class Validate:
                                                             extensions=ca_key_crt_extensions)
                     auth_str = f"-ca \"{server_ca}\""
 
-                jar_cmd = "java -Duser.language=en -Duser.country=US -Dcom.ibm.jsse2.overrideDefaultTLS=true " \
+                jar_cmd = "java " + f"-Dsemeru.fips={self.fips_enabled} -Duser.language=en -Duser.country=US -Dcom.ibm.jsse2.overrideDefaultTLS=true " \
                           f"-cp \"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           f"{self._DB_CONNECTION_JAR_PATH}\" " \
                           f"PostgresConnection -h '{db_servername}' -p {db_port} -db '{db_name}' " \
@@ -315,22 +462,22 @@ class Validate:
                           f"{auth_str}"
         else:
             if db_type == "db2":
-                jar_cmd = "java -Duser.language=en -Duser.country=US " \
+                jar_cmd = "java " + f"-Dsemeru.fips={self.fips_enabled} -Duser.language=en -Duser.country=US " \
                           + f"-cp \"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           + f"{self._DB_CONNECTION_JAR_PATH}\" DB2Connection " \
                           + f"-h '{db_servername}' -p {db_port} -db '{db_name}' -u '{db_user}' -pwd '{db_pwd}'"
             elif db_type == "oracle":
-                jar_cmd = "java -Duser.language=en -Duser.country=US " \
+                jar_cmd = "java " + f"-Dsemeru.fips={self.fips_enabled} -Duser.language=en -Duser.country=US " \
                           + f"-cp \"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           + f"{self._DB_CONNECTION_JAR_PATH}\" OracleConnection " \
                           + f"-url {self._db_prop[db_label]['ORACLE_JDBC_URL']} -u '{db_user}' -pwd '{db_pwd}'"
             elif db_type == "sqlserver":
-                jar_cmd = "java -Duser.language=en -Duser.country=US " \
+                jar_cmd = "java " + f"-Dsemeru.fips={self.fips_enabled} -Duser.language=en -Duser.country=US " \
                           + f"-cp \"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           + f"{self._DB_CONNECTION_JAR_PATH}\" SQLConnection " \
                           + f"-h '{db_servername}' -p {db_port} -d '{db_name}' -u '{db_user}' -pwd '{db_pwd}' -ssl 'encrypt=false'"
             elif db_type == "postgresql":
-                jar_cmd = "java -Duser.language=en -Duser.country=US -Dcom.ibm.jsse2.overrideDefaultTLS=true " \
+                jar_cmd = "java " + f"-Dsemeru.fips={self.fips_enabled} -Duser.language=en -Duser.country=US -Dcom.ibm.jsse2.overrideDefaultTLS=true " \
                           + f"-cp \"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           + f"{self._DB_CONNECTION_JAR_PATH}\" PostgresConnection " \
                           + f"-h '{db_servername}' -p {db_port} -db '{db_name}' -u '{db_user}' -pwd '{db_pwd}' -sslmode disable"
@@ -338,8 +485,12 @@ class Validate:
         db_is_connected = self.__check_connection_with_jar(jar_cmd, progress)
         if db_is_connected:
             self._logger.info(f"Successfully connected to {db_label} database!")
+
             progress.log(connected_str)
             progress.log()
+
+            self.output_latency(self.roundtriptime, progress, "DB")
+
         else:
             self._logger.info(f"Failed to connect to {db_label} database!")
             progress.log(not_connected_str)
@@ -414,7 +565,7 @@ class Validate:
                     password=None,
                     backend=default_backend()
                 )
-            
+
             pkcs8_key = key.private_bytes(
                 encoding=serialization.Encoding.DER,
                 format=serialization.PrivateFormat.PKCS8,
@@ -450,75 +601,480 @@ class Validate:
 
     # Check every and validate all LDAP found in property file.
     def validate_all_ldap(self, task1, progress):
+
+        # Check Reachability and Authentication of LDAP Server
+        ldap_validated_list = []
         for ldap_id in self._ldap_prop["_ldap_ids"]:
-            self.validate_ldap(task1, progress, ldap_id)
+
+            ldap_host = remove_protocol(self._ldap_prop[ldap_id]["LDAP_SERVER"])
+            ldap_port = self._ldap_prop[ldap_id]["LDAP_PORT"]
+            ssl_enabled = self._ldap_prop[ldap_id]["LDAP_SSL_ENABLED"]
+
+            progress.log(Panel.fit(Text(f"LDAP Server Validation: {ldap_id}", style="bold cyan")))
+            progress.log()
+
+            validated = False
+            authenticated = False
+            check_list = []
+            if ssl_enabled:
+                self.__create_tmp_folder()
+                crt_path = self.__get_file_from_folder(
+                    os.path.join(os.getcwd(), "propertyFile", "ssl-certs", ldap_id.lower()),
+                    [".crt", ".cer", ".pem", ".cert", ".key", ".arm"])
+
+                validated = self.validate_server(progress=progress, server=ldap_host,
+                                                 port=ldap_port, ssl_enabled=ssl_enabled,
+                                                 cert_path=crt_path, display_rtt=True)
+                check_list.append(validated)
+
+                if validated:
+                    authenticated = self.authenticate_ldap(ldap_id, progress, True, cert_path=crt_path)
+                    check_list.append(authenticated)
+            else:
+
+                validated = self.validate_server(progress=progress, server=ldap_host,
+                                                 port=ldap_port)
+                check_list.append(validated)
+
+                if validated:
+                    authenticated = self.authenticate_ldap(ldap_id, progress)
+                    check_list.append(authenticated)
+
+            self.is_validated[ldap_id] = all(check_list)
+            ldap_validated_list.append(all(check_list))
+
+            progress.advance(task1)
+        return all(ldap_validated_list)
+
+    # Create a function to check and validate all users and groups in LDAP
+    def validate_ldap_users_groups(self, task2, progress):
+        try:
+            progress.log(Panel.fit(Text("LDAP Users and Groups Validation Check", style="bold cyan")))
+            progress.log()
+
+            # validate the bind dn is present in the ldap
+            for ldap_id in self._ldap_prop["_ldap_ids"]:
+                ssl_enabled = self._ldap_prop[ldap_id]["LDAP_SSL_ENABLED"]
+                cert_path = ""
+                server = self._ldap_prop[ldap_id]["LDAP_SERVER"]
+
+                progress.log(Text(f"Searching LDAP: \"{server}\""))
+                progress.log()
+
+                if ssl_enabled:
+                    self.__create_tmp_folder()
+                    cert_path = self.__get_file_from_folder(
+                        os.path.join(os.getcwd(), "propertyFile", "ssl-certs", ldap_id.lower()),
+                        [".crt", ".cer", ".pem", ".cert", ".key", ".arm"])
+
+                self.ldap_user_search(ldap_id, progress, ssl_enabled, cert_path)
+                self.ldap_group_search(ldap_id, progress, ssl_enabled, cert_path)
+
+            result_panel = ldap_search_results(self._users_dict, self._groups_dict)
+
+            progress.log(result_panel)
+            progress.log()
+
+            progress.advance(task2)
+
+        except Exception as e:
+            self._logger.exception(
+                f"Exception from validate_ldap_users_groups function -  {str(e)}")
+
+    def validate_scim(self, task, progress, idp_id="IDP"):
+
+        progress.log(Panel.fit(Text(f"Validating IDP Token: \"{idp_id}\"", style="bold cyan")))
+        token_endpoint = self._idp_prop[idp_id]["TOKEN_ENDPOINT"]
+        client_id = self._idp_prop[idp_id]["CLIENT_ID"]
+        client_secret = self._idp_prop[idp_id]["CLIENT_SECRET"]
+
+        received_token = False
+
+        # Retrieve token from IDP
+        try:
+            self._logger.info(f"Retrieving token from {idp_id} IDP...")
+            progress.log(f"Retrieving token from {idp_id} IDP...")
+
+            url = token_endpoint
+
+            payload = f"grant_type=password&client_id={client_id}&client_secret={client_secret}"
+            headers = {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+
+            response = requests.request("POST", url, headers=headers, data=payload, timeout=5)
+
+            response.raise_for_status()
+            received_token = True
+
+        except Exception as e:
+            self._logger.exception(f"Failed to retrieve token from {idp_id} IDP! Error: {str(e)}")
+
+        if received_token:
+            self._logger.info(f"Successfully retrieved token from {idp_id} IDP!")
+            token_response = Text(f"\nToken received from \"{idp_id}\" IDP successfully, PASSED!\n", style="bold green")
+        else:
+            self._logger.info(f"Failed to retrieved token from {idp_id} IDP!")
+            token_response = Text(f"\nUnable to retrieve token from \"{idp_id}\" IDP, FAILED!\n", style="bold red")
+
+        progress.log(token_response)
+        progress.advance(task)
+
+        return received_token
+
+    # function to get all users needed to be searched if present in ldap
+    def get_users(self):
+        users_list = []
+
+        # Collect all users defined in user_group property file
+        if "FNCM_LOGIN_USER" in self._user_group_prop.keys():
+            users_list.append(self._user_group_prop["FNCM_LOGIN_USER"])
+
+        if "ICN_LOGIN_USER" in self._user_group_prop.keys():
+            users_list.append(self._user_group_prop["ICN_LOGIN_USER"])
+
+        if "CONTENT_INITIALIZATION_ENABLED" in self._user_group_prop.keys():
+            if self._user_group_prop["CONTENT_INITIALIZATION_ENABLED"]:
+                for os_id in self._db_prop["_os_ids"]:
+                    users_list.extend(self._user_group_prop[os_id]["CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS"])
+
+        # Collect all users for ICC for email
+        if self.component_prop_present:
+            if "CSS" in self._component_prop.keys():
+                users_list.append(self._component_prop["CSS"]["ARCHIVE_USER_ID"])
+
+        # Collect all users for TaskManager
+        if self.component_prop_present:
+            if "PERMISSIONS" in self._component_prop.keys():
+                users_list.extend(self._component_prop["PERMISSIONS"]["TASK_ADMIN_USER_NAMES"])
+                users_list.extend(self._component_prop["PERMISSIONS"]["TASK_USER_USER_NAMES"])
+                users_list.extend(self._component_prop["PERMISSIONS"]["TASK_AUDITOR_USER_NAMES"])
+
+        # remove all duplicate users from list
+        users_list = list(set(users_list))
+
+        # Construct a dictionary to store username, count and ldap id
+        users_dict = {}
+        for user in users_list:
+            users_dict[user] = {"count": 0, "ldap_id": []}
+
+        return users_dict
+
+    # function to get all groups needed to be searched if present in ldap
+    def get_groups(self):
+        groups_list = []
+
+        # Collect all groups defined in user_group property file
+        if "CONTENT_INITIALIZATION_ENABLED" in self._user_group_prop.keys():
+            if self._user_group_prop["CONTENT_INITIALIZATION_ENABLED"]:
+                for os_id in self._db_prop["_os_ids"]:
+                    groups_list.extend(self._user_group_prop[os_id]["CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS"])
+
+        if self.component_prop_present:
+            if "PERMISSIONS" in self._component_prop.keys():
+                groups_list.extend(self._component_prop["PERMISSIONS"]["TASK_ADMIN_GROUP_NAMES"])
+                groups_list.extend(self._component_prop["PERMISSIONS"]["TASK_USER_GROUP_NAMES"])
+                groups_list.extend(self._component_prop["PERMISSIONS"]["TASK_AUDITOR_GROUP_NAMES"])
+
+        # remove all duplicate groups from list
+        groups_list = list(set(groups_list))
+
+        # Construct a dictionary to store username, count and ldap id
+        groups_dict = {}
+        for group in groups_list:
+            groups_dict[group] = {"count": 0, "ldap_id": []}
+
+        return groups_dict
+
+        # Validates if user is present in the LDAP
+
+    def authenticate_ldap(self, ldap_id, progress, ssl_enabled=False, cert_path="") -> bool:
+        server = self._ldap_prop[ldap_id]["LDAP_SERVER"]
+        bind_dn = self._ldap_prop[ldap_id]["LDAP_BIND_DN"]
+
+        progress.log(Text(f"Testing Authentication of \"{server}\" with Bind DN: \"{bind_dn}\""))
+        progress.log()
+
+        authenticated = False
+        authenticated, connect = self.get_ldap_connection(ldap_id, progress, ssl_enabled, cert_path)
+
+        if authenticated:
+            progress.log(Text(f"Successfully authenticated with \"{bind_dn}\"", style="bold green"))
+            progress.log()
+
+        return authenticated
+
+    def get_ldap_connection(self, ldap_id, progress, ssl_enabled=False, cert_path=""):
+
+        server = remove_protocol(self._ldap_prop[ldap_id]["LDAP_SERVER"])
+        port = self._ldap_prop[ldap_id]["LDAP_PORT"]
+        bind_dn = self._ldap_prop[ldap_id]["LDAP_BIND_DN"]
+        bind_dn_password = self._ldap_prop[ldap_id]["LDAP_BIND_DN_PASSWORD"]
+
+        authenticated = False
+        # ldap.protocol_version = ldap.VERSION3
+
+        if ssl_enabled:
+            try:
+                custom_ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+                custom_ssl_context.load_verify_locations(cafile=cert_path)
+                server = ldap3.Server(server, port=int(port), use_ssl=True, get_info=ldap3.ALL,
+                                      tls=ldap3.Tls(validate=ssl.CERT_NONE, version=ssl.PROTOCOL_SSLv23,
+                                                    ca_certs_file=cert_path))
+                # Bind and search
+                conn = Connection(server, user=bind_dn, password=bind_dn_password)
+                bind_response = conn.bind()
+                if bind_response:
+                    authenticated = True
+                    return authenticated, conn
+            except LDAPBindError as e:
+                progress.log(Text(f"LDAP Invalid Credentials", style="bold red"))
+                msg = Text(f"Failed to authenticate \"{bind_dn}\"\n"
+                           f"Please check the following values in property files:\n"
+                           f" - LDAP_BIND_DN \n"
+                           f" - LDAP_BIND_DN_PASSWORD\n")
+                progress.log(msg, style="bold red")
+                progress.log()
+                authenticated = False
+                return authenticated, conn
+            except Exception as e:
+                progress.log(Text(f"LDAP Error: {e}", style="bold red"))
+                msg = Text(f"Failed to authenticate \"{bind_dn}\"\n"
+                           f"Please check the SSL Certificate", style="bold red")
+                progress.log(msg)
+                progress.log(Text(f"Failed to connect to \"{server}\"", style="bold red"))
+                progress.log()
+                authenticated = False
+                return authenticated, conn
+        else:
+            try:
+                connect = f"ldap://{server}:{port}"
+
+                server = Server(connect, get_info=ALL)
+                # username and password can be configured during openldap setup
+                conn = Connection(server,
+                                  user=bind_dn,
+                                  password=bind_dn_password)
+                bind_response = conn.bind()
+
+                if bind_response:
+                    authenticated = True
+                return authenticated, conn
+            except LDAPBindError as e:
+                progress.log(Text(f"LDAP Invalid Credentials", style="bold red"))
+                msg = Text(f"Failed to authenticate \"{bind_dn}\"\n"
+                           f"Please check the following values in property files:\n"
+                           f" - LDAP_BIND_DN \n"
+                           f" - LDAP_BIND_DN_PASSWORD\n")
+                progress.log(msg, style="bold red")
+                progress.log()
+                authenticated = False
+                return authenticated, conn
+            except Exception as e:
+                progress.log(Text(f"LDAP Error: {e}", style="bold red"))
+                msg = Text(f"Failed to authenticate \"{bind_dn}\"\n"
+                           f"Please check the SSL Certificate", style="bold red")
+                progress.log(msg)
+                progress.log(Text(f"Failed to connect to \"{server}\"", style="bold red"))
+                progress.log()
+                authenticated = False
+                return authenticated, conn
+
+    # Validates if user is present in the LDAP
+    def ldap_user_search(self, ldap_id, progress, ssl_enabled=False, cert_path=""):
+        try:
+            base_dn = self._ldap_prop[ldap_id]["LDAP_BASE_DN"]
+            user_filter = self._ldap_prop[ldap_id]["LC_USER_FILTER"]
+            user_name = self._ldap_prop[ldap_id]["LDAP_BIND_DN"]
+            password = self._ldap_prop[ldap_id]["LDAP_BIND_DN_PASSWORD"]
+
+            authenticated, connect = self.get_ldap_connection(ldap_id, progress, ssl_enabled, cert_path)
+
+            if authenticated:
+                for user in self._users_dict.keys():
+                    search_filter = user_filter.replace("%v", user)
+                    try:
+                        search_results = connect.search(search_base=base_dn, search_filter=search_filter)
+                    except Exception as e:
+                        self._logger.info(
+                            f"Error found in search function of ldap_search function in validation script --- {str(e)}")
+                        return
+                    if connect.entries:
+                        self._users_dict[user]["count"] += 1
+                        self._users_dict[user]["ldap_id"].append(ldap_id)
+
+        except Exception as e:
+            self._logger.info(f"Error found in ldap_search function in validation script --- {str(e)}")
+
+    # Validates if user is present in the LDAP
+    def ldap_group_search(self, ldap_id, progress, ssl_enabled=False, cert_path=""):
+        try:
+            base_dn = self._ldap_prop[ldap_id]["LDAP_BASE_DN"]
+            group_filter = self._ldap_prop[ldap_id]["LC_GROUP_FILTER"]
+
+            authenticated, connect = self.get_ldap_connection(ldap_id, progress, ssl_enabled, cert_path)
+
+            if authenticated:
+                for group in self._groups_dict.keys():
+                    search_filter = group_filter.replace("%v", group)
+                    try:
+                        search_results = connect.search(search_base=base_dn, search_filter=search_filter)
+                    except Exception as e:
+                        self._logger.info(
+                            f"Error found in search function of ldap_search function in validation script --- {str(e)}")
+                        return
+                    if connect.entries:
+                        self._groups_dict[group]["count"] += 1
+                        self._groups_dict[group]["ldap_id"].append(ldap_id)
+
+        except Exception as e:
+            self._logger.info(f"Error found in ldap_search function in validation script --- {str(e)}")
+
+    # Function to connect to ldap
+    def connect_to_server(self, host, port, progress, ssl=False, client_cert_file=None):
+
+        # If SSL is enabled, create an SSL socket
+        # Create an SSL context
+        if ssl:
+            context = SSL.Context(SSL.SSLv23_METHOD)
+            context.set_cipher_list(self._CIPHERS)
+            context.set_min_proto_version(SSL.TLS1_2_VERSION)
+            if client_cert_file:
+                context.use_certificate_file(client_cert_file)
+
+            # Create an SSL socket
+            sock = socket()
+            conn = SSL.Connection(context, sock)
+        else:
+            conn = socket()
+
+        connected = False
+        try:
+            start_time = time.time()
+            conn.connect((host, port))
+            end_time = time.time()
+            if ssl:
+                conn.do_handshake()
+            connected = True
+
+        # Now you can perform LDAP operations using 'conn' if needed
+        except gaierror as e:
+            message = Text(
+                f"Hostname \"{host}\" is not known.\n"
+                f"Please review the Property Files for all SERVERNAME parameters", style="bold red")
+
+            progress.log(message)
+            progress.log()
+            return conn, 0, connected
+        except Exception as e:
+            if type(e.args) == list:
+                if e.args[0][0][0] == 'SSL routines' and e.args[0][0][2] == 'sslv3 alert handshake failure':
+                    message = Text(
+                        f"SSL protocol used: \"{conn.get_protocol_version_name()}\", is not supported by the server!\n"
+                        f"Please review below list of supported protocols:\n"
+                        f" - \"TLSv1.2\"\n"
+                        f" - \"TLSv1.3\"", style="bold red")
+            else:
+                message = Text(f"Connection Error: {e}", style="bold red")
+
+            progress.log(message)
+            progress.log()
+            return conn, 0, connected
+
+        # Calculate RTT and format to milliseconds
+        rtt = (end_time - start_time) * 1000
+
+        return conn, rtt, connected
 
     # Validates a single LDAP, defaults to the first one by its id: "LDAP"
-    def validate_ldap(self, task1, progress, ldap_id="LDAP"):
-        # This is just for readability
-        ldap_server = self._ldap_prop[ldap_id]["LDAP_SERVER"]
-        ldap_bind_dn = self._ldap_prop[ldap_id]["LDAP_BIND_DN"]
-        ldap_bind_dn_pwd = self._ldap_prop[ldap_id]["LDAP_BIND_DN_PASSWORD"]
-        ldap_base_dn = self._ldap_prop[ldap_id]["LDAP_BASE_DN"]
-        ldap_port = self._ldap_prop[ldap_id]["LDAP_PORT"]
+    def validate_server(self, progress, server, port, ssl_enabled=False, cert_path="", display_rtt=True):
+        connected = False
 
-        ldap_bind_dn_pwd = self.parse_shell_command(ldap_bind_dn_pwd)
-        ldap_bind_dn = self.parse_shell_command(ldap_bind_dn)
-
-        ldap_is_connected = None
-        jar_cmd = ""
-
-        connected_str = Text(f"\nConnected to LDAP \"{ldap_server}\" using BindDN:\"{ldap_bind_dn}\"" \
-                             + " successfuly, PASSED!\n", style="bold green")
-
-        not_connected_str = Text(f"\nUnable to connect to LDAP server \"{ldap_server}\" " \
-                                 + f"using Bind DN \"{ldap_bind_dn}\", " \
-                                 + "please check configuration in ldap toml file again.\n", style="bold red")
-
-        progress.log(Panel.fit(Text(f"Validating LDAP server \"{ldap_server}\"", style="bold cyan")))
-
-        # Test for non-SSL connections
-        if not self._ldap_prop[ldap_id]["LDAP_SSL_ENABLED"]:
-            jar_cmd = f"java -jar '{self._LDAP_JAR_PATH}' -u 'ldap://{ldap_server}:{ldap_port}' " \
-                      + f"-b '{ldap_base_dn}' -D '{ldap_bind_dn}' -w '{ldap_bind_dn_pwd}'"
+        progress.log(Text(f"Validating Server \"{server}\" Reachability"))
+        progress.log()
 
         # Test for SSL connections
+        # Return a connection object, RTT and a boolean indicating if the connection was successful
+        if ssl_enabled:
+            conn_result, rtt, connected = self.connect_to_server(server, int(port), progress, True, cert_path)
         else:
-            # Create .der and truststore file needed for validation
-            self.__create_tmp_folder()
-            crt_path = self.__get_file_from_folder(
-                os.path.join(os.getcwd(), "propertyFile", "ssl-certs", ldap_id.lower()),
-                [".crt", ".cer", ".cert", ".key", ".pem"])
-            der_path = self.__crt_to_der_x509(input_cert_path=crt_path,
-                                              output_path=os.path.join(self._TMP_DIR, "ldap.der"))
-            truststore_pwd = "changeit"
-            truststore_path = self.__create_tmp_truststore(der_path=der_path,
-                                                           output_path=os.path.join(self._TMP_DIR,
-                                                                                    "ldap-truststore.jks"),
-                                                           alias="cp4baLdapCerts",
-                                                           storetype="JKS",
-                                                           truststore_pwd=truststore_pwd)
-            # Validate LDAP connection over SSL
-            jar_cmd = f"java -Djavax.net.ssl.trustStore='{truststore_path}' " \
-                      + f"-Djavax.net.ssl.trustStorePassword={truststore_pwd} -jar '{self._LDAP_JAR_PATH}' " \
-                      + f"-u 'ldaps://{ldap_server}:{ldap_port}' -b '{ldap_base_dn}' -D '{ldap_bind_dn}' " \
-                      + f"-w '{ldap_bind_dn_pwd}'"
-        ldap_is_connected = self.__check_connection_with_jar(jar_cmd, progress)
-        self.is_validated[ldap_id] = ldap_is_connected
-        if ldap_is_connected:
-            self._logger.info(connected_str)
-            progress.log(connected_str)
-        else:
-            self._logger.info(not_connected_str)
-            progress.log(not_connected_str)
-        progress.advance(task1)
-        return ldap_is_connected
+            conn_result, rtt, connected = self.connect_to_server(server, int(port), progress)
 
-    # Returns true if we can connect to LDAP using given jar_cmd
+        # Construct the message to be displayed
+        # If the SSL connection was successful, display the cipher
+        # If connection is successful display the RTT
+        # RTT display can be disabled by setting display_rtt to False (RTT for Database is calculated through JDBC driver)
+        if connected:
+            if ssl_enabled:
+                message = Text(f"\nReachability to \"{server}\" succeeded over SSL!\n", style="bold green")
+
+                progress.log(message)
+                progress.log()
+
+                # If SSL connections was successful, then cipher passed
+                self.output_cipher(conn_result.get_cipher_name(),
+                                   conn_result.get_protocol_version_name(), progress)
+            else:
+                message = Text(f"\nReachability to \"{server}\" succeeded!\n", style="bold green")
+                progress.log(message)
+                progress.log()
+
+            if display_rtt:
+                self.output_latency(rtt, progress, "LDAP")
+        else:
+            message = Text(f"\nReachability to \"{server}\" failed!\n"
+                           f"Please check configuration in Property Files", style="bold red")
+            progress.log(message)
+            progress.log()
+
+        return connected
+
+    # Output cipher for the supplied connection
+    @staticmethod
+    def output_cipher(cipher, protocol, progress):
+        message = Text(f"SSL protocol used: \"{protocol}\", is supported!\n", style="bold green")
+        progress.log(message)
+        progress.log()
+
+        message = Text(f"SSL cipher used: \"{cipher}\", is accepted!\n", style="bold green")
+        progress.log(message)
+        progress.log()
+
+    # Output latency for the supplied connection
+    @staticmethod
+    def output_latency(rtt, progress, type="LDAP"):
+
+        if type == "LDAP":
+            max_time = 300
+            min_time = 100
+        else:
+            max_time = 30
+            min_time = 10
+
+        if rtt < min_time:
+            message = f"Acceptable Latency Range: 0ms - {min_time}ms"
+            style = "bold green"
+        elif min_time < rtt < max_time:
+            message = f"Performance Degradation Latency Range: {min_time}ms - {max_time}ms"
+            style = "bold yellow"
+        else:
+            message = f"Potential Failure Latency Range: > {max_time}ms"
+            style = "bold red"
+
+        progress.log(Text("Detected Connection Latency: {:.2f}ms ".format(rtt), style=style))
+        progress.log(Text(message, style=style))
+        progress.log()
+
+    # Use JAR to test DB connection
     def __check_connection_with_jar(self, jar_cmd, progress):
         self.__check_java()
         try:
-            subprocess.check_output(jar_cmd, shell=True, stderr=subprocess.PIPE, universal_newlines=True)
+            output = subprocess.check_output(jar_cmd, shell=True, stderr=subprocess.PIPE, universal_newlines=True)
+            round_trip_statement = output.split("Round Trip time:")[1]
+            match = re.search(r'([\d.]+)', round_trip_statement)
+            if match:
+                self.roundtriptime = float(match.group(1))
+
             return True
         except subprocess.CalledProcessError as error:
             self._logger.info(error.stderr)
@@ -569,7 +1125,7 @@ class Validate:
                 progress.advance(task2)
                 return True
         # Passed 60 seconds and all attempts, still cannot find PVC
-        self._logger.error(f"Failed to allocate the persistent volumes using PVC: \"{sample_pvc_name}\"!")
+        self._logger.info(f"Failed to allocate the persistent volumes using PVC: \"{sample_pvc_name}\"!")
         progress.log()
         progress.log(Text(f"Failed to allocate PVC: \"{sample_pvc_name}\"!", style="bold red"))
         progress.advance(task2)
@@ -577,6 +1133,35 @@ class Validate:
 
     # Creates a storage class yaml to apply
     def validate_sample_sc(self, sc_name, sc_mode, sample_pvc_name, task2, progress):
+        # check if storage class is present
+        kubectl_cmd = f"kubectl get storageclasses -o custom-columns=:metadata.name"
+        validated = True
+        try:
+            output = subprocess.check_output(kubectl_cmd, shell=True, stderr=subprocess.PIPE, universal_newlines=True)
+            storage_classes = output.strip().split('\n')
+            if sc_name in storage_classes:
+                validated = True
+            else:
+                validated = False
+
+            if validated:
+                progress.log()
+                progress.log(Text(f"Verification for Storage Class: \"{sc_name}\" PASSED!\n", style="bold green"))
+            if not validated:
+                self._logger.info(f"Failed to find storage class: \"{sc_name}\"!\n")
+                progress.log()
+                progress.log(Text(f"Failed to find storage class: \"{sc_name}\"!\n", style="bold red"))
+                self.is_validated[sc_name] = False
+                progress.advance(task2)
+                return self.is_validated[sc_name]
+
+        except subprocess.CalledProcessError as error:
+            self._logger.info(error)
+            progress.log()
+            progress.log(f"Error occurred while validating \"{sc_name}\"\n"
+                         f"Sample PVC will still be created, without storage class check!", style="bold yellow")
+            validated = False
+
         # remove existing temp file if previously not removed
         sample_yaml_path = os.path.join(self.__create_tmp_folder(), sc_name + ".yaml")
 
@@ -609,8 +1194,13 @@ class Validate:
         try:
             response = subprocess.check_output(kubectl_cmd, shell=True, stderr=subprocess.PIPE, universal_newlines=True)
         except subprocess.CalledProcessError as error:
-            self._logger.exception(
-                f"Exception applying '{yaml_path}' -  {str(error.stderr)}")
+            if "metadata.resourceVersion" in str(error.stderr):
+                kubectl_cmd = "kubectl replace -f \"" + yaml_path + "\""
+                response = subprocess.check_output(kubectl_cmd, shell=True, stderr=subprocess.PIPE,
+                                                   universal_newlines=True)
+            else:
+                self._logger.exception(
+                    f"Exception applying '{yaml_path}' -  {str(error.stderr)}")
         return response
 
     def kubectl_delete(self, yaml_path):
@@ -642,19 +1232,7 @@ class Validate:
             self.auto_apply_all_in_folder(folder_path=os.path.join(os.getcwd(), "generatedFiles", "ssl"))
 
     def auto_apply_cr(self):
-        # comp_list will have labels for all components, if these components have not yet
-        # passed validation, CR will not by applied
-        comp_list = ["GCD", "ICN"] + self._db_prop["_os_ids"] + self._ldap_prop["_ldap_ids"]
-        sc_list_set = list(
-            {self._deploy_prop["SLOW_FILE_STORAGE_CLASSNAME"], self._deploy_prop["MEDIUM_FILE_STORAGE_CLASSNAME"],
-             self._deploy_prop["FAST_FILE_STORAGE_CLASSNAME"]})
-        comp_list = comp_list + sc_list_set
-        for c in comp_list:
-            if c not in self.is_validated:
-                self._logger.info("Have not yet ran validation for all components. Skipped applying CR.")
-                return False
-
+        # Applying FNCM CR
         response = self.kubectl_apply(os.path.join(os.getcwd(), "generatedFiles", "ibm_fncm_cr_production.yaml"))
         print(Panel.fit(Text(response.strip(), style="bold cyan")))
         return True
-    

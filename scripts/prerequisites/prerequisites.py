@@ -25,6 +25,7 @@ import os
 import shutil
 from datetime import datetime
 from typing import Optional
+from toml.decoder import TomlDecodeError
 
 import typer
 from rich import print
@@ -50,11 +51,12 @@ from helper_scripts.generate.generate_sql import GenerateSql
 from helper_scripts.property import property as p
 from helper_scripts.property.read_prop import *
 from helper_scripts.utilities.utilites import zip_folder, \
-    create_generate_folder, generate_gather_results, generate_generate_results, generate_validate_results, \
-    clear, check_ssl_folders , check_icc_masterkey, check_dbname, collect_visible_files
+    create_generate_folder, generate_gather_results, generate_generate_results, display_issues, \
+    clear, check_ssl_folders, check_icc_masterkey, check_trusted_certs, check_dbname, check_keystore_password_length, \
+    collect_visible_files, check_db_password_length , check_db_ssl_mode
 from helper_scripts.validate import validate as v
 
-__version__ = "1.6.7"
+__version__ = "2.4.2"
 
 app = typer.Typer()
 state = {
@@ -161,14 +163,29 @@ def gather(
             deploy1.collect_platform_ingress()
 
             clear(console)
+            deploy1.collect_auth_type()
+
+            clear(console)
+            deploy1.collect_fips_info()
+
+            clear(console)
+            deploy1.collect_egress_info()
+
+            clear(console)
             deploy1.collect_optional_components()
 
             clear(console)
             deploy1.collect_db_info()
 
-            clear(console)
-            deploy1.collect_ldap_number()
-            deploy1.collect_ldap_type()
+            if deploy1.auth_type in ("LDAP", "LDAP_IDP"):
+                clear(console)
+                deploy1.collect_ldap_number()
+                deploy1.collect_ldap_type()
+
+            if deploy1.auth_type in ("LDAP_IDP", "SCIM_IDP"):
+                clear(console)
+                deploy1.collect_idp_number()
+                deploy1.collect_idp_discovery()
 
             clear(console)
             deploy1.collect_init_verify_content()
@@ -257,13 +274,21 @@ def gather(
         # Individual components instead:
         deploy1.silent_version()
         deploy1.silent_platform()
+        deploy1.silent_auth_type()
+        if deploy1.auth_type in ("LDAP", "LDAP_IDP"):
+            deploy1.silent_ldap()
+
+        if deploy1.auth_type in ("LDAP_IDP", "SCIM_IDP"):
+            deploy1.silent_idp()
+
+        deploy1.silent_fips_support()
+        deploy1.silent_egress_support()
         deploy1.silent_optional_components()
         deploy1.silent_sendmail_support()
         deploy1.silent_icc_support()
         deploy1.silent_tm_support()
         deploy1.silent_db()
         deploy1.silent_license_model()
-        deploy1.silent_ldap()
         deploy1.silent_initverify()
         deploy1.error_check()
 
@@ -287,16 +312,26 @@ def gather(
         db_properties = property_obj.move_database(os.path.abspath(move), move_dict, db_properties)
     property_obj.create_db_propertyfile(db_properties)
 
-    ldap_properties = property_obj.populate_ldap_propertyfile()
-    if move_ldap:
-        ldap_properties = property_obj.move_ldap(os.path.abspath(move), move_dict, ldap_properties)
+    if deploy1.auth_type in ("LDAP", "LDAP_IDP"):
+        ldap_properties = property_obj.populate_ldap_propertyfile()
+        if move_ldap:
+            ldap_properties = property_obj.move_ldap(os.path.abspath(move), move_dict, ldap_properties)
+        property_obj.create_ldap_propertyfile(ldap_properties)
 
-    property_obj.create_ldap_propertyfile(ldap_properties)
+    if deploy1.auth_type in ("LDAP_IDP", "SCIM_IDP"):
+        idp_properties = property_obj.populate_idp_propertyfile()
+        property_obj.create_idp_propertyfile(idp_properties)
+
+    if deploy1.auth_type in ("SCIM_IDP"):
+        scim_properties = property_obj.populate_scim_propertyfile()
+        property_obj.create_scim_propertyfile(scim_properties)
+
     if deploy1.ingress:
         property_obj.create_ingress_propertyfile()
     property_obj.create_deployment_propertyfile()
     property_obj.create_user_group_propertyfile()
-    #this is a property file generated for custom properties such as sendmail, icc , task manager groups etc
+
+    # this is a property file generated for custom properties such as sendmail, icc , task manager groups etc
     if deploy1.sendmail_support or deploy1.icc_support or deploy1.tm_custom_groups:
         property_obj.create_custom_component_propertyfile()
 
@@ -323,37 +358,142 @@ def generate():
                     title="FileNet Content Manager Deployment Prerequisites CLI", border_style="green"))
     print()
 
-    # Generating secrets
+    # Loading property folder locations
     prop_folder = os.path.join(os.getcwd(), "propertyFile")
     ssl_cert_folder = os.path.join(os.getcwd(), "propertyFile", "ssl-certs")
     icc_folder = os.path.join(os.getcwd(), "propertyFile", "icc")
+    trusted_certs_folder = os.path.join(os.getcwd(), "propertyFile", "ssl-certs", "trusted-certs")
 
-    db_prop = ReadPropDb(os.path.join(prop_folder, "fncm_db_server.toml"), state["logger"])
-    ldap_prop = ReadPropLdap(os.path.join(prop_folder, "fncm_ldap_server.toml"), state["logger"])
-    usergroup_prop = ReadPropUsergroup(os.path.join(prop_folder, "fncm_user_group.toml"), state["logger"])
-    deployment_prop = ReadPropDeployment(os.path.join(prop_folder, "fncm_deployment.toml"), state["logger"])
-    #if custom component toml file is created , load the data as we might need some info such as javasendmail from it to create the ban secret
-    if os.path.exists(os.path.join(prop_folder, "fncm_components_options.toml")):
-        customcomponent_prop = ReadPropCustomComponent(os.path.join(prop_folder, "fncm_components_options.toml"), state["logger"])
-        customcomponent_prop_dict = customcomponent_prop.to_dict()
-    else:
-        customcomponent_prop_dict = {}
-    # check if ingress prop file has been created
-    ingress_prop_present = False
-    if os.path.exists(os.path.join(prop_folder, "fncm_ingress.toml")):
-        ingress_prop = ReadPropIngress(os.path.join(prop_folder, "fncm_ingress.toml"), state["logger"])
-        ingress_prop_present = True
-
-    incorrect_naming_convention = check_dbname(db_prop.to_dict())
-    missing_certs = check_ssl_folders(db_prop.to_dict(), ldap_prop.to_dict(), ssl_cert_folder)
-    masterkey_present = check_icc_masterkey(customcomponent_prop_dict,icc_folder)
+    # Loading generated folder location
     os.path.join(os.getcwd(), "generatedFiles")
     generated_folder = os.path.join(os.getcwd(), "generatedFiles")
 
-    # check of there are missing values in the property files
-    # if there are missing values, then exit the program
-    if len(db_prop.required_fields) > 0 or len(missing_certs) > 0 or masterkey_present == False or len(incorrect_naming_convention):
-        layout = generate_generate_results(generated_folder, db_prop.required_fields, missing_certs,masterkey_present, incorrect_naming_convention)
+    # Loading property files locations
+    db_prop_file = os.path.join(prop_folder, "fncm_db_server.toml")
+    ldap_prop_file = os.path.join(prop_folder, "fncm_ldap_server.toml")
+    idp_prop_file = os.path.join(prop_folder, "fncm_identity_provider.toml")
+    usergroup_prop_file = os.path.join(prop_folder, "fncm_user_group.toml")
+    deployment_prop_file = os.path.join(prop_folder, "fncm_deployment.toml")
+    ingress_prop_file = os.path.join(prop_folder, "fncm_ingress.toml")
+    customcomponent_prop_file = os.path.join(prop_folder, "fncm_components_options.toml")
+    scim_prop_file = os.path.join(prop_folder, "fncm_scim_server.toml")
+
+    # Set defaults for property files
+    db_prop = None
+    ldap_prop = None
+    idp_prop = None
+    usergroup_prop = None
+    deployment_prop = None
+    ingress_prop = None
+    customcomponent_prop = None
+    scim_prop = None
+
+    try:
+        # Load property files if they exist
+        if os.path.exists(db_prop_file):
+            db_prop = ReadPropDb(os.path.join(prop_folder, "fncm_db_server.toml"), state["logger"])
+
+        if os.path.exists(ldap_prop_file):
+            ldap_prop = ReadPropLdap(os.path.join(prop_folder, "fncm_ldap_server.toml"), state["logger"])
+
+        if os.path.exists(idp_prop_file):
+            idp_prop = ReadPropIdp(os.path.join(prop_folder, "fncm_identity_provider.toml"), state["logger"])
+
+        if os.path.exists(usergroup_prop_file):
+            usergroup_prop = ReadPropUsergroup(os.path.join(prop_folder, "fncm_user_group.toml"), state["logger"])
+
+        if os.path.exists(deployment_prop_file):
+            deployment_prop = ReadPropDeployment(os.path.join(prop_folder, "fncm_deployment.toml"), state["logger"])
+
+        if os.path.exists(ingress_prop_file):
+            ingress_prop = ReadPropIngress(os.path.join(prop_folder, "fncm_ingress.toml"), state["logger"])
+
+        if os.path.exists(customcomponent_prop_file):
+            customcomponent_prop = ReadPropCustomComponent(os.path.join(prop_folder, "fncm_components_options.toml"),
+                                                           state["logger"])
+        if os.path.exists(scim_prop_file):
+            scim_prop = ReadPropSCIM(os.path.join(prop_folder, "fncm_scim_server.toml"), state["logger"])
+
+        # Create dictionaries for property files if not None
+        if db_prop:
+            db_prop_dict = db_prop.to_dict()
+        else:
+            db_prop_dict = {}
+
+        if scim_prop:
+            scim_prop_dict = scim_prop.to_dict()
+        else:
+            scim_prop_dict = {}
+
+        if ldap_prop:
+            ldap_prop_dict = ldap_prop.to_dict()
+        else:
+            ldap_prop_dict = {}
+
+        if idp_prop:
+            idp_prop_dict = idp_prop.to_dict()
+        else:
+            idp_prop_dict = {}
+
+        if usergroup_prop:
+            usergroup_prop_dict = usergroup_prop.to_dict()
+        else:
+            usergroup_prop_dict = {}
+
+        if deployment_prop:
+            deployment_prop_dict = deployment_prop.to_dict()
+        else:
+            deployment_prop_dict = {}
+
+        if ingress_prop:
+            ingress_prop_dict = ingress_prop.to_dict()
+        else:
+            ingress_prop_dict = {}
+
+        if customcomponent_prop:
+            customcomponent_prop_dict = customcomponent_prop.to_dict()
+        else:
+            customcomponent_prop_dict = {}
+
+    except TomlDecodeError:
+        state["logger"].exception(
+            f"Exception when reading Property Files\n"
+            f"Please Review your Property files for missing quotes and formatting.\n\n")
+        exit(1)
+    except Exception as e:
+        state["logger"].exception(
+        f"Exception when reading Property Files\n"
+        f"Please Review your Property files for missing quotes and formatting.\n\n")
+        exit(1)
+
+    incorrect_naming_convention = check_dbname(db_prop_dict)
+    # Check if SSL certificates are present and correct format
+    missing_certs, incorrect_certs = check_ssl_folders(db_prop=db_prop_dict,
+                                                       ldap_prop=ldap_prop_dict,
+                                                       ssl_cert_folder=ssl_cert_folder)
+    masterkey_present = check_icc_masterkey(customcomponent_prop_dict, icc_folder)
+    trusted_certs_present, invalid_trusted_certs = check_trusted_certs(trusted_certs_folder)
+    keystore_password_valid = check_keystore_password_length(usergroup_prop_dict, deployment_prop_dict)
+    invalid_db_password_list = check_db_password_length(db_prop_dict,deployment_prop_dict)
+    correct_ssl_mode = check_db_ssl_mode(db_prop_dict,deployment_prop_dict)
+
+    cert_failed = len(missing_certs) > 0 or len(incorrect_certs) > 0 or (
+            trusted_certs_present and len(invalid_trusted_certs) > 0)
+
+    incorrect_entries = len(incorrect_naming_convention) > 0
+
+    # Collect missing fields
+    # All missing required fields are collected in each instance
+    required_fields = {}
+    if db_prop.missing_required_fields():
+        required_fields = db_prop.required_fields
+
+    if db_prop.missing_required_fields() or cert_failed or not masterkey_present or incorrect_entries or not keystore_password_valid or len(invalid_db_password_list)> 0 or not correct_ssl_mode:
+        layout = display_issues(generate_folder=generated_folder, required_fields=required_fields,
+                                certs=missing_certs, incorrect_certs=incorrect_certs,
+                                masterkey_present=masterkey_present, invalid_trusted_certs=invalid_trusted_certs,
+                                keystore_password_valid=keystore_password_valid, mode="generate",
+                                incorrect_naming_conv=incorrect_naming_convention,invalid_db_password_list=invalid_db_password_list,correct_ssl_mode=correct_ssl_mode)
         print(layout)
         exit(1)
     else:
@@ -367,13 +507,19 @@ def generate():
                        os.path.join(os.getcwd(), "generatedFiles"))
             shutil.rmtree(generated_folder)
 
-        create_generate_folder()
+        create_generate_folder(trusted_certs_present)
 
-        generate_secrets = GenerateSecrets(db_prop.to_dict(), ldap_prop.to_dict(), usergroup_prop.to_dict(),
-                                           customcomponent_prop_dict,
-                                           state["logger"])
-        #generate ban secret only if navigator is selected and generate fncm secret only if cpe is present
-        #ban secret created if release version is 5.5.8 or navigator has been selected as a component in 5.5.11
+        generate_secrets = GenerateSecrets(db_properties=db_prop_dict,
+                                           ldap_properties=ldap_prop_dict,
+                                           idp_properties=idp_prop_dict,
+                                           usergroup_properties=usergroup_prop_dict,
+                                           customcomponent_properties=customcomponent_prop_dict,
+                                           scim_properties=scim_prop_dict,
+                                           deployment_properties=deployment_prop_dict,
+                                           logger=state["logger"])
+
+        # generate ban secret only if navigator is selected and generate fncm secret only if cpe is present
+        # ban secret created if release version is 5.5.8 or navigator has been selected as a component in 5.5.11
         ban_present = False
         cpe_present = False
         if deployment_prop.to_dict()["FNCM_Version"] == "5.5.8":
@@ -381,24 +527,38 @@ def generate():
         else:
             if "BAN" in deployment_prop.to_dict().keys():
                 if deployment_prop.to_dict()["BAN"]:
-                    ban_present =  True
+                    ban_present = True
         # FNCM secret created if release version is 5.5.8 or CPE has been selected as a component in 5.5.11
         if deployment_prop.to_dict()["FNCM_Version"] == "5.5.8":
             cpe_present = True
         else:
             if "CPE" in deployment_prop.to_dict().keys():
                 if deployment_prop.to_dict()["CPE"]:
-                    cpe_present =  True
+                    cpe_present = True
         if ban_present:
             generate_secrets.create_ban_secret()
-        generate_secrets.create_ldap_secret()
-        #if icc for email set up is supported then we create icc related secrets
+        if ldap_prop:
+            generate_secrets.create_ldap_secret()
+        if idp_prop:
+            generate_secrets.create_idp_secret()
+        if scim_prop:
+            generate_secrets.create_scim_secret()
+        # if icc for email set up is supported then we create icc related secrets
         if customcomponent_prop_dict:
-            if "CSS" in customcomponent_prop_dict.keys():
+            if "ICC" in customcomponent_prop_dict.keys():
                 generate_secrets.create_icc_secrets()
         if cpe_present:
             generate_secrets.create_fncm_secret()
-        generate_secrets.create_ssl_secrets()
+
+        if ldap_prop:
+            generate_secrets.create_ldap_ssl_secrets()
+
+        if db_prop:
+            if db_prop_dict["DATABASE_SSL_ENABLE"]:
+                generate_secrets.create_ssl_db_secrets()
+
+        if trusted_certs_present:
+            generate_secrets.create_trusted_secrets()
 
         generate_sql = GenerateSql(db_prop.to_dict(), state["logger"])
         if cpe_present:
@@ -408,17 +568,20 @@ def generate():
             generate_sql.create_icn()
 
         # generate CR
-        if ingress_prop_present:
-            cr = GenerateCR(db_prop.to_dict(), ldap_prop.to_dict(), usergroup_prop.to_dict(), deployment_prop.to_dict(),
-                            ingress_prop.to_dict(),customcomponent_prop_dict, state["logger"])
-            cr.generate_cr()
-        else:
-            cr = GenerateCR(db_prop.to_dict(), ldap_prop.to_dict(), usergroup_prop.to_dict(), deployment_prop.to_dict(),
-                            None,customcomponent_prop_dict,
-                            state["logger"])
-            cr.generate_cr()
 
-    layout = generate_generate_results(generated_folder, db_prop.required_fields)
+        cr = GenerateCR(db_properties=db_prop_dict,
+                        ldap_properties=ldap_prop_dict,
+                        usergroup_properties=usergroup_prop_dict,
+                        deployment_properties=deployment_prop_dict,
+                        ingress_properties=ingress_prop_dict,
+                        customcomponent_properties=customcomponent_prop_dict,
+                        idp_properties=idp_prop_dict,
+                        scim_properties=scim_prop_dict,
+                        logger=state["logger"])
+
+        cr.generate_cr()
+
+    layout = generate_generate_results(generated_folder)
 
     print(layout)
 
@@ -426,6 +589,7 @@ def generate():
 @app.command()
 def validate(
         apply: bool = typer.Option(False, help="Apply all generated artifacts to the cluster"),
+        self_signed: bool = typer.Option(False, help="Allow self-signed certificates"),
 ):
     """
     Validate the prerequisites for FileNet Content Manager Deployment.
@@ -462,22 +626,147 @@ def validate(
     print(operator_panel)
     print()
 
-    vobject = v.Validate(state["logger"])
-
+    # Loading property folder locations
+    prop_folder = os.path.join(os.getcwd(), "propertyFile")
     ssl_cert_folder = os.path.join(os.getcwd(), "propertyFile", "ssl-certs")
+    icc_folder = os.path.join(os.getcwd(), "propertyFile", "icc")
+    trusted_certs_folder = os.path.join(os.getcwd(), "propertyFile", "ssl-certs", "trusted-certs")
 
-    db_info = vobject._db_prop
-    ldap_info = vobject._ldap_prop
+    # Loading generated folder location
+    os.path.join(os.getcwd(), "generatedFiles")
+    generated_folder = os.path.join(os.getcwd(), "generatedFiles")
+
+    # Loading property files locations
+    db_prop_file = os.path.join(prop_folder, "fncm_db_server.toml")
+    ldap_prop_file = os.path.join(prop_folder, "fncm_ldap_server.toml")
+    idp_prop_file = os.path.join(prop_folder, "fncm_identity_provider.toml")
+    usergroup_prop_file = os.path.join(prop_folder, "fncm_user_group.toml")
+    deployment_prop_file = os.path.join(prop_folder, "fncm_deployment.toml")
+    ingress_prop_file = os.path.join(prop_folder, "fncm_ingress.toml")
+    customcomponent_prop_file = os.path.join(prop_folder, "fncm_components_options.toml")
+
+    # Set defaults for property files
+    db_prop = None
+    ldap_prop = None
+    idp_prop = None
+    usergroup_prop = None
+    deployment_prop = None
+    ingress_prop = None
+    customcomponent_prop = None
+    try:
+        # Load property files if they exist
+        if os.path.exists(db_prop_file):
+            db_prop = ReadPropDb(os.path.join(prop_folder, "fncm_db_server.toml"), state["logger"])
+
+        if os.path.exists(ldap_prop_file):
+            ldap_prop = ReadPropLdap(os.path.join(prop_folder, "fncm_ldap_server.toml"), state["logger"])
+
+        if os.path.exists(idp_prop_file):
+            idp_prop = ReadPropIdp(os.path.join(prop_folder, "fncm_identity_provider.toml"), state["logger"])
+
+        if os.path.exists(usergroup_prop_file):
+            usergroup_prop = ReadPropUsergroup(os.path.join(prop_folder, "fncm_user_group.toml"), state["logger"])
+
+        if os.path.exists(deployment_prop_file):
+            deployment_prop = ReadPropDeployment(os.path.join(prop_folder, "fncm_deployment.toml"), state["logger"])
+
+        if os.path.exists(ingress_prop_file):
+            ingress_prop = ReadPropIngress(os.path.join(prop_folder, "fncm_ingress.toml"), state["logger"])
+
+        if os.path.exists(customcomponent_prop_file):
+            customcomponent_prop = ReadPropCustomComponent(os.path.join(prop_folder, "fncm_components_options.toml"),
+                                                           state["logger"])
+
+        # Create dictionaries for property files if not None
+        if db_prop:
+            db_prop_dict = db_prop.to_dict()
+        else:
+            db_prop_dict = {}
+
+        if ldap_prop:
+            ldap_prop_dict = ldap_prop.to_dict()
+        else:
+            ldap_prop_dict = {}
+
+        if idp_prop:
+            idp_prop_dict = idp_prop.to_dict()
+        else:
+            idp_prop_dict = {}
+
+        if usergroup_prop:
+            usergroup_prop_dict = usergroup_prop.to_dict()
+        else:
+            usergroup_prop_dict = {}
+
+        if deployment_prop:
+            deployment_prop_dict = deployment_prop.to_dict()
+        else:
+            deployment_prop_dict = {}
+
+        if ingress_prop:
+            ingress_prop_dict = ingress_prop.to_dict()
+        else:
+            ingress_prop_dict = {}
+
+        if customcomponent_prop:
+            customcomponent_prop_dict = customcomponent_prop.to_dict()
+        else:
+            customcomponent_prop_dict = {}
+    except TomlDecodeError:
+        state["logger"].exception(
+            f"Exception when reading Property Files\n"
+            f"Please Review your Property files for missing quotes and formatting.\n\n")
+        exit(1)
+    except Exception as e:
+        state["logger"].exception(
+        f"Exception when reading Property Files\n"
+        f"Please Review your Property files for missing quotes and formatting.\n\n")
+        exit(1)
+
+
+
+    vobject = v.Validate(state["logger"],
+                         db_prop=db_prop_dict,
+                         ldap_prop=ldap_prop_dict,
+                         deploy_prop=deployment_prop_dict,
+                         idp_prop=idp_prop_dict,
+                         component_prop=customcomponent_prop_dict,
+                         user_group_prop=usergroup_prop_dict,
+                         self_signed=self_signed)
+
+    db_number = 0
+    if deployment_prop_dict["FNCM_Version"] == "5.5.8":
+        db_number += 1
+        db_number += len(db_prop_dict["_os_ids"])
+        db_number += 1
+    else:
+        if "CPE" in deployment_prop_dict.keys():
+            if deployment_prop_dict["CPE"]:
+                db_number += 1
+                db_number += len(db_prop_dict["_os_ids"])
+
+        if "BAN" in deployment_prop_dict.keys():
+            if deployment_prop_dict["BAN"]:
+                db_number += 1
+
     storageclass_number = len(vobject.get_unique_storageclass())
 
-    missing_certs = check_ssl_folders(db_info, ldap_info, ssl_cert_folder)
+    missing_certs, incorrect_certs = check_ssl_folders(db_prop=db_prop_dict, ldap_prop=ldap_prop_dict,
+                                                       ssl_cert_folder=ssl_cert_folder)
+    # Collect missing fields
+    # All missing required fields are collected in each instance
+    required_fields = {}
+    if db_prop.missing_required_fields():
+        required_fields = db_prop.required_fields
 
-    if len(vobject.required_fields) > 0 or len(vobject.missing_tools) > 0 or len(missing_certs) > 0:
-        layout = generate_validate_results(vobject.required_fields, vobject.missing_tools, missing_certs)
+    if db_prop.missing_required_fields() or len(vobject.missing_tools) > 0 or len(missing_certs) > 0 or len(
+            incorrect_certs) > 0:
+        layout = display_issues(required_fields=required_fields, tools=vobject.missing_tools, certs=missing_certs,
+                                incorrect_certs=incorrect_certs, mode="validate",deployment_prop=deployment_prop_dict)
         print(layout)
         exit(1)
     else:
-
+        # TODO: Add SCIM + IDP Validation
         with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
@@ -489,19 +778,47 @@ def validate(
                 transient=False,
         ) as progress:
 
-            task1 = progress.add_task("[cyan]Validate LDAP", total=ldap_info["ldap_number"])
-            task2 = progress.add_task("[green]Validate Storage Class", total=storageclass_number)
-            task3 = progress.add_task("[yellow]Validate Database", total=db_info["db_number"])
+            task3 = progress.add_task("[green]Validate Storage Class", total=storageclass_number)
+            if db_number > 0:
+                task4 = progress.add_task("[yellow]Validate Database", total=db_number)
+            if ldap_prop:
+                task1 = progress.add_task("[cyan]Validate LDAP", total=ldap_prop_dict["ldap_number"])
+            # if idp_prop:
+            #     task4 = progress.add_task("[blue]Validate IDP", total=idp_prop_dict["idp_number"])
 
             while not progress.finished:
-                vobject.validate_all_ldap(task1, progress)
-                vobject.validate_all_storage_classes(task2, progress)
-                vobject.validate_all_db(task3, progress)
+                if deployment_prop_dict["FNCM_Version"] == "5.5.12" and deployment_prop_dict["FIPS_SUPPORT"]:
+                    progress.log(Panel.fit(Text("Validating all connections with FIPS protocol.\n"
+                                            "These tests will only pass on FIPS enabled platforms.", style="bold purple")))
+                vobject.validate_all_storage_classes(task3, progress)
+                if db_number > 0:
+                    vobject.validate_all_db(task4, progress)
+                if ldap_prop:
+                    ldaps_validated = vobject.validate_all_ldap(task1, progress)
+                    if ldaps_validated:
+                        task2 = progress.add_task("[purple]Validate LDAP Users and Groups", total=1)
+                        vobject.validate_ldap_users_groups(task2, progress)
+                # if idp_prop:
+                #     vobject.validate_scim(task4, progress)
         vobject.cleanup_tmp()
 
         if all(vobject.is_validated.values()):
             print()
             print(Panel.fit(Text("All prerequisites are validated", style="bold green")))
+            print()
+            if apply:
+                vobject.auto_apply_secrets_ssl()
+                vobject.auto_apply_cr()
+            else:
+                apply_ssls_secrets = Confirm.ask("Do you want to apply the SSL & Secrets?")
+                if apply_ssls_secrets:
+                    vobject.auto_apply_secrets_ssl()
+                apply_cr = Confirm.ask("Do you want to apply the CR?")
+                if apply_cr:
+                    vobject.auto_apply_cr()
+        else:
+            print()
+            print(Panel.fit(Text("All prerequisites checks have not passed!", style="bold red")))
             print()
             if apply:
                 vobject.auto_apply_secrets_ssl()

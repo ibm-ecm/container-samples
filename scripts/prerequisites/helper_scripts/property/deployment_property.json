@@ -16,5 +16,19 @@
     "comment": [
       "Platform type."
     ]
+  },
+
+  "RESTRICTED_INTERNET_ACCESS": {
+    "value": false,
+    "comment": [
+      "Support for Restricted Internet Access"
+    ]
+  },
+
+  "FIPS_SUPPORT": {
+    "value": false,
+    "comment": [
+      "Support for FIPS"
+    ]
   }
 }
