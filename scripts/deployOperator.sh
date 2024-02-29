@@ -296,18 +296,16 @@ function check_existing_sc() {
   fi
 }
 
-function validate_docker_podman_cli() {
-  if [[ $PLATFORM_VERSION == "3.11" || "$machine" == "Mac" || $PLATFORM_SELECTED == "other" ]]; then
-    which docker &>/dev/null
-    [[ $? -ne 0 ]] &&
-      echo -e "\x1B[1;31mUnable to locate docker, please install it first.\x1B[0m" &&
-      exit 1
-  elif [[ $PLATFORM_VERSION == "4.4OrLater" ]]; then
-    which podman &>/dev/null
-    [[ $? -ne 0 ]] &&
-      echo -e "\x1B[1;31mUnable to locate podman, please install it first.\x1B[0m" &&
-      exit 1
-  fi
+# Write a function to check if docker or podman is installed
+function validate_docker_podman_cli {
+    if command -v podman >/dev/null 2>&1; then
+        echo "Podman is installed."
+    elif command -v docker >/dev/null 2>&1; then
+        echo "Docker is installed."
+    else
+        echo "Unable to locate podman or docker, please install it first."
+        exit 1
+    fi
 }
 
 function get_entitlement_registry() {
@@ -375,8 +373,7 @@ function get_entitlement_registry() {
             printf "\n"
             printf "\x1B[1mVerifying the Entitlement Registry key...\n\x1B[0m"
 
-            which podman &>/dev/null
-            if [[ $? -eq 0 ]]; then
+            if command -v podman >/dev/null 2>&1; then
               cli_command="podman"
             else
               cli_command="docker"
@@ -915,32 +912,7 @@ function verify_local_registry_password() {
     get_local_registry_password
 
     if [[ $LOCAL_REGISTRY_SERVER == docker-registry* || $LOCAL_REGISTRY_SERVER == image-registry* || $LOCAL_REGISTRY_SERVER == default-route-openshift-image-registry* ]]; then
-      if [[ $PLATFORM_VERSION == "3.11" ]]; then
-        if docker login -u "$LOCAL_REGISTRY_USER" -p $(${CLI_CMD} whoami -t) "$LOCAL_REGISTRY_SERVER"; then
-          printf 'Verifying Local Registry passed...\n'
-          verify_passed="passed"
-        else
-          printf '\x1B[1;31mLogin failed...\n\x1B[0m'
-          verify_passed=""
-          local_registry_user=""
-          local_registry_server=""
-          echo -e "\x1B[1;31mCheck the local docker registry information and try again.\x1B[0m"
-        fi
-      elif [[ "$machine" == "Mac" ]]; then
-        if docker login "$local_public_registry_server" -u "$LOCAL_REGISTRY_USER" -p $(${CLI_CMD} whoami -t); then
-          printf 'Verifying Local Registry passed...\n'
-          verify_passed="passed"
-        else
-          printf '\x1B[1;31mLogin failed...\n\x1B[0m'
-          verify_passed=""
-          local_registry_user=""
-          local_registry_server=""
-          local_public_registry_server=""
-          echo -e "\x1B[1;31mCheck the local docker registry information and try again.\x1B[0m"
-        fi
-      elif [[ $PLATFORM_VERSION == "4.4OrLater" ]]; then
-        which podman &>/dev/null
-        if [[ $? -eq 0 ]]; then
+        if command -v podman >/dev/null 2>&1; then
           if podman login "$local_public_registry_server" -u "$LOCAL_REGISTRY_USER" -p $(${CLI_CMD} whoami -t) --tls-verify=false; then
             printf 'Verifying Local Registry passed...\n'
             verify_passed="passed"
@@ -971,11 +943,9 @@ function verify_local_registry_password() {
               exit 1
             fi
           fi
-        fi
-      fi
+          fi
     else
-      which podman &>/dev/null
-      if [[ $? -eq 0 ]]; then
+      if command -v podman >/dev/null 2>&1; then
         if podman login -u "$LOCAL_REGISTRY_USER" -p "$LOCAL_REGISTRY_PWD" "$LOCAL_REGISTRY_SERVER" --tls-verify=false; then
           printf 'Verifying the information for the local docker registry...\n'
           verify_passed="passed"

@@ -125,6 +125,8 @@ spec:
       #client_oidc_secret:
          #nav: "" # Points to a secret with client_id and client_secret in that format.
          #cpe: "" # Points to a secret with client_id and client_secret in that format.
+         #es: "" # Points to a secret with client_id and client_secret in that format.
+         #graphql: "" # Points to a secret with client_id and client_secret in that format.
       #issuer_identifier: ""
       ## COMMON REQUIRED PROPERTIES AND VALUES
       ## If no value is set, the default value is taken. Uncomment or add new parameters as applicable for your provider.
@@ -408,11 +410,11 @@ spec:
       dc_common_gcd_datasource_name: "FNGCDDS"
       ## The GCD XA datasource name. The default value is "FNGCDDSXA".
       dc_common_gcd_xa_datasource_name: "FNGCDDSXA"
-      ## Provide the database server name or IP address of the database server.
+      ## Provide the database server name or IP address of the database server, not applicable to Oracle which requires a JDBC URL.
       database_servername: "<Required>"
       ## Provide the name of the database for the GCD for CPE.  For example: "GCDDB"
       database_name: "<Required>"
-      ## Provide the database server port.  For Db2, the default is "50000".  For Oracle, the default is "1521"
+      ## Provide the database server port.  For Db2, the default is "50000". Not applicable to Oracle which requires a JDBC URL.
       database_port: "<Required>"
       ## The name of the secret that contains the DB2/Oracle/PostgreSQL/SQLServer SSL certificate.
       database_ssl_secret_name: "<Required>"
@@ -451,12 +453,12 @@ spec:
       dc_common_os_datasource_name: "FNOS1DS"
       ## The OS1 XA datasource name.  The default value is "FNOS1DSXA".
       dc_common_os_xa_datasource_name: "FNOS1DSXA"
-      ## Provide the database server name or IP address of the database server.  This should be the same as the
+      ## Provide the database server name or IP address of the database server, not applicable to Oracle which requires a JDBC URL.  This should be the same as the
       ## GCD configuration above.
       database_servername: "<Required>"
       ## Provide the name of the database for the object store 1 for CPE.  For example: "OS1DB"
       database_name: "<Required>"
-      ## Provide the database server port.  For Db2, the default is "50000".  For Oracle, the default is "1521"
+      ## Provide the database server port.  For Db2, the default is "50000". Not applicable to Oracle which requires a JDBC URL.
       database_port: "<Required>"
       ## The name of the secret that contains the DB2/Oracle/PostgreSQL/SQLServer SSL certificate.
       database_ssl_secret_name: "<Required>"
@@ -482,8 +484,9 @@ spec:
       dc_database_type: "<Required>"
       ## Provide the ICN datasource name.  The default value is "ECMClientDS".
       dc_common_icn_datasource_name: "ECMClientDS"
+      #  Provide the database server name or IP address of the database server, not applicable to Oracle which requires a JDBC URL.
       database_servername: "<Required>"
-      ## Provide the database server port.  For Db2, the default is "50000".  For Oracle, the default is "1521"
+      ## Provide the database server port.  For Db2, the default is "50000". Not applicable to Oracle which requires a JDBC URL.
       database_port: "<Required>"
       ## Provide the name of the database for ICN (Navigator).  For example: "ICNDB"
       database_name: "<Required>"

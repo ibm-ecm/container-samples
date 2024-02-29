@@ -88,9 +88,25 @@ class GenerateSql:
     def create_icn(self):
         try:
             path = os.path.join(self._dest_path, "createICN.sql")
-            finished_output = self._icn_template.safe_substitute(icn_name=self._dbprop['ICN']['DATABASE_NAME'],
-                                                                 youruser1=parse_yaml_sql(self._dbprop['ICN']['DATABASE_USERNAME']),
-                                                                 yourpassword=parse_yaml_sql(self._dbprop['ICN']['DATABASE_PASSWORD']))
+            # we have tablespace and schema name that can be user filled for postgresql, sql,oracle
+            if self._dbprop["DATABASE_TYPE"] != "db2":
+                finished_output = self._icn_template.safe_substitute(icn_name=self._dbprop['ICN']['DATABASE_NAME'],
+                                                                     youruser1=parse_yaml_sql(
+                                                                         self._dbprop['ICN']['DATABASE_USERNAME']),
+                                                                     yourpassword=parse_yaml_sql(
+                                                                         self._dbprop['ICN']['DATABASE_PASSWORD']),
+                                                                     yourtablespace=parse_yaml_sql(
+                                                                         self._dbprop['ICN']['TABLESPACE_NAME']),
+                                                                     yourschema=parse_yaml_sql(
+                                                                         self._dbprop['ICN']['SCHEMA_NAME'])
+                                                                     )
+            else:
+                finished_output = self._icn_template.safe_substitute(icn_name=self._dbprop['ICN']['DATABASE_NAME'],
+                                                                     youruser1=parse_yaml_sql(
+                                                                         self._dbprop['ICN']['DATABASE_USERNAME']),
+                                                                     yourpassword=parse_yaml_sql(
+                                                                         self._dbprop['ICN']['DATABASE_PASSWORD']))
+
             with open(path, "w", encoding='UTF-8') as output:
                 output.write(finished_output)
 

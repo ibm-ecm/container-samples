@@ -247,7 +247,8 @@ def display_issues(generate_folder=None, required_fields=None,
                    certs=None, incorrect_certs=None,
                    masterkey_present=True, invalid_trusted_certs=None,
                    keystore_password_valid=True, incorrect_naming_conv=None,
-                   mode=None, tools=None,invalid_db_password_list=None,correct_ssl_mode=True,deployment_prop=None) -> Layout:
+                   mode=None, tools=None, invalid_db_password_list=None, correct_ssl_mode=True,
+                   deployment_prop=None) -> Layout:
     # Build Layout for display
     layout = Layout()
     layout.split_column(
@@ -288,8 +289,6 @@ def display_issues(generate_folder=None, required_fields=None,
                          'fncm_ingress.toml']
 
     error_tables = []
-
-
 
     # Build the tables based on issues with required fields missing in toml files
     instruction_list.append("Use the tables to fix the missing values for the toml files")
@@ -379,7 +378,8 @@ def display_issues(generate_folder=None, required_fields=None,
             for db in incorrect_naming_conv:
                 incorrect_dbs.append(db)
         if len(invalid_db_password_list) > 0:
-            instruction_list.append("- Postgresql Database password length needs to be atleast 16 characters long when FIPS is enabled")
+            instruction_list.append(
+                "- Postgresql Database password length needs to be atleast 16 characters long when FIPS is enabled")
             for db in invalid_db_password_list:
                 incorrect_dbs.append(db)
         for db in incorrect_dbs:
@@ -396,12 +396,13 @@ def display_issues(generate_folder=None, required_fields=None,
             tools.remove("connection")
 
         if "java_version" in tools:
-            instruction_list.append("Make sure you have the correct Java version installed , refer to the table on the right for the correct Java version to install.\n")
+            instruction_list.append(
+                "Make sure you have the correct Java version installed , refer to the table on the right for the correct Java version to install.\n")
             error_table = Table(title="Correct Java Version to use")
             error_table.add_column("FNCM S Version", style="green")
             error_table.add_column("Java Version", style="green")
             if deployment_prop["FNCM_Version"] == "5.5.8":
-                error_table.add_row("5.5.8","Java 8")
+                error_table.add_row("5.5.8", "Java 8")
             if deployment_prop["FNCM_Version"] == "5.5.11":
                 error_table.add_row("5.5.11", "Java 11")
             if deployment_prop["FNCM_Version"] == "5.5.12":
@@ -579,7 +580,7 @@ def check_ssl_certs_postgres(folder_list, cert_path):
 
 
 # Function to check if ssl certs are added to the respective folders
-def check_ssl_folders(db_prop=None, ldap_prop=None, ssl_cert_folder=None) -> tuple:
+def check_ssl_folders(db_prop=None, ldap_prop=None, ssl_cert_folder=None, deploy_prop=None) -> tuple:
     missing_cert = {}
     incorrect_cert = {}
     # if any ssl cert folders exists that means ssl was enabled for either ldap or DB
@@ -688,7 +689,7 @@ def check_ssl_folders(db_prop=None, ldap_prop=None, ssl_cert_folder=None) -> tup
                         elif db_prop["SSL_MODE"].lower() == "require":
                             # Require mode can be either Client or Server Authentication
                             # Selected Client Authentication
-                            if clientcert or clientkey:
+                            if (clientcert or clientkey) and deploy_prop["FNCM_Version"] != "5.5.8":
                                 if not clientkey:
                                     if folder not in missing_cert:
                                         missing_cert[folder] = []
@@ -820,8 +821,9 @@ def check_keystore_password_length(user_group_prop, deploy_prop):
                 return False
     return True
 
+
 # Function to check if db password is atleast 16 characters long for FIPS enabled
-def check_db_password_length(db_prop,deploy_prop):
+def check_db_password_length(db_prop, deploy_prop):
     # checking if fips support is enabled
     incorrect_password_dbs = []
     if "FIPS_SUPPORT" in deploy_prop.keys():
@@ -831,19 +833,21 @@ def check_db_password_length(db_prop,deploy_prop):
                     incorrect_password_dbs.append(db)
     return incorrect_password_dbs
 
+
 # Function to check if db ssl mode is require for postgres for FIPS enabled
-def check_db_ssl_mode(db_prop,deploy_prop):
+def check_db_ssl_mode(db_prop, deploy_prop):
     # checking if fips support is enabled
     correct_ssl_mode = True
     if "FIPS_SUPPORT" in deploy_prop.keys():
-        if deploy_prop["FIPS_SUPPORT"] and db_prop["DATABASE_TYPE"].lower() == "postgresql" and db_prop["DATABASE_SSL_ENABLE"]:
+        if deploy_prop["FIPS_SUPPORT"] and db_prop["DATABASE_TYPE"].lower() == "postgresql" and db_prop[
+            "DATABASE_SSL_ENABLE"]:
             if db_prop["SSL_MODE"].lower() != "require":
                 correct_ssl_mode = False
     return correct_ssl_mode
 
+
 # Function to display ldap search results
 def ldap_search_results(user_result_dict, group_result_dict):
-
     user_table_list = []
     group_table_list = []
 
@@ -875,7 +879,6 @@ def ldap_search_results(user_result_dict, group_result_dict):
             groups_missing.append(group)
         else:
             groups_duplicated.append(group)
-
 
     # Build tables for users and groups
     if len(users_found) > 0:
@@ -954,11 +957,11 @@ def ldap_search_results(user_result_dict, group_result_dict):
 
     if duplicated:
         panel_list.append(Panel.fit(f":x: Duplicated users and groups found!\n"
-                                         f"This can causes issue when logging in.", style="bold red"))
+                                    f"This can causes issue when logging in.", style="bold red"))
 
     if missing:
         panel_list.append(Panel.fit(f":exclamation_mark: Some users and groups where not found!\n"
-                                         f"Please review Property Files.", style="bold yellow"))
+                                    f"Please review Property Files.", style="bold yellow"))
 
     if not duplicated and not missing:
         panel_list.append(Panel.fit(f":white_heavy_check_mark: All users and groups where found!", style="bold green"))

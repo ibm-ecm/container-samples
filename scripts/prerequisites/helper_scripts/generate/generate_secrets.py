@@ -186,7 +186,7 @@ class GenerateSecrets:
 
                     # if client_auth is false that means server auth is true
                     client_auth = False
-                    if clientkey_present and clientcert_present:
+                    if clientkey_present and clientcert_present and self._deployment_properties["FNCM_Version"] != "5.5.8":
                         client_auth = True
                     # parsing through the 3 postgres ssl sub folders to generate the secret parameters
                     for postgres_folder in postgres_cert_folders:
@@ -248,6 +248,28 @@ class GenerateSecrets:
 
                                 dbpass = self._db_properties[item.upper()]["DATABASE_PASSWORD"]
                                 ssl_secret_data["stringData"]["DBPassword"] = str(self.xor_password(dbpass))
+
+                            if self._db_properties["SSL_MODE"].lower() != "require":
+                                if "clientcert" in postgres_folder:
+                                    # Read binary data from SSL certificate file
+                                    if sub_folder_cert:
+                                        with open(os.path.join(current_postgres_folder, sub_folder_cert),
+                                                  "rb") as file:
+                                            binary_data = file.read()
+                                        # Encode binary data to base64
+                                        encoded_data = base64.b64encode(binary_data).decode('utf-8')
+                                        ssl_secret_data["data"]['clientcert.pem'] = encoded_data
+
+                                if "clientkey" in postgres_folder:
+                                    # Read binary data from SSL certificate file
+                                    if sub_folder_cert:
+                                        with open(os.path.join(current_postgres_folder, sub_folder_cert),
+                                                  "rb") as file:
+                                            binary_data = file.read()
+                                        # Encode binary data to base64
+                                        encoded_data = base64.b64encode(binary_data).decode('utf-8')
+                                        ssl_secret_data["data"]['clientkey.pem'] = encoded_data
+
 
                     # adding ssl mode as a parameter for the secret
                     ssl_secret_data["stringData"] = {}

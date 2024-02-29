@@ -15,10 +15,12 @@ import ssl
 import string
 import subprocess
 import time
+import struct
 from socket import socket, gaierror
 
 import ldap3
 import requests
+requests.packages.urllib3.disable_warnings()
 import typer
 from OpenSSL import SSL
 from ldap3 import Server, Connection, ALL
@@ -51,7 +53,7 @@ class Validate:
     _TMP_DIR = os.path.join(os.getcwd(), "helper_scripts", "validate", "tmp")
 
     _CIPHERS = bytes(
-        "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256",
+        "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:TLS_RSA_WITH_AES_256_CBC_SHA",
         'utf-8')
 
     # Cannot default prop to a ReadProp object because Readprop requires a logger to be pased in
@@ -61,8 +63,7 @@ class Validate:
                  deploy_prop=None,
                  idp_prop=None,
                  component_prop=None,
-                 user_group_prop=None,
-                 self_signed=False):
+                 user_group_prop=None):
 
         self.component_prop_present = False
         if db_prop:
@@ -106,8 +107,6 @@ class Validate:
 
         self.is_validated = {}
         self.roundtriptime = 0
-
-        self._self_signed = self_signed
 
         self._users_dict = self.get_users()
         self._groups_dict = self.get_groups()
@@ -174,7 +173,10 @@ class Validate:
         self._java_present = self.__is_cmd_present("java")
         if not self._java_present:
             missing_tools.append("java")
-
+        self._powershell_present = self.__is_cmd_present("powershell.exe")
+        if not self._powershell_present and platform.system() == 'Windows':
+            missing_tools.append("powershell")
+            
         if self._java_present:
             self._java_correct_version = self.__check_java_version()
             if not self._java_correct_version:
@@ -243,7 +245,7 @@ class Validate:
     # (!!!) DOES NOT WORK WHEN INSIDE OPERATOR POD
     def __is_kubectl_logged_in(self):
         try:
-            subprocess.check_output("kubectl get pods </dev/null", shell=True, stderr=subprocess.PIPE,
+            subprocess.check_output("kubectl get pods", shell=True, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL,
                                     universal_newlines=True)
             return True
         except subprocess.CalledProcessError as error:
@@ -321,22 +323,32 @@ class Validate:
         return parameter
 
     def validate_db(self, db_label, task3, progress):
-        db_servername = remove_protocol(self._db_prop[db_label]['DATABASE_SERVERNAME'])
-        db_port = self._db_prop[db_label]['DATABASE_PORT']
         db_name = self._db_prop[db_label]['DATABASE_NAME']
         db_user = self._db_prop[db_label]['DATABASE_USERNAME']
         db_pwd = self._db_prop[db_label]['DATABASE_PASSWORD']
         db_type = self._db_prop['DATABASE_TYPE']
         ssl_enabled = self._db_prop['DATABASE_SSL_ENABLE']
 
+        if db_type == "oracle":
+            servername_regex = re.compile("(?<=HOST=)[\s]*[^)\s]*")
+            db_servername = servername_regex.search(self._db_prop[db_label]['ORACLE_JDBC_URL']).group()
+            db_servername = remove_protocol(db_servername)
+            port_regex = re.compile("(?<=PORT=)[\s]*[^)\s]*")
+            db_port = port_regex.search(self._db_prop[db_label]['ORACLE_JDBC_URL']).group()
+        else:
+            db_servername = remove_protocol(self._db_prop[db_label]['DATABASE_SERVERNAME'])
+            db_port = self._db_prop[db_label]['DATABASE_PORT']
+            
+
         # Escape any single quotes in the password & username
         db_pwd = self.parse_shell_command(db_pwd)
         db_user = self.parse_shell_command(db_user)
 
         connected = False
-        # TODO: Add PyOpenSSL support for postgres SSL connections
-        if db_type == "postgresql" and ssl_enabled:
-            connected = True
+        # Validates DB server and checks whether postgres pre-SSL packet needs to be sent
+        if db_type == 'postgresql':
+            connected = self.validate_server(progress=progress, server=db_servername, port=db_port, ssl_enabled=ssl_enabled,
+                                         display_rtt=False, pg=True)
         else:
             connected = self.validate_server(progress=progress, server=db_servername, port=db_port, ssl_enabled=ssl_enabled,
                                          display_rtt=False)
@@ -367,7 +379,7 @@ class Validate:
             if db_type == "db2":
                 cert = self.__get_file_from_folder(file_dir=cert_dir,
                                                    extensions=[".crt", ".cer", ".pem", ".cert"])
-                jar_cmd = "java " + f"-Dsemeru.fips={self.fips_enabled} -Duser.language=en -Duser.country=US -cp " \
+                jar_cmd = "java " + f"-D\"semeru.fips={self.fips_enabled}\" -D\"user.language=en\" -D\"user.country=US\" -cp " \
                           + f"\"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           + f"{self._DB_CONNECTION_JAR_PATH}\" " \
                           + f"DB2Connection -h '{db_servername}' " \
@@ -392,7 +404,7 @@ class Validate:
                                                                alias=f"cp4ba{db_type.upper()}Certs",
                                                                storetype="PKCS12",
                                                                truststore_pwd=truststore_pwd)
-                jar_cmd = "java " + f"-Dsemeru.fips={self.fips_enabled} -Duser.language=en -Duser.country=US -cp " \
+                jar_cmd = "java " + f"-D\"semeru.fips={self.fips_enabled}\" -D\"user.language=en\" -D\"user.country=US\" -cp " \
                           + f"\"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           + f"{self._DB_CONNECTION_JAR_PATH}\" " \
                           + f"OracleConnection -url \"{self._db_prop[db_label]['ORACLE_JDBC_URL']}\" " \
@@ -420,7 +432,7 @@ class Validate:
                 SSL_CONNECTION_STR = "encrypt=true;trustServerCertificate=true;" \
                                      + f"trustStore=\"{truststore_path}\";" \
                                      + f"trustStorePassword={truststore_pwd}"
-                jar_cmd = "java " + f"-Dsemeru.fips={self.fips_enabled} -Duser.language=en -Duser.country=US -cp " \
+                jar_cmd = "java " + f"-D\"semeru.fips={self.fips_enabled}\" -D\"user.language=en\" -D\"user.country=US\" -cp " \
                           + f"\"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           + f"{self._DB_CONNECTION_JAR_PATH}\" " \
                           + f"SQLConnection -h '{db_servername}' -p {db_port} -d '{db_name}' " \
@@ -454,7 +466,7 @@ class Validate:
                                                             extensions=ca_key_crt_extensions)
                     auth_str = f"-ca \"{server_ca}\""
 
-                jar_cmd = "java " + f"-Dsemeru.fips={self.fips_enabled} -Duser.language=en -Duser.country=US -Dcom.ibm.jsse2.overrideDefaultTLS=true " \
+                jar_cmd = "java " + f"-D\"semeru.fips={self.fips_enabled}\" -D\"user.language=en\" -D\"user.country=US\" -D\"com.ibm.jsse2.overrideDefaultTLS=true\" " \
                           f"-cp \"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           f"{self._DB_CONNECTION_JAR_PATH}\" " \
                           f"PostgresConnection -h '{db_servername}' -p {db_port} -db '{db_name}' " \
@@ -462,22 +474,22 @@ class Validate:
                           f"{auth_str}"
         else:
             if db_type == "db2":
-                jar_cmd = "java " + f"-Dsemeru.fips={self.fips_enabled} -Duser.language=en -Duser.country=US " \
+                jar_cmd = "java " + f"-D\"semeru.fips={self.fips_enabled}\" -D\"user.language=en\" -D\"user.country=US\" " \
                           + f"-cp \"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           + f"{self._DB_CONNECTION_JAR_PATH}\" DB2Connection " \
                           + f"-h '{db_servername}' -p {db_port} -db '{db_name}' -u '{db_user}' -pwd '{db_pwd}'"
             elif db_type == "oracle":
-                jar_cmd = "java " + f"-Dsemeru.fips={self.fips_enabled} -Duser.language=en -Duser.country=US " \
+                jar_cmd = "java " + f"-D\"semeru.fips={self.fips_enabled}\" -D\"user.language=en\" -D\"user.country=US\" " \
                           + f"-cp \"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           + f"{self._DB_CONNECTION_JAR_PATH}\" OracleConnection " \
                           + f"-url {self._db_prop[db_label]['ORACLE_JDBC_URL']} -u '{db_user}' -pwd '{db_pwd}'"
             elif db_type == "sqlserver":
-                jar_cmd = "java " + f"-Dsemeru.fips={self.fips_enabled} -Duser.language=en -Duser.country=US " \
+                jar_cmd = "java " + f"-D\"semeru.fips={self.fips_enabled}\" -D\"user.language=en\" -D\"user.country=US\" " \
                           + f"-cp \"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           + f"{self._DB_CONNECTION_JAR_PATH}\" SQLConnection " \
                           + f"-h '{db_servername}' -p {db_port} -d '{db_name}' -u '{db_user}' -pwd '{db_pwd}' -ssl 'encrypt=false'"
             elif db_type == "postgresql":
-                jar_cmd = "java " + f"-Dsemeru.fips={self.fips_enabled} -Duser.language=en -Duser.country=US -Dcom.ibm.jsse2.overrideDefaultTLS=true " \
+                jar_cmd = "java " + f"-D\"semeru.fips={self.fips_enabled}\" -D\"user.language=en\" -D\"user.country=US\" -Dcom.ibm.jsse2.overrideDefaultTLS=true " \
                           + f"-cp \"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           + f"{self._DB_CONNECTION_JAR_PATH}\" PostgresConnection " \
                           + f"-h '{db_servername}' -p {db_port} -db '{db_name}' -u '{db_user}' -pwd '{db_pwd}' -sslmode disable"
@@ -702,7 +714,7 @@ class Validate:
                 'Content-Type': 'application/x-www-form-urlencoded'
             }
 
-            response = requests.request("POST", url, headers=headers, data=payload, timeout=5)
+            response = requests.request("POST", url, headers=headers, data=payload, verify=False, timeout=5)
 
             response.raise_for_status()
             received_token = True
@@ -824,9 +836,10 @@ class Validate:
                 # Bind and search
                 conn = Connection(server, user=bind_dn, password=bind_dn_password)
                 bind_response = conn.bind()
-                if bind_response:
-                    authenticated = True
-                    return authenticated, conn
+                if not bind_response:
+                    raise LDAPBindError()
+                authenticated = True
+                return authenticated, conn
             except LDAPBindError as e:
                 progress.log(Text(f"LDAP Invalid Credentials", style="bold red"))
                 msg = Text(f"Failed to authenticate \"{bind_dn}\"\n"
@@ -856,9 +869,9 @@ class Validate:
                                   user=bind_dn,
                                   password=bind_dn_password)
                 bind_response = conn.bind()
-
-                if bind_response:
-                    authenticated = True
+                if not bind_response:
+                    raise LDAPBindError()
+                authenticated = True
                 return authenticated, conn
             except LDAPBindError as e:
                 progress.log(Text(f"LDAP Invalid Credentials", style="bold red"))
@@ -931,7 +944,7 @@ class Validate:
             self._logger.info(f"Error found in ldap_search function in validation script --- {str(e)}")
 
     # Function to connect to ldap
-    def connect_to_server(self, host, port, progress, ssl=False, client_cert_file=None):
+    def connect_to_server(self, host, port, progress, ssl=False, client_cert_file=None, pg = False):
 
         # If SSL is enabled, create an SSL socket
         # Create an SSL context
@@ -953,7 +966,16 @@ class Validate:
             start_time = time.time()
             conn.connect((host, port))
             end_time = time.time()
+            
             if ssl:
+                # Postgres requires protocal negotiation before SSL since everything's on same port
+                # https://www.postgresql.org/docs/current/protocol-flow.html#PROTOCOL-FLOW-SSL
+                if pg:
+                    version_ssl = struct.pack('!I', 1234 << 16 | 5679)
+                    length = struct.pack('!I', 8)
+                    packet = length + version_ssl
+                    sock.sendall(packet)
+                    sock.recv(1)
                 conn.do_handshake()
             connected = True
 
@@ -987,7 +1009,7 @@ class Validate:
         return conn, rtt, connected
 
     # Validates a single LDAP, defaults to the first one by its id: "LDAP"
-    def validate_server(self, progress, server, port, ssl_enabled=False, cert_path="", display_rtt=True):
+    def validate_server(self, progress, server, port, ssl_enabled=False, cert_path="", display_rtt=True, pg = False):
         connected = False
 
         progress.log(Text(f"Validating Server \"{server}\" Reachability"))
@@ -996,7 +1018,7 @@ class Validate:
         # Test for SSL connections
         # Return a connection object, RTT and a boolean indicating if the connection was successful
         if ssl_enabled:
-            conn_result, rtt, connected = self.connect_to_server(server, int(port), progress, True, cert_path)
+            conn_result, rtt, connected = self.connect_to_server(server, int(port), progress, True, cert_path, pg)
         else:
             conn_result, rtt, connected = self.connect_to_server(server, int(port), progress)
 
@@ -1069,7 +1091,10 @@ class Validate:
     def __check_connection_with_jar(self, jar_cmd, progress):
         self.__check_java()
         try:
-            output = subprocess.check_output(jar_cmd, shell=True, stderr=subprocess.PIPE, universal_newlines=True)
+            if platform.system() == 'Windows':
+                output = subprocess.check_output(["powershell.exe", jar_cmd], shell=True, stderr=subprocess.PIPE, universal_newlines=True)
+            else: 
+                output = subprocess.check_output(jar_cmd, shell=True, stderr=subprocess.PIPE, universal_newlines=True)
             round_trip_statement = output.split("Round Trip time:")[1]
             match = re.search(r'([\d.]+)', round_trip_statement)
             if match:
@@ -1100,7 +1125,11 @@ class Validate:
         TIMEOUT_ATTEMPTS = 30
         SLEEP_TIMER = 10
 
-        kubectl_cmd = f"kubectl get pvc | grep {sample_pvc_name}| grep -q -m 1 \"Bound\""
+        if platform.system() == 'Windows':
+            kubectl_cmd = f"kubectl get pvc | findstr {sample_pvc_name} | findstr \"Bound\""
+        else:
+            kubectl_cmd = f"kubectl get pvc | grep {sample_pvc_name}| grep -q -m 1 \"Bound\""
+        
         for i in range(TIMEOUT_ATTEMPTS):
             progress.log(f"\nChecking for {sample_pvc_name} liveness - Attempt {i + 1}/{TIMEOUT_ATTEMPTS}\n")
             validated = True
@@ -1228,8 +1257,13 @@ class Validate:
     def auto_apply_secrets_ssl(self):
         self.auto_apply_all_in_folder(folder_path=os.path.join(os.getcwd(), "generatedFiles", "secrets"))
         # only if ssl secrets folder is present will they be applied
-        if os.path.exists(os.path.join(os.getcwd(), "generatedFiles", "ssl")):
-            self.auto_apply_all_in_folder(folder_path=os.path.join(os.getcwd(), "generatedFiles", "ssl"))
+        # Build path where secrets are generated
+        secret_directories = [os.path.join(os.getcwd(), "generatedFiles", "ssl"),
+                              os.path.join(os.getcwd(), "generatedFiles", "ssl", "trusted-certs")]
+
+        for folder_path in secret_directories:
+            if os.path.exists(folder_path):
+                self.auto_apply_all_in_folder(folder_path=folder_path)
 
     def auto_apply_cr(self):
         # Applying FNCM CR

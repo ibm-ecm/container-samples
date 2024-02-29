@@ -133,6 +133,8 @@ spec:
       #client_oidc_secret:
          #nav: "" # Points to a secret with client_id and client_secret in that format.
          #cpe: "" # Points to a secret with client_id and client_secret in that format.
+         #es: "" # Points to a secret with client_id and client_secret in that format.
+         #graphql: "" # Points to a secret with client_id and client_secret in that format.
       #issuer_identifier: ""
       ## COMMON REQUIRED PROPERTIES AND VALUES
       ## If no value is set, the default value is taken. Uncomment or add new parameters as applicable for your provider.
@@ -143,7 +145,7 @@ spec:
       #inbound_propagation: "supported"
       #https_required: "true"
       #validation_method: "introspect"
-      #disable_ltpa_cookie: "true"
+      #disable_ltpa_cookie: "false"
       #signature_algorithm: "RS256"
       #user_identifier: "sub"
       #unique_user_identifier: "sub"
@@ -415,11 +417,11 @@ spec:
       dc_common_gcd_datasource_name: "FNGCDDS"
       ## The GCD XA datasource name. The default value is "FNGCDDSXA".
       dc_common_gcd_xa_datasource_name: "FNGCDDSXA"
-      ## Provide the database server name or IP address of the database server.
+      ## Provide the database server name or IP address of the database server, not applicable to Oracle which requires a JDBC URL.
       database_servername: "<Required>"
       ## Provide the name of the database for the GCD for CPE.  For example: "GCDDB"
       database_name: "<Required>"
-      ## Provide the database server port.  For Db2, the default is "50000".  For Oracle, the default is "1521"
+      ## Provide the database server port.  For Db2, the default is "50000". Not applicable to Oracle which requires a JDBC URL.
       database_port: "<Required>"
       ## The name of the secret that contains the DB2/Oracle/PostgreSQL/SQLServer SSL certificate.
       database_ssl_secret_name: "<Required>"
@@ -471,12 +473,12 @@ spec:
       dc_common_os_datasource_name: "FNOS1DS"
       ## The OS1 XA datasource name.  The default value is "FNOS1DSXA".
       dc_common_os_xa_datasource_name: "FNOS1DSXA"
-      ## Provide the database server name or IP address of the database server.  This should be the same as the
+      ## Provide the database server name or IP address of the database server, not applicable to Oracle which requires a JDBC URL.  This should be the same as the
       ## GCD configuration above.
       database_servername: "<Required>"
       ## Provide the name of the database for the object store 1 for CPE.  For example: "OS1DB"
       database_name: "<Required>"
-      ## Provide the database server port.  For Db2, the default is "50000".  For Oracle, the default is "1521"
+      ## Provide the database server port.  For Db2, the default is "50000". Not applicable to Oracle which requires a JDBC URL.
       database_port: "<Required>"
       ## The name of the secret that contains the DB2/Oracle/PostgreSQL/SQLServer SSL certificate.
       database_ssl_secret_name: "<Required>"
@@ -516,7 +518,7 @@ spec:
       ## Provide the ICN datasource name.  The default value is "ECMClientDS".
       dc_common_icn_datasource_name: "ECMClientDS"
       database_servername: "<Required>"
-      ## Provide the database server port.  For Db2, the default is "50000".  For Oracle, the default is "1521"
+      ## Provide the database server port.  For Db2, the default is "50000". Not applicable to Oracle which requires a JDBC URL.
       database_port: "<Required>"
       ## Provide the name of the database for ICN (Navigator).  For example: "ICNDB"
       database_name: "<Required>"
@@ -612,7 +614,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cpe
-        tag: ga-558-p8cpe-if005
+        tag: ga-558-p8cpe-if006
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -620,7 +622,7 @@ spec:
       ## Logging for workloads.  This is the default setting.
       log:
        format: json
-
+      
       ## Set securityContext for CPE deployment.
       security_context:
         ## Controls which group IDs containers add. For example "supplemental_groups: [1000620001,1000620002]"
@@ -633,7 +635,7 @@ spec:
         # Defines behavior for changing ownership and permission of the volume before being exposed inside a Pod. This field has two possible values (Always,OnRootMismatch)
         # For example fs_groupchangepolicy: "OnRootMismatch"
         fs_groupchangepolicy:
-
+      
       ## The initial resources (CPU, memory) requests and limits.  If more resources are needed,
       ## make the changes here to meet your requirement.
       resources:
@@ -744,7 +746,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/css
-        tag: ga-558-p8css-if005
+        tag: ga-558-p8css-if006
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -829,7 +831,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cmis
-        tag: ga-307-cmis-la207
+        tag: ga-307-cmis-la403
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -982,7 +984,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/graphql
-        tag: ga-558-p8cgql-if005
+        tag: ga-558-p8cgql-if006
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1091,7 +1093,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/extshare
-        tag: ga-3011-es-la1201
+        tag: ga-3011-es-la1501
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1189,7 +1191,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/taskmgr
-        tag: ga-3011-tm-la1201
+        tag: ga-3011-tm-la1501
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1323,7 +1325,7 @@ spec:
     image:
       ## The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/ban/navigator
-      tag: ga-3011-icn-la1201
+      tag: ga-3011-icn-la1501
 
       ## This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent

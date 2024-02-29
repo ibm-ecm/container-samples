@@ -1,3 +1,23 @@
+## 2.4.7 (2024-02-26)
+
+### Fix
+
+- fixed serverAuth postgresql secret generation for FNCM 5.5.8
+- fixed missing OIDC secret for External Share and GraphQL
+- added support for postgres and oracle SSL/TLS connection validation
+- updated cryptography library to 42.0.4
+- updated postgresql JDBC driver to 42.7.2
+- removed hostname and port property requirement for oracle db
+- fix to add content pattern only CPE, GraphQL, Navigator are selected
+- make tablespace and schema customizable for oracle, postgresql, sqlserver sql files
+- allow selection of external share on 5.5.8 w/ LDAP and IDP
+- fixed ldap error handling on invalid base dn or password
+- fixed kubectl login and DB connection issues on Windows
+- validate function successful on Windows
+- apply trusted certificates through validation
+- allow special characters in CLIENT_ID properties
+- allow connection to self-signed SSL hosts
+
 ## 2.4.2 (2023-12-03)
 
 ### Feat

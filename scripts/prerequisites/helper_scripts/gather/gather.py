@@ -17,6 +17,8 @@ import os
 from enum import Enum
 
 import requests
+
+requests.packages.urllib3.disable_warnings()
 import xmltodict
 from rich import print
 from rich.panel import Panel
@@ -102,7 +104,7 @@ class GatherOptions:
                 else:
                     if url.endswith(".well-known/openid-configuration"):
                         # Create a variable to hold the json
-                        json = requests.get(url, timeout=5).json()
+                        json = requests.get(url, timeout=5, verify=False).json()
 
                         # Check if the json is valid
                         if json is None:
@@ -237,7 +239,7 @@ class GatherOptions:
         self._icc_support = False
         self._tm_custom_groups = False
         self._egress_support = False
-        self._fips_support= False
+        self._fips_support = False
         self._auth_type = self.AuthType(1).name
 
     # Create a function to gather all deployment options from the user
@@ -572,7 +574,6 @@ class GatherOptions:
                 else:
                     num_components = 6
 
-
                 while True:
                     print()
                     print("Select zero or more FileNet Content Management Components")
@@ -605,7 +606,6 @@ class GatherOptions:
                             continue
 
                         break
-
 
                     if 1 <= result <= num_components:
                         # remove from set if already present
@@ -640,7 +640,7 @@ class GatherOptions:
                     if result == 0:
                         break
 
-                    if 1 <= result <= 3:
+                    if 1 <= result <= num_components:
                         # remove from set if already present
                         # since we added cpe, ban and graphql to the list we are checking the result +3 which maps to css cmis and tm
                         # for this use case only since we have content pattern components as a must in 5.5.8
@@ -900,7 +900,6 @@ class GatherOptions:
                         self._db_type = self.DatabaseType(result).name
                         break
 
-
                     print("[prompt.invalid] Number must be between [[b]1[/b] and [b]4[/b]]")
                 else:
                     print()
@@ -984,7 +983,8 @@ class GatherOptions:
 
                 while True:
                     print()
-                    print("Most IDP's support a discovery endpoint. Discovery Endpoints are used to retrieve the IDP configuration.")
+                    print(
+                        "Most IDP's support a discovery endpoint. Discovery Endpoints are used to retrieve the IDP configuration.")
                     print()
                     discovery_enabled = Confirm.ask("Does this IDP support discovery?")
 
@@ -1000,7 +1000,8 @@ class GatherOptions:
                             break
                         else:
                             print("[prompt.invalid] Discovery URL is invalid")
-                            print('[prompt.invalid] Make sure your discovery URL ends with ".well-known/openid-configuration"')
+                            print(
+                                '[prompt.invalid] Make sure your discovery URL ends with ".well-known/openid-configuration"')
                     else:
                         idp = self.Idp(discovery_enabled, idp_id)
                         self._idp_info.append(idp)

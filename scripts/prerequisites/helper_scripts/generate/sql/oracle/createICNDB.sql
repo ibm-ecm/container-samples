@@ -39,7 +39,7 @@ GRANT EXECUTE ON DBMS_XA TO ${youruser1};
 -- Create tablespaces
 -- Please make sure you change the DATAFILE and TEMPFILE to your Oracle database.
 -- Note: the Operator default for the tablesapce is ICNDB
-CREATE TABLESPACE ICNDB
+CREATE TABLESPACE {yourtablespace}
     DATAFILE '/home/oracle/orcl/${icn_name}TS.dbf' SIZE 200M REUSE
     AUTOEXTEND ON NEXT 20M
     EXTENT MANAGEMENT LOCAL
@@ -57,7 +57,7 @@ CREATE TEMPORARY TABLESPACE ${icn_name}TSTEMP
 
 -- Alter existing schema
 ALTER USER ${youruser1}
-    DEFAULT TABLESPACE ICNDB
+    DEFAULT TABLESPACE {yourtablespace}
     TEMPORARY TABLESPACE ${icn_name}TSTEMP;
 
 GRANT CONNECT, RESOURCE to ${youruser1};

@@ -121,8 +121,7 @@ class GenerateCR:
         feature_dict = self.generate_custom_feature_dict()
 
         # call function to generate custom component properties if required
-        if self._customcomponent_properties:
-            self.populate_custom_property_section(feature_dict)
+        self.populate_custom_property_section(feature_dict)
 
         self.write_cr_template()
 
@@ -293,6 +292,10 @@ class GenerateCR:
                     self._idp_properties[key]["ISSUER"]
 
                 secret_section = {"cpe": secret_name, "nav": secret_name}
+                if self._deployment_properties["FNCM_Version"] == "5.5.8":
+                    secret_section["es"] = secret_name
+                    secret_section["graphql"] = secret_name
+
                 idp_section["spec"]["shared_configuration"]["open_id_connect_providers"][idx][
                     "client_oidc_secret"] = secret_section
                 idp_section["spec"]["shared_configuration"]["open_id_connect_providers"][idx]["validation_method"] = \
@@ -411,6 +414,9 @@ class GenerateCR:
                             db_dict["spec"]["datasource_configuration"][cr_key][
                                 "dc_oracle_" + db_key.lower() + "_jdbc_url"] = self._db_properties[db_key][
                                 'ORACLE_JDBC_URL']
+                            db_dict["spec"]["datasource_configuration"][cr_key].pop("database_servername", None)
+                            db_dict["spec"]["datasource_configuration"][cr_key].pop("database_port", None)
+
                 # populating the OS section
                 else:
                     while len(db_dict["spec"]["datasource_configuration"]["dc_os_datasources"]) < len(db_key):
@@ -471,6 +477,8 @@ class GenerateCR:
                             else:
                                 db_dict["spec"]["datasource_configuration"]["dc_os_datasources"][os_number][
                                     "dc_oracle_os_jdbc_url"] = self._db_properties[prop_key]['ORACLE_JDBC_URL']
+                                db_dict["spec"]["datasource_configuration"]["dc_os_datasources"][os_number].pop("database_servername", None)
+                                db_dict["spec"]["datasource_configuration"]["dc_os_datasources"][os_number].pop("database_port", None)
 
             # based on the component deployed, certain sections of the CR can be removed.
             if self._deployment_properties["FNCM_Version"] != "5.5.8":
@@ -555,16 +563,19 @@ class GenerateCR:
 
             # populating fips enable parameter if required
             if self._deployment_properties["FNCM_Version"] not in ["5.5.8", "5.5.11"]:
-                base_dict["spec"]["shared_configuration"]["enable_fips"] = self._deployment_properties["FIPS_SUPPORT"]
-                base_dict["spec"]["shared_configuration"]["sc_egress_configuration"]["sc_restricted_internet_access"] = \
-                self._deployment_properties[
-                    "RESTRICTED_INTERNET_ACCESS"]
+                base_dict["spec"]["shared_configuration"]["enable_fips"] = self._deployment_properties[
+                    "FIPS_SUPPORT"]
+                base_dict["spec"]["shared_configuration"]["sc_egress_configuration"][
+                    "sc_restricted_internet_access"] = \
+                    self._deployment_properties[
+                        "RESTRICTED_INTERNET_ACCESS"]
 
             self._merged_data.update(base_dict)
 
 
         except Exception as e:
-            self._logger.exception(f"Error found in generate_base_section function in generate_cr script --- {str(e)}")
+            self._logger.exception(
+                f"Error found in generate_base_section function in generate_cr script --- {str(e)}")
 
     # function to generate the ingress section
     def populate_ingress_section(self):
@@ -860,7 +871,7 @@ class GenerateCR:
             if "SENDMAIL" in self._customcomponent_properties.keys():
                 ban_features.append("SENDMAIL")
 
-            if "ICN" in self._db_properties.keys():
+            if "ICN" in self._db_properties.keys() or self._deployment_properties["FNCM_Version"] == "5.5.8":
 
                 if "TABLESPACE_NAME" in self._db_properties["ICN"].keys():
                     if self._db_properties["ICN"]["TABLESPACE_NAME"] != "ICNDB":

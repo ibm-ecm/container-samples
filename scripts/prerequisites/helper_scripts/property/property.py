@@ -145,8 +145,11 @@ class Property:
             if prop['@name'] == "DatabaseSchema":
                 db_properties[key]["SCHEMA_NAME"]['value'] = prop['value']
 
-        if 'ORACLE_JDBC_URL' in db_properties[key]:
-            jdbc_url = self.__create_oracle_jdbc_url(db_properties, key)
+        if 'ORACLE_JDBC_URL' in db_properties[key]: 
+            host_name = db_properties[key]['DATABASE_SERVERNAME']['value']
+            db_name = db_properties[key]['DATABASE_NAME']['value'],
+            port = db_properties[key]['DATABASE_PORT']['value']
+            jdbc_url = self.__create_oracle_jdbc_url(host_name, db_name, port)
             db_properties[key]["ORACLE_JDBC_URL"]['value'] = jdbc_url
 
         return db_properties
@@ -555,6 +558,8 @@ class Property:
 
                 gcd_section = table()
                 for key, value in db_properties['GCD'].items():
+                    if self._gather.db_type == 'oracle' and (key in ['DATABASE_SERVERNAME', 'DATABASE_PORT']):
+                        continue
                     self.__write_property_table(section=gcd_section,
                                                 key=key,
                                                 value=value['value'],
@@ -577,6 +582,8 @@ class Property:
                     os_section = table()
                     # loop through the db_properties dictionary
                     for key, value in db_properties[suffix].items():
+                        if self._gather.db_type == 'oracle' and (key in ['DATABASE_SERVERNAME', 'DATABASE_PORT']):
+                            continue
                         self.__write_property_table(section=os_section,
                                                     key=key,
                                                     value=value['value'],
@@ -593,6 +600,8 @@ class Property:
                 icn_section = table()
                 # loop through the db_properties dictionary
                 for key, value in db_properties['ICN'].items():
+                    if self._gather.db_type == 'oracle' and (key in ['DATABASE_SERVERNAME', 'DATABASE_PORT']):
+                        continue
                     self.__write_property_table(section=icn_section,
                                                 key=key,
                                                 value=value['value'],
@@ -657,12 +666,11 @@ class Property:
             db_properties_dict['GCD'].pop('SSL_MODE')
             db_properties_dict['GCD'].pop('TABLESPACE_NAME')
             db_properties_dict['GCD'].pop('SCHEMA_NAME')
-
             db_properties_dict['GCD']['DATABASE_PORT']['value'] = db_port
             db_properties_dict['GCD']['DATASOURCE_NAME']['value'] = "FNGCDDS"
             db_properties_dict['GCD']['DATASOURCE_NAME_XA']['value'] = "FNGCDDSXA"
             if self._gather.db_type == 'oracle':
-                jdbc_url = self.__create_oracle_jdbc_url(db_properties_dict, "GCD")
+                jdbc_url = self.__create_oracle_jdbc_url()
                 db_properties_dict['GCD']['ORACLE_JDBC_URL']['value'] = jdbc_url
 
             # Adjust the db properties for ICN
@@ -676,7 +684,7 @@ class Property:
             db_properties_dict['ICN']['DATABASE_PORT']['value'] = db_port
             db_properties_dict['ICN']['DATASOURCE_NAME']['value'] = "ECMClientDS"
             if self._gather.db_type == 'oracle':
-                jdbc_url = self.__create_oracle_jdbc_url(db_properties_dict, "ICN")
+                jdbc_url = self.__create_oracle_jdbc_url()
                 db_properties_dict['ICN']['ORACLE_JDBC_URL']['value'] = jdbc_url
 
             # Adjust the db properties for OS
@@ -692,7 +700,7 @@ class Property:
                     db_properties_dict['OS']['DATASOURCE_NAME']['value'] = "FNOS1DS"
                     db_properties_dict['OS']['DATASOURCE_NAME_XA']['value'] = "FNOS1DSXA"
                     if self._gather.db_type == 'oracle':
-                        jdbc_url = self.__create_oracle_jdbc_url(db_properties_dict, "OS")
+                        jdbc_url = self.__create_oracle_jdbc_url()
                         db_properties_dict['OS']['ORACLE_JDBC_URL']['value'] = jdbc_url
                 else:
                     db_properties_dict[f"OS{i + 1}"].pop('DATABASE_TYPE')
@@ -705,7 +713,7 @@ class Property:
                     db_properties_dict[f"OS{i + 1}"]['DATASOURCE_NAME']['value'] = f"FNOS{i + 1}DS"
                     db_properties_dict[f"OS{i + 1}"]['DATASOURCE_NAME_XA']['value'] = f"FNOS{i + 1}DSXA"
                     if self._gather.db_type == 'oracle':
-                        jdbc_url = self.__create_oracle_jdbc_url(db_properties_dict, f"OS{i + 1}")
+                        jdbc_url = self.__create_oracle_jdbc_url()
                         db_properties_dict[f"OS{i + 1}"]['ORACLE_JDBC_URL']['value'] = jdbc_url
 
             return db_properties_dict
@@ -715,20 +723,20 @@ class Property:
                 "Exception from gather script in create_db_propertyfile function -  {}".format(str(e)))
 
     # Create a private method that creates the jdbc oracle url
-    def __create_oracle_jdbc_url(self, db_properties_dict, key) -> str:
+    def __create_oracle_jdbc_url(self, host_name = "<Required>", db_name = "<Required>", port_name = "<Required>") -> str:
         try:
             if self._gather.db_ssl and self._gather.db_type == 'oracle':
                 jdbc_url = 'jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCPS)(HOST={host})(PORT={port}))(' \
                            'CONNECT_DATA=(SERVICE_NAME={dbname})))'.format(
-                    host=db_properties_dict[key]['DATABASE_SERVERNAME']['value'],
-                    dbname=db_properties_dict[key]['DATABASE_NAME']['value'],
-                    port=db_properties_dict[key]['DATABASE_PORT']['value'])
+                    host=host_name,
+                    dbname=db_name, 
+                    port=port_name)
             else:
                 jdbc_url = 'jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={host})(PORT={port}))(' \
                            'CONNECT_DATA=(SERVICE_NAME={dbname})))'.format(
-                    host=db_properties_dict[key]['DATABASE_SERVERNAME']['value'],
-                    dbname=db_properties_dict[key]['DATABASE_NAME']['value'],
-                    port=db_properties_dict[key]['DATABASE_PORT']['value'])
+                    host=host_name,
+                    dbname=db_name, 
+                    port=port_name)
             return jdbc_url
 
         except Exception as e:
@@ -842,7 +850,7 @@ class Property:
         doc.add(nl())
         for i in note:
             doc.add(comment(f'{i}'))
-        cred_list = ['PASSWORD', 'SECRET', 'USERNAME', 'GROUPS_NAME', 'ADMIN_USER', 'LOGIN_USER', 'BIND_DN', 'USER_ID', "NAMES"]
+        cred_list = ['PASSWORD', 'SECRET', 'USERNAME', 'GROUPS_NAME', 'ADMIN_USER', 'LOGIN_USER', 'CLIENT_ID', 'BIND_DN', 'USER_ID', "NAMES"]
         if any(ele in key for ele in cred_list):
             if isinstance(value, list):
                 for i in range(len(value)):

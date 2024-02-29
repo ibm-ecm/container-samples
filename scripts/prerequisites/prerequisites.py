@@ -56,7 +56,7 @@ from helper_scripts.utilities.utilites import zip_folder, \
     collect_visible_files, check_db_password_length , check_db_ssl_mode
 from helper_scripts.validate import validate as v
 
-__version__ = "2.4.2"
+__version__ = "2.4.7"
 
 app = typer.Typer()
 state = {
@@ -470,7 +470,8 @@ def generate():
     # Check if SSL certificates are present and correct format
     missing_certs, incorrect_certs = check_ssl_folders(db_prop=db_prop_dict,
                                                        ldap_prop=ldap_prop_dict,
-                                                       ssl_cert_folder=ssl_cert_folder)
+                                                       ssl_cert_folder=ssl_cert_folder,
+                                                       deploy_prop=deployment_prop_dict)
     masterkey_present = check_icc_masterkey(customcomponent_prop_dict, icc_folder)
     trusted_certs_present, invalid_trusted_certs = check_trusted_certs(trusted_certs_folder)
     keystore_password_valid = check_keystore_password_length(usergroup_prop_dict, deployment_prop_dict)
@@ -589,7 +590,6 @@ def generate():
 @app.command()
 def validate(
         apply: bool = typer.Option(False, help="Apply all generated artifacts to the cluster"),
-        self_signed: bool = typer.Option(False, help="Allow self-signed certificates"),
 ):
     """
     Validate the prerequisites for FileNet Content Manager Deployment.
@@ -731,8 +731,7 @@ def validate(
                          deploy_prop=deployment_prop_dict,
                          idp_prop=idp_prop_dict,
                          component_prop=customcomponent_prop_dict,
-                         user_group_prop=usergroup_prop_dict,
-                         self_signed=self_signed)
+                         user_group_prop=usergroup_prop_dict)
 
     db_number = 0
     if deployment_prop_dict["FNCM_Version"] == "5.5.8":
@@ -752,7 +751,8 @@ def validate(
     storageclass_number = len(vobject.get_unique_storageclass())
 
     missing_certs, incorrect_certs = check_ssl_folders(db_prop=db_prop_dict, ldap_prop=ldap_prop_dict,
-                                                       ssl_cert_folder=ssl_cert_folder)
+                                                       ssl_cert_folder=ssl_cert_folder,
+                                                       deploy_prop=deployment_prop_dict)
     # Collect missing fields
     # All missing required fields are collected in each instance
     required_fields = {}

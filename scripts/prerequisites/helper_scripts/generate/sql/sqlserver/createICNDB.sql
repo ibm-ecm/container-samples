@@ -28,9 +28,9 @@ GO
 -- Creating users and schemas for IBM CONTENT NAVIGATOR database
 USE ${icn_name}
 GO
-CREATE USER ${youruser1} FOR LOGIN ${youruser1} WITH DEFAULT_SCHEMA=ICNDB
+CREATE USER ${youruser1} FOR LOGIN ${youruser1} WITH DEFAULT_SCHEMA=${yourschema}
 GO
-CREATE SCHEMA ICNDB AUTHORIZATION ${youruser1}
+CREATE SCHEMA ${yourschema} AUTHORIZATION ${youruser1}
 GO
 EXEC sp_addrolemember 'db_ddladmin', ${youruser1};
 GO
