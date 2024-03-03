@@ -18,54 +18,7 @@ metadata:
     app.kubernetes.io/name: ibm-fncm
     release: 5.5.8
 rules:
-  - apiGroups:
-      - security.openshift.io
-    resources:
-      - securitycontextconstraints
-    resourceNames:
-      - restricted
-    verbs:
-      - use
-      - list
-
-  - apiGroups:
-      - extensions
-    resources:
-      - podsecuritypolicies
-    verbs:
-      - get
-      - list
-      - update
-      - create
-      - watch
-
-  - apiGroups:
-      - policy
-    resources:
-      - podsecuritypolicies
-    verbs:
-      - get
-      - list
-      - create
-      - delete
-      - update
-      - patch
-
-  - apiGroups:
-      - route.openshift.io
-    resources:
-      - routes
-    verbs:
-      - get
-      - watch
-
-  - apiGroups:
-      - storage.k8s.io
-    resources:
-      - storageclasses
-    verbs:
-      - list
-
+  # Allow the operator to obtain the cluster's ingress domain for route creation
   - apiGroups:
       - operator.openshift.io
     resources:
@@ -73,20 +26,12 @@ rules:
     verbs:
       - get
 
+  # Allow the operator to check where the operator is running, supporting all-namespace deployment
   - apiGroups:
       - ""
     resources:
       - pods
-      - namespaces
     verbs:
       - list
       - get
       - watch
-
-  - apiGroups:
-      - apiextensions.k8s.io
-    verbs:
-      - get
-      - list
-    resources:
-      - customresourcedefinitions
