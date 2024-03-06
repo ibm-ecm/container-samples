@@ -2,7 +2,7 @@
 #
 # Licensed Materials - Property of IBM
 #
-# (C) Copyright IBM Corp. 2021. All Rights Reserved.
+# (C) Copyright IBM Corp. 2023. All Rights Reserved.
 #
 # US Government Users Restricted Rights - Use, duplication or
 # disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
@@ -16,7 +16,7 @@ metadata:
     app.kubernetes.io/instance: ibm-fncm
     app.kubernetes.io/managed-by: ibm-fncm
     app.kubernetes.io/name: ibm-fncm
-    release: 5.5.8
+    release: 5.5.12
 spec:
   group: fncm.ibm.com
   names:
@@ -47,31 +47,66 @@ spec:
               description: FNCMSpec defined the desired state of FNCM
               required:
                 - appVersion
+                - license
               x-kubernetes-preserve-unknown-fields: true
               properties:
+                license:
+                  type: object
+                  required:
+                    - accept
+                  properties:
+                    accept:
+                      type: boolean
+                appVersion:
+                  type: string
+                content_optional_components:
+                  type: object
+                  properties:
+                    cpe:
+                      type: boolean
+                    css:
+                      type: boolean
+                    byo_es:
+                      type: boolean
+                    cmis:
+                      type: boolean
+                    graphql:
+                      type: boolean
+                    es:
+                      type: boolean
+                    tm:
+                      type: boolean
+                    ban:
+                      type: boolean
                 shared_configuration:
                   description: Shared Configuration for FNCM
                   required:
                     - sc_deployment_context
+                    - sc_fncm_license_model
                     - sc_deployment_platform
                   x-kubernetes-preserve-unknown-fields: true
                   type: object
                   properties:
-                    sc_deployment_fncm_license:
+                    sc_fncm_license_model:
                       type: string
-                      nullable: true
-                    sc_deployment_baw_license:
-                      type: string
-                      nullable: true
-                    sc_deployment_license:
-                      type: string
-                      nullable: true
                     sc_deployment_platform:
                       type: string
+                    sc_deployment_profile_size:
+                      type: string
+                    sc_egress_configuration:
+                      type: object
+                      nullable: true
+                      x-kubernetes-preserve-unknown-fields: true
+                      properties:
+                        sc_restricted_internet_access:
+                          type: boolean
                     external_tls_certificate_secret:
                       type: string
                       nullable: true
                     root_ca_secret:
+                      type: string
+                      nullable: true
+                    sc_drivers_url:
                       type: string
                       nullable: true
                     sc_ingress_enable:
@@ -88,9 +123,6 @@ spec:
                       type: object
                       nullable: true
                       properties:
-                        sc_dynamic_storage_classname:
-                          type: string
-                          nullable: true
                         sc_slow_file_storage_classname:
                           type: string
                           nullable: true
@@ -100,13 +132,98 @@ spec:
                         sc_fast_file_storage_classname:
                           type: string
                           nullable: true
-                    initial_admin_user:
-                      type: string
-                      nullable: true
-
+                    olm_sc_content_initialization:
+                      type: boolean
+                    olm_sc_content_verification:
+                      type: boolean
+                    enable_fips:
+                      type: boolean
                 ldap_configuration:
                   type: object
                   description: LDAP Configuration for FNCM
+                  x-kubernetes-preserve-unknown-fields: true
+                  properties:
+                    lc_selected_ldap_type:
+                      type: string
+                    lc_ldap_server:
+                      type: string
+                    lc_ldap_port:
+                      type: string
+                    lc_bind_secret:
+                      type: string
+                    lc_ldap_ssl_enabled:
+                      type: boolean
+                    lc_ldap_ssl_secret_name:
+                      type: string
+                      nullable: true
+                    lc_ldap_base_dn:
+                      type: string
+                    lc_ldap_user_name_attribute:
+                      type: string
+                    lc_ldap_user_display_name_attr:
+                      type: string
+                    lc_ldap_group_base_dn:
+                      type: string
+                    lc_ldap_group_name_attribute:
+                      type: string
+                    lc_ldap_group_display_name_attr:
+                      type: string
+                    lc_ldap_group_membership_search_filter:
+                      type: string
+                    lc_ldap_group_member_id_map:
+                      type: string
+                    ad:
+                      type: object
+                      description: Provide below info if you use Active Directory (ad)
+                      x-kubernetes-preserve-unknown-fields: true
+                      properties:
+                        lc_ad_gc_host:
+                          type: string
+                          nullable: true
+                        lc_ad_gc_port:
+                          type: string
+                        lc_user_filter:
+                          type: string
+                          nullable: true
+                        lc_group_filter:
+                          type: string
+                          nullable: true
+                    tds:
+                      type: object
+                      description: Provide below info if you use Tivoli Directory Service (tds)
+                      x-kubernetes-preserve-unknown-fields: true
+                      properties:
+                        lc_user_filter:
+                          type: string
+                          nullable: true
+                        lc_group_filter:
+                          type: string
+                          nullable: true
+                    ed:
+                      type: object
+                      description: Provide below info if you use NetIQ eDirectory (ed)
+                      x-kubernetes-preserve-unknown-fields: true
+                      properties:
+                        lc_user_filter:
+                          type: string
+                          nullable: true
+                        lc_group_filter:
+                          type: string
+                          nullable: true
+                    oracle:
+                      type: object
+                      description: Provide below info if you use Oracle (oracle) - OID, OUD and ODSEE
+                      x-kubernetes-preserve-unknown-fields: true
+                      properties:
+                        lc_user_filter:
+                          type: string
+                          nullable: true
+                        lc_group_filter:
+                          type: string
+                          nullable: true
+                ext_ldap_configuration:
+                  type: object
+                  description: External LDAP Configuration for FNCM
                   x-kubernetes-preserve-unknown-fields: true
                   properties:
                     lc_selected_ldap_type:
@@ -231,6 +348,46 @@ spec:
                           type: number
                         dc_hadr_max_retries_for_client_reroute:
                           type: number
+                    dc_os_datasources:
+                      type: array
+                      description: Database configuration for the object store datasource for CPE
+                      items:
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
+                        properties:
+                          dc_database_type:
+                            type: string
+                          dc_os_label:
+                            type: string
+                            nullable: true
+                          dc_common_os_datasource_name:
+                            type: string
+                          dc_common_os_xa_datasource_name:
+                            type: string
+                          database_servername:
+                            type: string
+                          database_name:
+                            type: string
+                          database_port:
+                            type: string
+                          database_ssl_secret_name:
+                            type: string
+                            nullable: true
+                          dc_oracle_os_jdbc_url:
+                            type: string
+                            nullable: true
+                          dc_hadr_standby_servername:
+                            type: string
+                            nullable: true
+                          dc_hadr_standby_port:
+                            type: string
+                            nullable: true
+                          dc_hadr_validation_timeout:
+                            type: number
+                          dc_hadr_retry_interval_for_client_reroute:
+                            type: number
+                          dc_hadr_max_retries_for_client_reroute:
+                            type: number
                     dc_icn_datasource:
                       type: object
                       description: Database configuration for ICN (Navigator) - aka BAN (Business Automation Navigator)
@@ -298,6 +455,8 @@ spec:
                                 type: object
                                 x-kubernetes-preserve-unknown-fields: true
                                 properties:
+                                  name:
+                                    type: string
                                   dc_os_datasource_name:
                                     type: string
                                   dc_os_xa_datasource_name:
@@ -366,6 +525,258 @@ spec:
                   type: object
                   nullable: true
                   x-kubernetes-preserve-unknown-fields: true
+                  properties:
+                    fncm_secret_name:
+                      type: string
+                      nullable: true
+                    cpe:
+                      type: object
+                      nullable: true
+                      x-kubernetes-preserve-unknown-fields: true
+                      properties:
+                        replica_count:
+                          type: number
+                          nullable: true
+                        resources:
+                          type: object
+                          nullable: true
+                          x-kubernetes-preserve-unknown-fields: true
+                          properties:
+                            requests:
+                              type: object
+                              nullable: true
+                              x-kubernetes-preserve-unknown-fields: true
+                              properties:
+                                cpu:
+                                  type: string
+                                  nullable: true
+                                memory:
+                                  type: string
+                                  nullable: true
+                            limits:
+                              type: object
+                              nullable: true
+                              x-kubernetes-preserve-unknown-fields: true
+                              properties:
+                                cpu:
+                                  type: string
+                                  nullable: true
+                                memory:
+                                  type: string
+                                  nullable: true
+                    css:
+                      type: object
+                      nullable: true
+                      x-kubernetes-preserve-unknown-fields: true
+                      properties:
+                        replica_count:
+                          type: number
+                          nullable: true
+                        resources:
+                          type: object
+                          nullable: true
+                          x-kubernetes-preserve-unknown-fields: true
+                          properties:
+                            requests:
+                              type: object
+                              nullable: true
+                              x-kubernetes-preserve-unknown-fields: true
+                              properties:
+                                cpu:
+                                  type: string
+                                  nullable: true
+                                memory:
+                                  type: string
+                                  nullable: true
+                            limits:
+                              type: object
+                              nullable: true
+                              x-kubernetes-preserve-unknown-fields: true
+                              properties:
+                                cpu:
+                                  type: string
+                                  nullable: true
+                                memory:
+                                  type: string
+                                  nullable: true
+                    cmis:
+                      type: object
+                      nullable: true
+                      x-kubernetes-preserve-unknown-fields: true
+                      properties:
+                        replica_count:
+                          type: number
+                          nullable: true
+                        resources:
+                          type: object
+                          nullable: true
+                          x-kubernetes-preserve-unknown-fields: true
+                          properties:
+                            requests:
+                              type: object
+                              nullable: true
+                              x-kubernetes-preserve-unknown-fields: true
+                              properties:
+                                cpu:
+                                  type: string
+                                  nullable: true
+                                memory:
+                                  type: string
+                                  nullable: true
+                            limits:
+                              type: object
+                              nullable: true
+                              x-kubernetes-preserve-unknown-fields: true
+                              properties:
+                                cpu:
+                                  type: string
+                                  nullable: true
+                                memory:
+                                  type: string
+                                  nullable: true
+                    graphql:
+                      type: object
+                      nullable: true
+                      x-kubernetes-preserve-unknown-fields: true
+                      properties:
+                        replica_count:
+                          type: number
+                          nullable: true
+                        resources:
+                          type: object
+                          nullable: true
+                          x-kubernetes-preserve-unknown-fields: true
+                          properties:
+                            requests:
+                              type: object
+                              nullable: true
+                              x-kubernetes-preserve-unknown-fields: true
+                              properties:
+                                cpu:
+                                  type: string
+                                  nullable: true
+                                memory:
+                                  type: string
+                                  nullable: true
+                            limits:
+                              type: object
+                              nullable: true
+                              x-kubernetes-preserve-unknown-fields: true
+                              properties:
+                                cpu:
+                                  x-kubernetes-int-or-string: true
+                                  nullable: true
+                                memory:
+                                  type: string
+                                  nullable: true
+                    es:
+                      type: object
+                      nullable: true
+                      x-kubernetes-preserve-unknown-fields: true
+                      properties:
+                        replica_count:
+                          type: number
+                          nullable: true
+                        resources:
+                          type: object
+                          nullable: true
+                          x-kubernetes-preserve-unknown-fields: true
+                          properties:
+                            requests:
+                              type: object
+                              nullable: true
+                              x-kubernetes-preserve-unknown-fields: true
+                              properties:
+                                cpu:
+                                  x-kubernetes-int-or-string: true
+                                  nullable: true
+                                memory:
+                                  type: string
+                                  nullable: true
+                            limits:
+                              type: object
+                              nullable: true
+                              x-kubernetes-preserve-unknown-fields: true
+                              properties:
+                                cpu:
+                                  type: string
+                                  nullable: true
+                                memory:
+                                  type: string
+                                  nullable: true
+                    tm:
+                      type: object
+                      nullable: true
+                      x-kubernetes-preserve-unknown-fields: true
+                      properties:
+                        replica_count:
+                          type: number
+                          nullable: true
+                        resources:
+                          type: object
+                          nullable: true
+                          x-kubernetes-preserve-unknown-fields: true
+                          properties:
+                            requests:
+                              type: object
+                              nullable: true
+                              x-kubernetes-preserve-unknown-fields: true
+                              properties:
+                                cpu:
+                                  type: string
+                                  nullable: true
+                                memory:
+                                  type: string
+                                  nullable: true
+                            limits:
+                              type: object
+                              nullable: true
+                              x-kubernetes-preserve-unknown-fields: true
+                              properties:
+                                cpu:
+                                  type: string
+                                  nullable: true
+                                memory:
+                                  type: string
+                                  nullable: true
+                navigator_configuration:
+                  type: object
+                  nullable: true
+                  x-kubernetes-preserve-unknown-fields: true
+                  properties:
+                    ban_secret_name:
+                      type: string
+                      nullable: true
+                    replica_count:
+                      type: number
+                      nullable: true
+                    resources:
+                      type: object
+                      nullable: true
+                      x-kubernetes-preserve-unknown-fields: true
+                      properties:
+                        requests:
+                          type: object
+                          nullable: true
+                          x-kubernetes-preserve-unknown-fields: true
+                          properties:
+                            cpu:
+                              type: string
+                              nullable: true
+                            memory:
+                              type: string
+                              nullable: true
+                        limits:
+                          type: object
+                          nullable: true
+                          x-kubernetes-preserve-unknown-fields: true
+                          properties:
+                            cpu:
+                              type: string
+                              nullable: true
+                            memory:
+                              type: string
+                              nullable: true
             status:
               description: CloudPakAutomationStatus defines the observed state of Automation
               x-kubernetes-preserve-unknown-fields: true

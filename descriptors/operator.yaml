@@ -2,7 +2,7 @@
 #
 # Licensed Materials - Property of IBM
 #
-# (C) Copyright IBM Corp. 2021. All Rights Reserved.
+# (C) Copyright IBM Corp. 2023. All Rights Reserved.
 #
 # US Government Users Restricted Rights - Use, duplication or
 # disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
@@ -16,7 +16,7 @@ metadata:
     app.kubernetes.io/instance: ibm-fncm
     app.kubernetes.io/managed-by: ibm-fncm
     app.kubernetes.io/name: ibm-fncm
-    release: 5.5.8
+    release: 5.5.12
 spec:
   replicas: 1
   selector:
@@ -29,11 +29,17 @@ spec:
         app.kubernetes.io/instance: ibm-fncm
         app.kubernetes.io/managed-by: ibm-fncm
         app.kubernetes.io/name: ibm-fncm
-        release: 5.5.8
+        com.ibm.fncm.networking/egress-deny-all: "true"
+        com.ibm.fncm.networking/egress-allow-same-namespace: "true"
+        com.ibm.fncm.networking/egress-allow-k8s-services: "true"
+        com.ibm.fncm.networking/egress-allow-all: "true"
+        com.ibm.fncm.networking/egress-allow-ldap: "true"
+        com.ibm.fncm.ecm.networking/egress-allow-db: "true"
+        release: 5.5.12
       annotations:
-        productID: "5724-R81 | 5725-L50"
+        productID: "5a55ee68b1e74ddaa9965b1a2d60cb10"
         productName: "IBM FileNet Content Manager | IBM Content Foundation"
-        productVersion: "5.5.8"
+        productVersion: "5.5.12"
         productChargedContainers: ""
         productMetric: "VIRTUAL_PROCESSOR_CORE"
     spec:
@@ -47,30 +53,66 @@ spec:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
-            - matchExpressions:
-              - key: kubernetes.io/arch
-                operator: In
-                values:
-                - amd64
-                - s390x
+              - matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - amd64
+                      - s390x
+                      - ppc64le
           preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 3
-            preference:
-              matchExpressions:
-              - key: kubernetes.io/arch
-                operator: In
-                values:
-                - amd64
-                - s390x
+            - weight: 3
+              preference:
+                matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - amd64
+                      - s390x
+                      - ppc64le
+      initContainers:
+        - name: folder-prepare-container
+          image: "icr.io/cpopen/icp4a-content-operator:23.0.2"
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+              - ALL
+          ## Uncomment this to enable seccomp profile on OCP 4.12+
+          #  seccompProfile:
+          #    type: RuntimeDefault
+          volumeMounts:
+            - name: license-folder-pvc
+              mountPath: /license-folder
+            - name: ansible-folder-pvc
+              mountPath: /ansible-folder
+            - name: tmp-folder-pvc
+              mountPath: /tmp-folder
+            - name: log-folder-pvc
+              mountPath: /log-folder
+            - name: ibm-folder-pvc
+              mountPath: /ibm-folder
+          command:
+            - "/bin/sh"
+            - "-ecx"
+            - >
+              rm -rf /license-folder/* && rm -rf /tmp-folder/* && rm -rf /ansible-folder/* && rm -rf /log-folder/* && rm -rf /ibm-folder/* &&
+              cp -rp /licenses/* /license-folder && 
+              mkdir -p /ansible-folder/.ansible &&
+              cp -rp /opt/ansible/* /ansible-folder &&
+              cp -rp /opt/ansible/.ansible/* /ansible-folder/.ansible &&
+              cp -rp /opt/ibm/* /ibm-folder
       containers:
         - name: operator
           # Replace this with the built image name
-          image: "cp.icr.io/cp/cp4a/icp4a-operator:21.0.3-IF030"
+          image: "icr.io/cpopen/icp4a-content-operator:23.0.2"
           imagePullPolicy: "IfNotPresent"
           securityContext:
             allowPrivilegeEscalation: false
             privileged: false
-            readOnlyRootFilesystem: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
               - ALL
@@ -84,13 +126,6 @@ spec:
             requests:
               cpu: 500m
               memory: 256Mi
-          volumeMounts:
-          - mountPath: /logs
-            name: logs-backup
-          - mountPath: /opt/ansible/share
-            name: operator-shared-folder
-          - mountPath: /tmp/ansible-operator/runner
-            name: runner
           args:
           - '--zap-encoder=console'
           env:
@@ -104,21 +139,35 @@ spec:
                   fieldPath: metadata.name
             - name: OPERATOR_NAME
               value: "ibm-fncm-operator"
-            - name: WORKER_FNCMCLUSTER_FNCM_IBM_COM
+            - name: MAX_CONCURRENT_RECONCILES_ICP4ACLUSTER_ICP4A_IBM_COM
               value: "10"
             - name: ANSIBLE_GATHERING
               value: smart
             # MUST exist, used to accept dba license, valid value only can be "accept"
             - name: fncm_license
               value: "accept"
+          volumeMounts:
+            - name: license-folder-pvc
+              mountPath: /licenses
+            - name: ansible-folder-pvc
+              mountPath: /opt/ansible
+            - name: tmp-folder-pvc
+              mountPath: /tmp
+            - name: log-folder-pvc
+              mountPath: /logs
+            - name: ibm-folder-pvc
+              mountPath: /opt/ibm
       imagePullSecrets:
+      - name: "ibm-entitlement-key"
       - name: "admin.registrykey"
       volumes:
-        - name: logs-backup
-          persistentVolumeClaim:
-            claimName: "cp4a-shared-log-pvc"
-        - name: "operator-shared-folder"
-          persistentVolumeClaim:
-            claimName: "operator-shared-pvc"
-        - name: runner
+        - name: license-folder-pvc
+          emptyDir: {}
+        - name: tmp-folder-pvc
+          emptyDir: {}
+        - name: ansible-folder-pvc
+          emptyDir: {}
+        - name: log-folder-pvc
+          emptyDir: {}
+        - name: ibm-folder-pvc
           emptyDir: {}

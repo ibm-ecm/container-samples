@@ -1,0 +1,21 @@
+################################################################################
+#
+# Licensed Materials - Property of IBM
+#
+# (C) Copyright IBM Corp. 2023. All Rights Reserved.
+#
+# US Government Users Restricted Rights - Use, duplication or
+# disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+#
+###############################################################################
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: ibm-fncm-operator-catalog-subscription
+  namespace: REPLACE_NAMESPACE
+spec:
+  channel: v23.2
+  name: ibm-fncm-operator
+  installPlanApproval: Automatic
+  source: ibm-fncm-operator-catalog
+  sourceNamespace: openshift-marketplace

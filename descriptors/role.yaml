@@ -2,7 +2,7 @@
 #
 # Licensed Materials - Property of IBM
 #
-# (C) Copyright IBM Corp. 2021. All Rights Reserved.
+# (C) Copyright IBM Corp. 2023. All Rights Reserved.
 #
 # US Government Users Restricted Rights - Use, duplication or
 # disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
@@ -17,214 +17,148 @@ metadata:
     app.kubernetes.io/instance: ibm-fncm
     app.kubernetes.io/managed-by: ibm-fncm
     app.kubernetes.io/name: ibm-fncm
-    release: 5.5.8
+    release: 5.5.12
 rules:
-  - apiGroups:
-      - ""
-    resources:
-      - pods
-      - services
-      - services/finalizers
-      - endpoints
-      - persistentvolumeclaims
-      - events
-      - configmaps
-      - secrets
-      - serviceaccounts
-      - securitycontextconstraints
-    verbs:
-      - watch
-      - get
-      - list
-      - create
-      - delete
-      - update
-      - patch
-      - use
-  - apiGroups:
-      - apps
-    resources:
-      - deployments
-      - replicasets
-      - statefulsets
-    verbs:
-      - create
-      - list
-      - delete
-      - update
-      - patch
-      - get
-      - watch
-  - apiGroups:
-      - monitoring.coreos.com
-    resources:
-      - servicemonitors
-    verbs:
-      - get
-      - create
-  - apiGroups:
-      - apps
-    resourceNames:
-      - ibm-fncm-operator
-    resources:
-      - deployments/finalizers
-    verbs:
-      - update
-  - apiGroups:
-      - fncm.ibm.com
-    resources:
-      - '*'
-    verbs:
-      - get
-      - list
-      - update
-      - patch
-      - delete
-      - create
-      - watch
-  - apiGroups:
-      - ""
-    resources:
-      - pods/exec
-      - pods/log
-    verbs:
-      - create
-      - get
-      - watch
-      - list
-  - apiGroups:
-      - autoscaling
-    resources:
-      - horizontalpodautoscalers
-    verbs:
-      - get
-      - list
-      - create
-      - delete
-      - update
-      - patch
-  - apiGroups:
-      - policy
-    resources:
-      - poddisruptionbudgets
-      - podsecuritypolicies
-    verbs:
-      - get
-      - list
-      - create
-      - delete
-      - update
-      - patch
-  - apiGroups:
-      - networking.k8s.io
-    resources:
-      - networkpolicies
-      - ingresses
-    verbs:
-      - get
-      - list
-      - create
-      - delete
-      - update
-      - patch
-  - apiGroups:
-      - rbac.authorization.k8s.io
-    resources:
-      - roles
-      - rolebindings
-    verbs:
-      - get
-      - list
-      - create
-      - delete
-      - update
-      - patch
-  - apiGroups:
-      - batch
-    resources:
-      - jobs
-      - cronjobs
-      - deployments
-    verbs:
-      - create
-      - list
-      - delete
-      - update
-      - patch
-      - get
-      - watch
-  - apiGroups:
-      - ""
-      - route.openshift.io
-    resources:
-      - routes
-    verbs:
-      - get
-      - create
-      - list
-      - delete
-      - update
-      - patch
-  - apiGroups:
-      - ""
-      - route.openshift.io
-    resources:
-      - routes/custom-host
-    verbs:
-      - get
-      - create
-      - list
-      - delete
-      - update
-      - patch
-  - apiGroups:
-      - "extensions"
-    resources:
-      - "ingresses"
-      - "jobs"
-      - "deployments"
-      - "networkpolicies"
-      - "replicasets"
-    verbs:
-      - get
-      - list
-      - create
-      - delete
-      - update
-      - patch
-  - apiGroups:
-      - core.automation.ibm.com
-    resources:
-      - cartridges
-      - automationuiconfigs
-    verbs:
-      - create
-      - watch
-      - list
-      - get
-      - delete
-      - update
-      - patch
-  - apiGroups:
-      - base.automation.ibm.com
-    resources:
-      - cartridgerequirements
-      - automationbases
-    verbs:
-      - create
-      - list
-      - get
-      - update
-      - patch
-      - watch
-      - delete
-  - apiGroups:
-      - eventprocessing.automation.ibm.com
-    resources:
-      - eventprocessors
-    verbs:
-      - create
-      - get
-      - delete
-      - list
-      - delete
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - pods/exec
+  - pods/log
+  - services
+  - endpoints
+  - persistentvolumeclaims
+  - events
+  - configmaps
+  - secrets
+  - serviceaccounts
+  verbs:
+  - watch
+  - get
+  - list
+  - create
+  - delete
+  - update
+  - patch
+  - use
+
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - replicasets
+  - statefulsets
+  verbs:
+  - create
+  - list
+  - delete
+  - update
+  - patch
+  - get
+  - watch
+
+- apiGroups:
+  - apps
+  resourceNames:
+  - ibm-fncm-operator
+  resources:
+  - deployments/finalizers
+  verbs:
+  - update
+
+- apiGroups:
+  - fncm.ibm.com
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - update
+  - patch
+  - delete
+  - create
+  - watch
+
+- apiGroups:
+  - autoscaling
+  resources:
+  - horizontalpodautoscalers
+  verbs:
+  - get
+  - list
+  - create
+  - delete
+  - update
+  - patch
+
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  - ingresses
+  verbs:
+  - get
+  - list
+  - create
+  - delete
+  - update
+  - patch
+
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  - rolebindings
+  verbs:
+  - use
+  - get
+  - list
+  - create
+  - delete
+  - update
+  - patch
+
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - create
+  - list
+  - delete
+  - update
+  - patch
+  - get
+  - watch
+
+- apiGroups:
+  - ""
+  - route.openshift.io
+  resources:
+  - routes
+  - routes/custom-host
+  verbs:
+  - create
+  - get
+  - list
+  - delete
+  - watch
+  - update
+  - patch
+
+- apiGroups:
+  - extensions
+  resources:
+  - ingresses
+  - jobs
+  - deployments
+  - networkpolicies
+  - replicasets
+  verbs:
+  - get
+  - create
+  - list
+  - delete
+  - update
+  - patch
+

@@ -4,7 +4,7 @@
 #
 # Licensed Materials - Property of IBM
 #
-# (C) Copyright IBM Corp. 2021. All Rights Reserved.
+# (C) Copyright IBM Corp. 2023. All Rights Reserved.
 #
 # US Government Users Restricted Rights - Use, duplication or
 # disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
@@ -166,3 +166,13 @@ function allocate_operator_pvc(){
             echo -e "\x1B[1mDone\x1B[0m"
     fi
 }
+
+###################
+# Echoing utilities
+###################
+RED_TEXT=`tput setaf 1`
+GREEN_TEXT=`tput setaf 2`
+YELLOW_TEXT=`tput setaf 3`
+BLUE_TEXT=`tput setaf 6`
+WHITE_TEXT=`tput setaf 7`
+RESET_TEXT=`tput sgr0`

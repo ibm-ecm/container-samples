@@ -65,6 +65,9 @@ function extract_image_list_from_CR(){
     done
     ${YQ_CMD} ".spec.navigator_configuration.*.repository" ${item} | grep -v null  >> ${IMAGE_REPOSITORY_LIST_FILE}
     ${YQ_CMD} ".spec.navigator_configuration.*.tag" ${item} | grep -v null  >> ${IMAGE_TAG_LIST_FILE}
+
+    ${YQ_CMD} ".spec.shared_configuration.images.*.repository" ${item} | grep -v null  >> ${IMAGE_REPOSITORY_LIST_FILE}
+    ${YQ_CMD} ".spec.shared_configuration.images.*.tag" ${item} | grep -v null  >> ${IMAGE_TAG_LIST_FILE}
   done
 }
 
@@ -128,7 +131,7 @@ function add_operator_image(){
   OPERATOR_TAG="${repoAndTag[1]}"
 
   if [[ "${SCRIPT_MODE}" =~ "dev" ]]; then
-    OPERATOR_REPO='cp.stg.icr.io/cp/icp4a-operator'
+    OPERATOR_REPO='cp.stg.icr.io/cp/icp4a-content-operator'
   else
     echo "${OPERATOR_REPO}" >> ${IMAGE_REPOSITORY_LIST_FILE}
   fi
@@ -137,15 +140,13 @@ function add_operator_image(){
   IFS='/'
   read -a repoAndFolder <<< "${OPERATOR_REPO}"
 
-  imageFolder="${repoAndFolder[3]}"
+  imageFolder="${repoAndFolder[2]}"
 
-
-
-  echo "Pushing Operator Image: ${OPERATOR_REPO}:${OPERATOR_TAG} to ${IMAGE_REGISTRY}/${imageFolder}:${OPERATOR_TAG}"
+  echo "Pushing Operator Image: ${OPERATOR_REPO}:${OPERATOR_TAG} to ${IMAGE_REGISTRY}/cpopen/${imageFolder}:${OPERATOR_TAG}"
 
    skopeo copy \
         docker://"${OPERATOR_REPO}:${OPERATOR_TAG}" \
-        docker://"${IMAGE_REGISTRY}/${imageFolder}:${OPERATOR_TAG}" \
+        docker://"${IMAGE_REGISTRY}/cpopen/${imageFolder}:${OPERATOR_TAG}" \
         --all \
         --dest-tls-verify=false \
         --remove-signatures
