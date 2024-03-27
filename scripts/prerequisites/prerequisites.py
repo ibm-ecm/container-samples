@@ -56,7 +56,7 @@ from helper_scripts.utilities.utilites import zip_folder, \
     collect_visible_files, check_db_password_length , check_db_ssl_mode
 from helper_scripts.validate import validate as v
 
-__version__ = "2.4.7"
+__version__ = "2.4.9"
 
 app = typer.Typer()
 state = {

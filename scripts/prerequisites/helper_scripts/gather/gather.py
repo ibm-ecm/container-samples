@@ -142,7 +142,6 @@ class GatherOptions:
                     else:
                         return False
             except Exception as e:
-                print(f"Exception from parse_discovery_url function - {str(e)}")
                 return False
 
         # Create a function to display the ldap info
@@ -972,6 +971,11 @@ class GatherOptions:
     # Create a function to gather idp_number from user
     def collect_idp_discovery(self):
         try:
+            print()
+            print(
+                "Most IDP's support a discovery endpoint. Discovery Endpoints are used to retrieve the IDP configuration.")
+            print()
+
             for i in range(self._idp_number):
                 if i == 0:
                     idp_id = "Idp"
@@ -982,10 +986,6 @@ class GatherOptions:
                 print(Panel.fit(f"IDP ID: {idp_id}"))
 
                 while True:
-                    print()
-                    print(
-                        "Most IDP's support a discovery endpoint. Discovery Endpoints are used to retrieve the IDP configuration.")
-                    print()
                     discovery_enabled = Confirm.ask("Does this IDP support discovery?")
 
                     if discovery_enabled:
@@ -995,13 +995,20 @@ class GatherOptions:
 
                         if self.check_discovery_url(url):
                             idp = self.Idp(discovery_enabled, idp_id, url)
-                            idp.parse_discovery_url()
-                            self._idp_info.append(idp)
-                            break
+                            if idp.parse_discovery_url():
+                                self._idp_info.append(idp)
+                                break
+                            else:
+                                print()
+                                print("[prompt.invalid] Discovery URL is invalid")
+                                print()
+
                         else:
+                            print()
                             print("[prompt.invalid] Discovery URL is invalid")
                             print(
                                 '[prompt.invalid] Make sure your discovery URL ends with ".well-known/openid-configuration"')
+                            print()
                     else:
                         idp = self.Idp(discovery_enabled, idp_id)
                         self._idp_info.append(idp)

@@ -1213,11 +1213,12 @@ if [[ "$use_entitlement" == "no" ]]; then
   create_secret_local_registry
 fi
 
-prepare_install
+
 if [[ "$SCRIPT_MODE" == "OLM" ]]; then
   select_private_catalog
   apply_operator_olm
 else
+  prepare_install
   apply_operator_cncf
 fi
 
