@@ -72,7 +72,7 @@ spec:
                       - ppc64le
       initContainers:
         - name: folder-prepare-container
-          image: "icr.io/cpopen/icp4a-content-operator:23.0.2"
+          image: "icr.io/cpopen/icp4a-content-operator:23.0.2-IF003"
           securityContext:
             allowPrivilegeEscalation: false
             privileged: false
@@ -107,7 +107,7 @@ spec:
       containers:
         - name: operator
           # Replace this with the built image name
-          image: "icr.io/cpopen/icp4a-content-operator:23.0.2"
+          image: "icr.io/cpopen/icp4a-content-operator:23.0.2-IF003"
           imagePullPolicy: "IfNotPresent"
           securityContext:
             allowPrivilegeEscalation: false

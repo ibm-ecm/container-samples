@@ -18,18 +18,16 @@ metadata:
     app.kubernetes.io/name: ibm-fncm
     release: 5.5.12
 rules:
-- apiGroups:
-  - storage.k8s.io
-  resources:
-  - storageclasses
-  verbs:
-  - list
+
+# Allow the operator to obtain the cluster's ingress domain for route creation
 - apiGroups:
   - operator.openshift.io
   resources:
   - ingresscontrollers
   verbs:
     - get
+
+# Allow the operator to determine the version of the installed operator, supporting all-namespace deployment
 - apiGroups:
   - operators.coreos.com
   resources:
@@ -37,6 +35,8 @@ rules:
   verbs:
   - get
   - list
+
+# Allow the operator to check where the operator is running, supporting all-namespace deployment
 - apiGroups:
   - ""
   resources:
@@ -45,6 +45,8 @@ rules:
   - list
   - get
   - delete
+
+# Allow the operator to obtain the network type of the cluster to create egress policy CIDR ranges
 - apiGroups:
   - config.openshift.io
   resources:

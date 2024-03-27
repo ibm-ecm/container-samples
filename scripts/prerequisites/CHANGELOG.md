@@ -1,3 +1,11 @@
+## 2.4.9 (2024-03-24)
+
+### Fix
+
+- fixed error handling for invalid discovery url
+- updated cryptography library to 42.0.5
+- added object store sharing grants to Oracle SQL template
+
 ## 2.4.7 (2024-02-26)
 
 ### Fix
