@@ -72,7 +72,7 @@ spec:
                       - ppc64le
       initContainers:
         - name: folder-prepare-container
-          image: "icr.io/cpopen/icp4a-content-operator:23.0.2-IF003"
+          image: "icr.io/cpopen/icp4a-content-operator:5.5.12-LA109"
           securityContext:
             allowPrivilegeEscalation: false
             privileged: false
@@ -107,7 +107,7 @@ spec:
       containers:
         - name: operator
           # Replace this with the built image name
-          image: "icr.io/cpopen/icp4a-content-operator:23.0.2-IF003"
+          image: "icr.io/cpopen/icp4a-content-operator:5.5.12-LA109"
           imagePullPolicy: "IfNotPresent"
           securityContext:
             allowPrivilegeEscalation: false
@@ -116,6 +116,9 @@ spec:
             capabilities:
               drop:
               - ALL
+          ## Uncomment to specify the RunAsUser for the security context of the pod.
+          ## This is usually a numeric value that corresponds to a user ID.
+          #  runAsUser: 1001
           ## Uncomment this to enable seccomp profile on OCP 4.12+
           #  seccompProfile:
           #    type: RuntimeDefault
