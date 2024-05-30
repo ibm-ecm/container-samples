@@ -142,6 +142,7 @@ spec:
     ## In case any custom annotation is needed for the environment provide below.
     ##  sc_ingress_annotations:
     ##   - kubernetes.io/ingress.class: nginx
+    ## To include '{{ }}' in annotation like '{{example}}', add a backward slash before curly brace like '\{\{example\}\}'.
     #sc_ingress_annotations:
 
     ## If the root certificate authority (CA) key of the external service is not signed by the operator root CA key, provide the TLS certificate of
@@ -152,7 +153,7 @@ spec:
     images:
       keytool_init_container:
         repository: cp.icr.io/cp/cp4a/common/dba-keytool-initcontainer
-        tag: "23.0.2-IF004"
+        tag: "23.0.2-IF005"
     
     ## This is necessary if you want to use your own JDBC drivers and/or need to provide ICCSAP drivers.  If you are providing multiple JDBC drivers and ICCSAP drivers, 
     ## all the files must be compressed in a single file.
@@ -715,6 +716,7 @@ spec:
     # Example:
     # customAnnotationKey: customAnnotationValue
     ## This can be overwritten by component level definition for example ecm_configuration.cpe.custom_annotations.
+    ## To include '{{ }}' in annotation like '{{example}}', add a backward slash before curly brace like '\{\{example\}\}'.
     custom_annotations: { }
     ## Values in this field will be used as labels in all generated pods, and it must be valid label key value pairs
     # Example:
@@ -741,7 +743,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cpe
-        tag: ga-5512-p8cpe-la109
+        tag: ga-5512-p8cpe-la110
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -909,7 +911,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/css
-        tag: ga-5512-p8css-la109
+        tag: ga-5512-p8css-la110
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1007,7 +1009,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cmis
-        tag: ga-307-cmis-la406
+        tag: ga-307-cmis-if005
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1166,7 +1168,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/graphql
-        tag: ga-5512-p8cgql-la109
+        tag: ga-5512-p8cgql-la110
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1285,7 +1287,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/extshare
-        tag: ga-3015-es-if002
+        tag: ga-3015-es-la201
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1393,7 +1395,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/taskmgr
-        tag: ga-3015-tm-if002
+        tag: ga-3015-tm-la201
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1538,7 +1540,7 @@ spec:
     image:
       ## The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/ban/navigator
-      tag: ga-3015-icn-if002
+      tag: ga-3015-icn-la201
 
       ## This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
@@ -1584,6 +1586,7 @@ spec:
     ## Values in this field will be used as annotations in all generated pods, and it must be valid annotation key value pairs.
     # Example:
     # customAnnotationKey: customAnnotationValue
+    ## To include '{{ }}' in annotation like '{{example}}', add a backward slash before curly brace like '\{\{example\}\}'.
     custom_annotations: { }
     ## Values in this field will be used as labels in all generated pods, and it must be valid label key value pairs
     # Example:
