@@ -1,3 +1,21 @@
+## 2.4.10 (2024-05-30)
+
+### Fix
+
+- fixed ldap ssl connection validation
+- fixed mssql ssl database connection validation
+- updated requests library to 2.32.3
+- fixed validation of ldap entries
+- updated cryptography library to 42.0.5
+
+## 2.4.9 (2024-03-24)
+
+### Fix
+
+- fixed error handling for invalid discovery url
+- updated cryptography library to 42.0.5
+- added object store sharing grants to Oracle SQL template
+
 ## 2.4.7 (2024-02-26)
 
 ### Fix

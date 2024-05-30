@@ -37,7 +37,6 @@ def remove_protocol(url):
         hostname = url
     return hostname
 
-
 class Validate:
     # Is commandline keytool command present in this env?
     # None = Unchecked; True = Present; False = Not present
@@ -108,8 +107,9 @@ class Validate:
         self.is_validated = {}
         self.roundtriptime = 0
 
-        self._users_dict = self.get_users()
-        self._groups_dict = self.get_groups()
+
+        self._entries_dict = self.get_entries()
+
         if "FIPS_SUPPORT" in self._deploy_prop.keys():
             self.fips_enabled = self._deploy_prop["FIPS_SUPPORT"]
         else:
@@ -429,7 +429,7 @@ class Validate:
                                                                alias=f"cp4ba{db_type.upper()}Certs",
                                                                storetype="PKCS12",
                                                                truststore_pwd=truststore_pwd)
-                SSL_CONNECTION_STR = "encrypt=true;trustServerCertificate=true;" \
+                SSL_CONNECTION_STR = "encrypt=true;trustServerCertificate=false;" \
                                      + f"trustStore=\"{truststore_path}\";" \
                                      + f"trustStorePassword={truststore_pwd}"
                 jar_cmd = "java " + f"-D\"semeru.fips={self.fips_enabled}\" -D\"user.language=en\" -D\"user.country=US\" -cp " \
@@ -679,10 +679,9 @@ class Validate:
                         os.path.join(os.getcwd(), "propertyFile", "ssl-certs", ldap_id.lower()),
                         [".crt", ".cer", ".pem", ".cert", ".key", ".arm"])
 
-                self.ldap_user_search(ldap_id, progress, ssl_enabled, cert_path)
-                self.ldap_group_search(ldap_id, progress, ssl_enabled, cert_path)
-
-            result_panel = ldap_search_results(self._users_dict, self._groups_dict)
+                self.ldap_search(ldap_id, progress, ssl_enabled, cert_path)
+                
+            result_panel = ldap_search_results(self._entries_dict)
 
             progress.log(result_panel)
             progress.log()
@@ -734,6 +733,9 @@ class Validate:
 
         return received_token
 
+    def get_entries(self):
+        return {**self.get_users_and_groups(), **self.get_users(), **self.get_groups()}
+
     # function to get all users needed to be searched if present in ldap
     def get_users(self):
         users_list = []
@@ -744,11 +746,6 @@ class Validate:
 
         if "ICN_LOGIN_USER" in self._user_group_prop.keys():
             users_list.append(self._user_group_prop["ICN_LOGIN_USER"])
-
-        if "CONTENT_INITIALIZATION_ENABLED" in self._user_group_prop.keys():
-            if self._user_group_prop["CONTENT_INITIALIZATION_ENABLED"]:
-                for os_id in self._db_prop["_os_ids"]:
-                    users_list.extend(self._user_group_prop[os_id]["CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS"])
 
         # Collect all users for ICC for email
         if self.component_prop_present:
@@ -762,13 +759,16 @@ class Validate:
                 users_list.extend(self._component_prop["PERMISSIONS"]["TASK_USER_USER_NAMES"])
                 users_list.extend(self._component_prop["PERMISSIONS"]["TASK_AUDITOR_USER_NAMES"])
 
+        if "GCD_ADMIN_USER_NAME" in self._user_group_prop.keys():
+            users_list.extend(self._user_group_prop["GCD_ADMIN_USER_NAME"])
+
         # remove all duplicate users from list
         users_list = list(set(users_list))
 
         # Construct a dictionary to store username, count and ldap id
         users_dict = {}
         for user in users_list:
-            users_dict[user] = {"count": 0, "ldap_id": []}
+            users_dict[user] = {"type": ldap_entry_types.USER,"count": 0, "ldap_id": []}
 
         return users_dict
 
@@ -777,16 +777,14 @@ class Validate:
         groups_list = []
 
         # Collect all groups defined in user_group property file
-        if "CONTENT_INITIALIZATION_ENABLED" in self._user_group_prop.keys():
-            if self._user_group_prop["CONTENT_INITIALIZATION_ENABLED"]:
-                for os_id in self._db_prop["_os_ids"]:
-                    groups_list.extend(self._user_group_prop[os_id]["CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS"])
-
         if self.component_prop_present:
             if "PERMISSIONS" in self._component_prop.keys():
                 groups_list.extend(self._component_prop["PERMISSIONS"]["TASK_ADMIN_GROUP_NAMES"])
                 groups_list.extend(self._component_prop["PERMISSIONS"]["TASK_USER_GROUP_NAMES"])
                 groups_list.extend(self._component_prop["PERMISSIONS"]["TASK_AUDITOR_GROUP_NAMES"])
+
+        if "GCD_ADMIN_GROUPS_NAME" in self._user_group_prop.keys():
+            groups_list.extend(self._user_group_prop["GCD_ADMIN_GROUPS_NAME"])
 
         # remove all duplicate groups from list
         groups_list = list(set(groups_list))
@@ -794,11 +792,23 @@ class Validate:
         # Construct a dictionary to store username, count and ldap id
         groups_dict = {}
         for group in groups_list:
-            groups_dict[group] = {"count": 0, "ldap_id": []}
+            groups_dict[group] = {"type": ldap_entry_types.GROUP, "count": 0, "ldap_id": []}
 
         return groups_dict
 
         # Validates if user is present in the LDAP
+
+    def get_users_and_groups(self):
+        entry_list = []
+        if "CONTENT_INITIALIZATION_ENABLE" in self._user_group_prop.keys():
+            if self._user_group_prop["CONTENT_INITIALIZATION_ENABLE"]:
+                for os_id in self._db_prop["_os_ids"]:
+                    entry_list.extend(self._user_group_prop[os_id]["CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS"])
+        entry_dict = {}
+        for entry in entry_list:
+            entry_dict[entry] = {"type": ldap_entry_types.USER_GROUP, "count": 0, "ldap_id": []}
+
+        return entry_dict
 
     def authenticate_ldap(self, ldap_id, progress, ssl_enabled=False, cert_path="") -> bool:
         server = self._ldap_prop[ldap_id]["LDAP_SERVER"]
@@ -818,7 +828,7 @@ class Validate:
 
     def get_ldap_connection(self, ldap_id, progress, ssl_enabled=False, cert_path=""):
 
-        server = remove_protocol(self._ldap_prop[ldap_id]["LDAP_SERVER"])
+        hostname = remove_protocol(self._ldap_prop[ldap_id]["LDAP_SERVER"])
         port = self._ldap_prop[ldap_id]["LDAP_PORT"]
         bind_dn = self._ldap_prop[ldap_id]["LDAP_BIND_DN"]
         bind_dn_password = self._ldap_prop[ldap_id]["LDAP_BIND_DN_PASSWORD"]
@@ -828,10 +838,9 @@ class Validate:
 
         if ssl_enabled:
             try:
-                custom_ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-                custom_ssl_context.load_verify_locations(cafile=cert_path)
-                server = ldap3.Server(server, port=int(port), use_ssl=True, get_info=ldap3.ALL,
-                                      tls=ldap3.Tls(validate=ssl.CERT_NONE, version=ssl.PROTOCOL_SSLv23,
+                ssl.create_default_context()
+                server = ldap3.Server(hostname, port=int(port), use_ssl=True, get_info=ldap3.ALL,
+                                      tls=ldap3.Tls(validate=ssl.CERT_REQUIRED, version=ssl.PROTOCOL_SSLv23,
                                                     ca_certs_file=cert_path))
                 # Bind and search
                 conn = Connection(server, user=bind_dn, password=bind_dn_password)
@@ -851,17 +860,22 @@ class Validate:
                 authenticated = False
                 return authenticated, conn
             except Exception as e:
-                progress.log(Text(f"LDAP Error: {e}", style="bold red"))
-                msg = Text(f"Failed to authenticate \"{bind_dn}\"\n"
-                           f"Please check the SSL Certificate", style="bold red")
-                progress.log(msg)
-                progress.log(Text(f"Failed to connect to \"{server}\"", style="bold red"))
+                if "CERTIFICATE_VERIFY_FAILED" in str(e):
+                    progress.log(Text(f"LDAP SSL Error: SSL Certificate could not be validated. Please check the supplied certificate in propertyFile/ssl-certs.", style="bold red"))
+                    progress.log()
+                else:
+                    progress.log(Text(f"LDAP Error: {e}", style="bold red"))
+                    msg = Text(f"Failed to authenticate \"{bind_dn}\"\n"
+                               f"Please check the SSL Certificate", style="bold red")
+                    progress.log(msg)
+                    progress.log()
+                progress.log(Text(f"Failed to connect to LDAP server \"{hostname}\"", style="bold red"))
                 progress.log()
                 authenticated = False
                 return authenticated, conn
         else:
             try:
-                connect = f"ldap://{server}:{port}"
+                connect = f"ldap://{hostname}:{port}"
 
                 server = Server(connect, get_info=ALL)
                 # username and password can be configured during openldap setup
@@ -888,57 +902,57 @@ class Validate:
                 msg = Text(f"Failed to authenticate \"{bind_dn}\"\n"
                            f"Please check the SSL Certificate", style="bold red")
                 progress.log(msg)
-                progress.log(Text(f"Failed to connect to \"{server}\"", style="bold red"))
+                progress.log(Text(f"Failed to connect to LDAP server \"{hostname}\"", style="bold red"))
                 progress.log()
                 authenticated = False
                 return authenticated, conn
 
-    # Validates if user is present in the LDAP
-    def ldap_user_search(self, ldap_id, progress, ssl_enabled=False, cert_path=""):
+
+    def ldap_item_exists(self, connect, base_dn, filter):
+        try:
+            search_results = connect.search(search_base=base_dn, search_filter=filter)
+        except Exception as e:
+            self._logger.info(
+                f"Error found in search function of ldap_search function in validation script --- {str(e)}")
+            return
+        return connect.entries
+
+    def ldap_search(self, ldap_id, progress, ssl_enabled=False, cert_path=""):
         try:
             base_dn = self._ldap_prop[ldap_id]["LDAP_BASE_DN"]
             user_filter = self._ldap_prop[ldap_id]["LC_USER_FILTER"]
+            group_filter = self._ldap_prop[ldap_id]["LC_GROUP_FILTER"]
             user_name = self._ldap_prop[ldap_id]["LDAP_BIND_DN"]
             password = self._ldap_prop[ldap_id]["LDAP_BIND_DN_PASSWORD"]
 
             authenticated, connect = self.get_ldap_connection(ldap_id, progress, ssl_enabled, cert_path)
 
             if authenticated:
-                for user in self._users_dict.keys():
-                    search_filter = user_filter.replace("%v", user)
-                    try:
-                        search_results = connect.search(search_base=base_dn, search_filter=search_filter)
-                    except Exception as e:
-                        self._logger.info(
-                            f"Error found in search function of ldap_search function in validation script --- {str(e)}")
-                        return
-                    if connect.entries:
-                        self._users_dict[user]["count"] += 1
-                        self._users_dict[user]["ldap_id"].append(ldap_id)
+                for entry, value in self._entries_dict.items():
+                    if value['type'] == ldap_entry_types.USER: 
+                        search_filter = user_filter.replace("%v", entry)
+                        if self.ldap_item_exists(connect, base_dn, search_filter):
+                            self._entries_dict[entry]["count"] += 1
+                            self._entries_dict[entry]["ldap_id"].append(ldap_id)
 
-        except Exception as e:
-            self._logger.info(f"Error found in ldap_search function in validation script --- {str(e)}")
-
-    # Validates if user is present in the LDAP
-    def ldap_group_search(self, ldap_id, progress, ssl_enabled=False, cert_path=""):
-        try:
-            base_dn = self._ldap_prop[ldap_id]["LDAP_BASE_DN"]
-            group_filter = self._ldap_prop[ldap_id]["LC_GROUP_FILTER"]
-
-            authenticated, connect = self.get_ldap_connection(ldap_id, progress, ssl_enabled, cert_path)
-
-            if authenticated:
-                for group in self._groups_dict.keys():
-                    search_filter = group_filter.replace("%v", group)
-                    try:
-                        search_results = connect.search(search_base=base_dn, search_filter=search_filter)
-                    except Exception as e:
-                        self._logger.info(
-                            f"Error found in search function of ldap_search function in validation script --- {str(e)}")
-                        return
-                    if connect.entries:
-                        self._groups_dict[group]["count"] += 1
-                        self._groups_dict[group]["ldap_id"].append(ldap_id)
+                    elif value['type'] == ldap_entry_types.GROUP:
+                        search_filter = group_filter.replace("%v", entry)
+                        if self.ldap_item_exists(connect, base_dn, search_filter):
+                            self._entries_dict[entry]["count"] += 1
+                            self._entries_dict[entry]["ldap_id"].append(ldap_id)
+                    elif value['type'] == ldap_entry_types.USER_GROUP:
+                        search_filter = user_filter.replace("%v", entry)
+                        if self.ldap_item_exists(connect, base_dn, search_filter):
+                            self._entries_dict[entry]["type"] = ldap_entry_types.USER
+                            self._entries_dict[entry]["count"] += 1
+                            self._entries_dict[entry]["ldap_id"].append(ldap_id)
+                            continue
+                        search_filter = group_filter.replace("%v", entry)
+                        if self.ldap_item_exists(connect, base_dn, search_filter):
+                            self._entries_dict[entry]["type"] = ldap_entry_types.GROUP
+                            self._entries_dict[entry]["count"] += 1
+                            self._entries_dict[entry]["ldap_id"].append(ldap_id)
+                            continue
 
         except Exception as e:
             self._logger.info(f"Error found in ldap_search function in validation script --- {str(e)}")
@@ -1104,7 +1118,12 @@ class Validate:
         except subprocess.CalledProcessError as error:
             self._logger.info(error.stderr)
             progress.log()
-            progress.log((Syntax(str(error.stderr), "java", theme="ansi_dark")))
+            progress.log(Text(error.stderr, style="bold red"))
+
+            if "PKIX path building failed" in error.stderr:
+                progress.log()
+                progress.log(Text("SSL Certificate could not be validated, please check the supplied certificate in propertyFile/ssl-certs.", style="bold red"))
+
             return False
 
     def get_unique_storageclass(self) -> set:

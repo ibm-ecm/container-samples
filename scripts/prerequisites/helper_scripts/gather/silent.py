@@ -67,7 +67,7 @@ class SilentGather(GatherOptions):
     def error_check(self):
         if len(self._error_list) > 0:
             for error in self._error_list:
-                self._logger.warning(error)
+                self._logger.exception(error)
 
             raise typer.Exit(code=1)
         return len(self._error_list)
@@ -194,8 +194,12 @@ class SilentGather(GatherOptions):
 
             if idp_discovery_enabled is not None:
                 idp = self.Idp(idp_discovery_enabled, idp_id, idp_discovery_url)
-                idp.parse_discovery_url()
-                self._idp_info.append(idp)
+                if idp.parse_discovery_url():
+                    self._idp_info.append(idp)
+                else:
+                    error = ("Discovery URL is invalid\n"
+                             "Make sure your discovery URL ends with \".well-known/openid-configuration\"")
+                    self._error_list.append(error)
 
     def silent_auth_type(self):
         auth_type = self.__gather_var("AUTHENTICATION", valid_values=[1, 2, 3])

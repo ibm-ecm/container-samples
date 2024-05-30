@@ -13,6 +13,7 @@ import os
 import pathlib
 import platform
 import shutil
+from enum import Enum
 from cryptography.hazmat.primitives import serialization
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -845,11 +846,17 @@ def check_db_ssl_mode(db_prop, deploy_prop):
                 correct_ssl_mode = False
     return correct_ssl_mode
 
+class ldap_entry_types(Enum):
+    USER = 0
+    GROUP = 1
+    USER_GROUP = 2
 
 # Function to display ldap search results
-def ldap_search_results(user_result_dict, group_result_dict):
+def ldap_search_results(entries_result_dict):
+
     user_table_list = []
     group_table_list = []
+    user_group_table_list = []
 
     # Build lists of users found, missing and duplicated
     users_found = []
@@ -861,24 +868,29 @@ def ldap_search_results(user_result_dict, group_result_dict):
     groups_missing = []
     groups_duplicated = []
 
+    user_or_group_missing = []
+
     missing = False
     duplicated = False
 
-    for user, value in user_result_dict.items():
-        if value["count"] == 1:
-            users_found.append(user)
-        elif value["count"] == 0:
-            users_missing.append(user)
+    for entry, value in entries_result_dict.items():
+        if value["type"] == ldap_entry_types.USER:
+            if value["count"] == 1:
+                users_found.append(entry)
+            elif value["count"] == 0:
+                users_missing.append(entry)
+            else:
+                users_duplicated.append(entry)
+        elif value["type"] == ldap_entry_types.GROUP:
+            if value["count"] == 1:
+                groups_found.append(entry)
+            elif value["count"] == 0:
+                groups_missing.append(entry)
+            else:
+                groups_duplicated.append(entry)
         else:
-            users_duplicated.append(user)
+            user_or_group_missing.append(entry)
 
-    for group, value in group_result_dict.items():
-        if value["count"] == 1:
-            groups_found.append(group)
-        elif value["count"] == 0:
-            groups_missing.append(group)
-        else:
-            groups_duplicated.append(group)
 
     # Build tables for users and groups
     if len(users_found) > 0:
@@ -886,7 +898,7 @@ def ldap_search_results(user_result_dict, group_result_dict):
         users_found_table.add_column("User", style="green")
         users_found_table.add_column("Found in", style="green")
         for user in users_found:
-            users_found_table.add_row(user, user_result_dict[user]["ldap_id"][0])
+            users_found_table.add_row(user, entries_result_dict[user]["ldap_id"][0])
 
         user_table_list.append(users_found_table)
 
@@ -905,7 +917,7 @@ def ldap_search_results(user_result_dict, group_result_dict):
         user_duplicate_table.add_column("Found in", style="red")
         for user in users_duplicated:
             ldaps = ""
-            for i in user_result_dict[user]["ldap_id"]:
+            for i in entries_result_dict[user]["ldap_id"]:
                 ldaps += "- " + i + "\n"
             user_duplicate_table.add_row(user, ldaps)
 
@@ -917,7 +929,7 @@ def ldap_search_results(user_result_dict, group_result_dict):
         groups_found_table.add_column("Group", style="green")
         groups_found_table.add_column("Found in", style="green")
         for group in groups_found:
-            groups_found_table.add_row(group, group_result_dict[group]["ldap_id"][0])
+            groups_found_table.add_row(group, entries_result_dict[group]["ldap_id"][0])
 
         group_table_list.append(groups_found_table)
 
@@ -936,12 +948,22 @@ def ldap_search_results(user_result_dict, group_result_dict):
         group_duplicate_table.add_column("Found in", style="red")
         for group in groups_duplicated:
             ldaps = ""
-            for i in group_result_dict[group]["ldap_id"]:
+            for i in entries_result_dict[group]["ldap_id"]:
                 ldaps += "- " + i + "\n"
-            group_duplicate_table.add_row(group, group_result_dict[group]["ldap_id"])
+            group_duplicate_table.add_row(group, entries_result_dict[group]["ldap_id"])
 
         group_table_list.append(group_duplicate_table)
         duplicated = True
+
+    if len(user_or_group_missing) > 0:
+        user_group_missing_table = Table(title="Users or Groups Missing")
+        user_group_missing_table.add_column("Users or Groups", style="yellow")
+        for entry in user_or_group_missing:
+            user_group_missing_table.add_row(entry)
+
+        user_group_table_list.append(user_group_missing_table)
+        missing = True
+
 
     panel_list = []
 
@@ -954,6 +976,11 @@ def ldap_search_results(user_result_dict, group_result_dict):
         group_table_output = Group(*group_table_list)
         group_panel = Panel.fit(group_table_output, title="Groups Search Results")
         panel_list.append(group_panel)
+
+    if len(group_table_list) != 0:
+        user_group_table_output = Group(*user_group_table_list)
+        user_group_panel = Panel.fit(user_group_table_output, title="User or Groups Search Results")
+        panel_list.append(user_group_panel)
 
     if duplicated:
         panel_list.append(Panel.fit(f":x: Duplicated users and groups found!\n"
@@ -973,3 +1000,4 @@ def ldap_search_results(user_result_dict, group_result_dict):
 
 def collect_visible_files(folder_path: str) -> [str]:
     return [file for file in os.listdir(folder_path) if not file.startswith('.')]
+
