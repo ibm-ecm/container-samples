@@ -1,0 +1,195 @@
+###############################################################################
+#
+# Licensed Materials - Property of IBM
+#
+# (C) Copyright IBM Corp. 2024. All Rights Reserved.
+#
+# US Government Users Restricted Rights - Use, duplication or
+# disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+#
+###############################################################################
+
+# ####################################################
+# ##     Filenet Content Manager Version            ##
+# ####################################################
+# Filenet Content Manager version to be deployed - Valid values: [1; 2; 3; 4]
+# 1. 5.5.8
+# 2. 5.5.11
+# 3. 5.5.12
+# 4. 5.6.0
+FNCM_VERSION = 4
+
+# ####################################################
+# ##              License and Platform              ##
+# ####################################################
+
+# Choose the licensing model for the Product you are installing.
+# IBM Content Foundation:
+# "ICF.PVUProd"
+# "ICF.PVUNonProd"
+# "ICF.UVU"
+# "ICF.CU"
+# IBM Filenet Content Manager:
+# "FNCM.PVUProd"
+# "FNCM.PVUNonProd"
+# "FNCM.UVU"
+# "FNCM.CU"
+# IBM Cloud Pak for Business Automation:
+# "CP4BA.NonProd"
+# "CP4BA.Prod"
+# "CP4BA.User"
+LICENSE = "FNCM.PVUNonProd"
+
+# Platform of choice - Valid values: [1; 2; 3]
+# 1. OCP
+# 2. ROKS
+# 3. CNCF
+PLATFORM = 1
+
+# Do you want to configure ingress - Valid values: [true; false]
+# This value will be ignored for platforms other than 'CNCF'
+INGRESS = false
+
+# ####################################################
+# ##       Authentication and Authorization         ##
+# ####################################################
+# Authentication type - Valid values: [1; 2; 3]
+# SCIM_IDP is only supported for versions 5.5.11 and above
+# 1. LDAP
+# 2. LDAP_IDP
+# 3. SCIM_IDP
+AUTHENTICATION = 1
+
+
+# Do you want to configure restricted internet access - Valid values: [true; false]
+# Only for versions 5.5.12 and above
+RESTRICTED_INTERNET_ACCESS = false
+
+# Enable/disable FIPS mode for the deployment (default value is "false")
+# Only for versions 5.5.12 and above
+FIPS_SUPPORT = false
+
+# ####################################################
+# ##              Optional Components               ##
+# ####################################################
+
+# If 5.5.11 or above, CPE, GraphQL and BAN can be set to false.
+# If 5.5.8, the default value for CPE, GraphQL and BAN will be true.
+
+# Deploy Content Search Services (CSS).
+CSS = false
+
+# Deploy Content Management Interoperability Services (CMIS).
+CMIS = false
+
+# Deploy Task Manager (TM).
+TM = false
+
+# Deploy Content Platform Engine (CPE).
+CPE = true
+
+# Deploy Grahql (GRAPHQL).
+GRAPHQL = true
+
+# Deploy Navigator (BAN).
+BAN = true
+
+# Deploy External Share (ES).
+ES = false
+
+# Deploy IBM Enterprise Records (IER).
+IER = false
+
+# Deploy IBM Content Collector for SAP (ICCSAP).
+ICCSAP = false
+
+# ####################################################
+# ##           Common Database Properties           ##
+# ####################################################
+
+# Provide the database type from your infrastructure. - Valid values: [1; 2; 3; 4; 5]
+# 1. IBM Db2
+# 2. IBM Db2 HADR
+# 3. Microsoft SQL Server
+# 4. PostgreSQL
+# 5. Oracle
+DATABASE_TYPE = 5
+
+# Is ssl enabled for this database - Valid values: [true; false]
+DATABASE_SSL_ENABLE = true
+
+# Number of object stores to use - Valid values: [1; 2; 3; 4...]
+DATABASE_OBJECT_STORE_COUNT = 1
+
+# ####################################################
+# ##          Custom Component Properties           ##
+# ####################################################
+
+# Java Send Mail Support
+# Valid values: [true; false]
+SENDMAIL_SUPPORT = false
+
+# ICC for Email
+# Valid values: [true; false]
+ICC_SUPPORT = false
+
+# Custom Task Manager Users and Groups
+# Valid values: [true; false]
+TM_CUSTOM_GROUP_SUPPORT = false
+
+# ####################################################
+# ##              Content Init/Verify               ##
+# ####################################################
+
+# Initialize Content - Valid values: [true; false]
+CONTENT_INIT = true
+
+# Verify Content - Valid values: [true; false]
+CONTENT_VERIFY = true
+
+# ####################################################
+# ##                 LDAP Properties                ##
+# ####################################################
+
+# If Authentication type includes LDAP, provide the following properties.
+[LDAP]
+# The type of LDAP server -  Valid values: [1,2,3,4,5,6,7]
+#                       1. Microsoft Active Directory
+#                       2. IBM Security Verify Directory
+#                       3. NetIQ eDirectory
+#                       4. Oracle Internet Directory
+#                       5. Oracle Directory Server Enterprise Edition
+#                       6. Oracle Unified Directory
+#                       7. CA eTrust
+LDAP_TYPE = 2
+
+# Enable SSL for LDAP connection. - Valid values: [true; false]
+LDAP_SSL_ENABLE = true
+
+#[LDAP2]
+#LDAP_TYPE = 3
+#LDAP_SSL_ENABLE = false
+
+# Additional LDAP's - uncomment the section below by removing the leading '#' and space
+# Change 'LDAPx' to 'LDAP2' for a second LDAP, 'LDAP3' for a third and so on...
+# [LDAPx]
+# LDAP_TYPE=
+# LDAP_SSL_ENABLE=
+
+# ####################################################
+# ##           Identity Provider Properties         ##
+# ####################################################
+
+# If Authentication type includes IDP, provide the following properties.
+[IDP]
+# Set to true if the IDP provides a discovery endpoint url. - Valid values: [true; false]
+DISCOVERY_ENABLED = false
+
+# The discovery endpoint url must end with '/.well-known/openid-configuration'
+DISCOVERY_URL = "https://discovery-url/.well-known/openid-configuration"
+
+# Additional IDP's - uncomment the section below by removing the leading '#' and space
+# Change 'IDPx' to 'IDP2' for a second IDP, 'IDP3' for a third and so on...
+# [IDPx]
+# DISCOVERY_ENABLED=
+# DISCOVERY_URL=

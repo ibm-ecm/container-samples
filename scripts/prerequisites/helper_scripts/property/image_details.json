@@ -1,0 +1,10 @@
+{
+  "REPOSITORY": {
+    "value": "<Required>",
+    "comment": []
+  },
+  "TAG": {
+    "value": "<Required>",
+    "comment": []
+  }
+}

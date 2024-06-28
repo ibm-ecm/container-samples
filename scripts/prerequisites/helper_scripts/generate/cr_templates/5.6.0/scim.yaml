@@ -1,0 +1,47 @@
+spec:
+  initialize_configuration:
+    # If your P8Domain will not be configured with an LDAP, you must provide:
+    #  - scim_configuration
+    #  - shared_configuration.open_id_connect_providers
+    scim_configuration:
+      - name: <SCIM PROVIDER>
+        auth_url:
+
+        ## Enable SSL/TLS for SCIM communication.
+        ssl_enabled: true
+
+        ## Enable users to sign in with their email address or user principle name (UPN).
+        allow_email_or_upn_short_names: false
+
+        ## The SCIM group name attributes
+        group_unique_id_attribute: "<Required>"
+        group_display_name_attribute: "<Required>"
+        group_name_attribute: "<Required>"
+
+        ## The SCIM user name attributes
+        user_unique_id_attribute: "<Required>"
+        user_display_name_attribute: "<Required>"
+        user_name_attribute: "<Required>"
+
+        ## SCIM services connection info
+        host: "<Required>"
+        port: "<Required>"
+        context_path: "<Required>"
+
+        ## Name of secret containing service connection credentials scimUsername, scimPassword.
+        scim_secret_name: "<Required>"
+
+        ## SCIM Directory provider Type. Possible Values:
+        ## - AUTO_DETECT (Recommended)
+        ## - SCIM_11
+        ## - SCIM_20
+        ## - IBM_IAM
+        ## - IBM_Verify
+        service_type: AUTO_DETECT
+
+        ## List of administrative groups
+        admin_groups:
+          - "<Required>"
+        ## List of administrative users
+        admin_users:
+          - "<Required>"

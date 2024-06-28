@@ -2,33 +2,48 @@
 #
 # Licensed Materials - Property of IBM
 #
-# (C) Copyright IBM Corp. 2023. All Rights Reserved.
+# (C) Copyright IBM Corp. 2024. All Rights Reserved.
 #
 # US Government Users Restricted Rights - Use, duplication or
 # disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
 #
 ###############################################################################
 
+import inspect
+import json
 import os
-import pathlib
 import platform
+import re
 import shutil
-from enum import Enum
-from cryptography.hazmat.primitives import serialization
+import struct
+import subprocess
+import time
+from socket import socket, gaierror
+
+import docker
+import requests
+import toml
+import yaml
+from OpenSSL import SSL
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
-
-from rich.align import Align
-from rich.columns import Columns
-from rich.console import Group, Console
-from rich.filesize import decimal
-from rich.layout import Layout
-from rich.markup import escape
-from rich.panel import Panel
-from rich.syntax import Syntax
-from rich.table import Table
+from cryptography.hazmat.primitives import serialization
+from rich import print
 from rich.text import Text
-from rich.tree import Tree
+from toml.decoder import TomlDecodeError
+
+from ..property.read_prop import ReadPropImageTag
+
+_CIPHERS = bytes(
+    "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256",
+    'utf-8')
+
+
+# create a private method that reads in json into a dictionary
+def read_json(directory, json_file):
+    path = os.path.join(directory, json_file)
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
 # Create a method to zip a folder and return the path to the zip file
@@ -36,14 +51,6 @@ def zip_folder(zip_file_name: str, folder_path: str) -> str:
     """Zip a folder and return the path to the zip file."""
     zip_file = shutil.make_archive(zip_file_name, "zip", folder_path, )
     return zip_file
-
-
-# Create a method to print directory tree
-def print_directory_tree(name: str, path: str) -> Tree:
-    """Print a directory tree."""
-    tree = Tree(f"  [bold blue] {name} [/bold blue]", guide_style="blue")
-    walk_directory(pathlib.Path(path), tree)
-    return tree
 
 
 # Create a method to create the generatedfiles folder structure and zip it up if it is present
@@ -57,467 +64,6 @@ def create_generate_folder(trusted_certs_present) -> None:
     os.mkdir(generate_ssl_secrets_folder)
     if trusted_certs_present:
         os.mkdir(generate_trusted_secrets_folder)
-
-
-# Clear console based on system OS
-def clear(console):
-    if platform.system() == 'Windows':
-        os.system('cls')
-    else:
-        console.clear()
-
-
-def walk_directory(directory: pathlib.Path, tree: Tree) -> None:
-    """Recursively build a Tree with directory contents."""
-    # Sort dirs first then by filename
-    paths = sorted(
-        pathlib.Path(directory).iterdir(),
-        key=lambda path: (path.is_file(), path.name.lower()),
-    )
-    for path in paths:
-        # Remove hidden files
-        if path.name.startswith("."):
-            continue
-        if path.parts[-1] == "venv":
-            continue
-        if path.is_dir():
-            style = "dim" if path.name.startswith("__") else ""
-            branch = tree.add(
-                f"[bold blue]  {escape(path.name)}",
-                style=style,
-                guide_style=style,
-            )
-            walk_directory(path, branch)
-        else:
-            text_filename = Text(path.name, "cyan")
-            text_filename.highlight_regex(r"\..*$", "bold cyan")
-            text_filename.stylize(f"link file://{path}")
-            file_size = path.stat().st_size
-            text_filename.append(f" ({decimal(file_size)})", "cyan")
-            if path.suffix == ".py":
-                icon = " "
-            elif path.suffix == ".toml":
-                icon = " "
-            elif path.suffix == ".yaml":
-                icon = "󱃾 "
-            elif path.suffix == ".sql":
-                icon = " "
-            else:
-                icon = " "
-            tree.add(Text(icon) + text_filename)
-
-
-# Create a selection summary table for the user to review
-def db_summary_table(selection_summary: dict) -> Table:
-    """Create a selection summary table for the user to review."""
-    tableDB = Table(title="Database Selection")
-
-    tableDB.add_column("Type", justify="right", style="cyan", no_wrap=True)
-    tableDB.add_column("No. Object Stores", style="magenta")
-    tableDB.add_column("SSL Enabled", justify="right", style="green")
-
-    tableDB.add_row(selection_summary["db_type"], str(selection_summary["os_number"]), str(selection_summary["db_ssl"]))
-
-    return tableDB
-
-
-# Create a selection summary table for the user to review
-def idp_summary_table(selection_summary: dict) -> Table:
-    """Create a selection summary table for the user to review."""
-    tableIdp = Table(title="Identity Provider Selection")
-
-    tableIdp.add_column("Discovery Enabled", justify="right", style="cyan", no_wrap=True)
-    tableIdp.add_column("ID", style="magenta")
-    tableIdp.add_column("Validation Method", justify="right", style="green")
-
-    for idp in selection_summary["idp_info"]:
-        tableIdp.add_row(str(idp["discovery_enabled"]), idp["id"], str(idp["validation_method"]))
-
-    return tableIdp
-
-
-# Create a selection summary table for the user to review
-def ldap_summary_table(selection_summary: dict) -> Table:
-    """Create a selection summary table for the user to review."""
-    tableldap = Table(title="LDAP Selection")
-
-    tableldap.add_column("Type", justify="right", style="cyan", no_wrap=True)
-    tableldap.add_column("ID", style="magenta")
-    tableldap.add_column("SSL Enabled", justify="right", style="green")
-
-    for ldap in selection_summary["ldap_info"]:
-        tableldap.add_row(ldap["type"], ldap["id"], str(ldap["ssl"]))
-
-    return tableldap
-
-
-def selection_tree(selection_summary: dict) -> Tree:
-    """Create a selection summary tree for the user to review."""
-    tree = Tree("Selection Summary", guide_style="cyan")
-
-    license_tree = Tree("License Model")
-    license_tree.add(selection_summary["license_model"])
-
-    tree.add(license_tree)
-
-    platform_tree = Tree("Platform")
-    platform_tree.add(selection_summary["platform"])
-
-    if selection_summary["ingress"]:
-        ingress_tree = Tree("Ingress")
-        ingress_tree.add(str(selection_summary["ingress"]))
-        platform_tree.add(ingress_tree)
-
-    tree.add(platform_tree)
-
-    if selection_summary["optional_components"]:
-        components_tree = Tree("Components")
-        for component in selection_summary["optional_components"]:
-            components_tree.add(component)
-        tree.add(components_tree)
-
-    init_tree = Tree("Content Initialization")
-    init_tree.add(str(selection_summary["content_initialize"]))
-    tree.add(init_tree)
-
-    verify_tree = Tree("Content Verification")
-    verify_tree.add(str(selection_summary["content_verification"]))
-    tree.add(verify_tree)
-    return tree
-
-
-def generate_gather_results(property_folder: str, selection_summary: dict, movedb: bool, moveldap: bool) -> Layout:
-    # Build Layout for display
-    layout = Layout()
-    layout.split_row(
-        Layout(name="left"),
-        Layout(name="right"),
-    )
-
-    left_panel_list = []
-    right_panel_list = []
-
-    # Create the left side panel
-    # Create next steps panel
-    next_steps_panel = Panel.fit("Next Steps")
-    instructions = Panel.fit(
-        "1. Review the toml files in the propertyFiles folder\n"
-        "2. Fill the <Required> values\n"
-        "3. If SSL is enabled, add the certificate to ./propertyFile/ssl-certs\n"
-        "4. If ICC for email was enabled, then make sure masterkey.txt file has been added under ./propertyFile/icc\n"
-        "5. If trusted certificates are needed, add them to ./propertyFile/trusted-certs \n"
-        "6. All SSL and trusted certificates need to be in PEM (Privacy Enhanced Mail) format\n"
-        "7. Run the following command to generate SQL, secrets and CR file\n"
-    )
-    command = Panel.fit(
-        Syntax("python3 prerequisites.py generate", "bash", theme="ansi_dark")
-    )
-
-    left_panel_list.append(next_steps_panel)
-    left_panel_list.append(instructions)
-    left_panel_list.append(command)
-    left_panel_list.append(Panel.fit(selection_tree(selection_summary)))
-
-    left_panel = Group(*left_panel_list)
-
-    right_panel_list.append(Panel.fit("Property Files Structure"))
-    right_panel_list.append(print_directory_tree("propertyFiles", property_folder))
-
-    # Create the right side panel
-    right_panel_list.append(Panel.fit(db_summary_table(selection_summary)))
-    if movedb:
-        right_panel_list.append(Panel.fit("Database properties moved"))
-
-    if len(selection_summary["idp_info"]) > 0:
-        right_panel_list.append(Panel.fit(idp_summary_table(selection_summary)))
-
-    if len(selection_summary["ldap_info"]) > 0:
-        right_panel_list.append(Panel.fit(ldap_summary_table(selection_summary)))
-        if moveldap:
-            right_panel_list.append(Panel.fit("LDAP properties moved"))
-
-    right_panel = Group(*right_panel_list)
-
-    layout["right"].update(right_panel)
-    layout["left"].update(left_panel)
-
-    return layout
-
-
-def display_issues(generate_folder=None, required_fields=None,
-                   certs=None, incorrect_certs=None,
-                   masterkey_present=True, invalid_trusted_certs=None,
-                   keystore_password_valid=True, incorrect_naming_conv=None,
-                   mode=None, tools=None, invalid_db_password_list=None, correct_ssl_mode=True,
-                   deployment_prop=None) -> Layout:
-    # Build Layout for display
-    layout = Layout()
-    layout.split_column(
-        Layout(name="upper"),
-        Layout(name="lower"),
-    )
-
-    layout["upper"].size = None
-    layout["lower"].ratio = 9
-
-    layout["lower"].split_row(
-        Layout(name="left"),
-        Layout(name="right"),
-    )
-
-    layout["left"].size = None
-    layout["right"].ratio = 2
-
-    left_panel_list = []
-
-    message = Text("Issues Found", style="bold red", justify="center")
-    result_panel = Panel(message)
-    layout["upper"].update(result_panel)
-    # Create the left side panel
-    # Create next steps panel
-
-    # Redemption steps are built based on what issues are found
-    next_steps_panel = Panel.fit("Remediation Steps")
-    instruction_list = []
-
-    section_files = ['fncm_db_server.toml',
-                     'fncm_ldap_server.toml',
-                     'fncm_components_options.toml',
-                     'fncm_identity_provider.toml',
-                     'fncm_scim_server.toml']
-    unsectioned_files = ['fncm_user_group.toml',
-                         'fncm_deployment.toml',
-                         'fncm_ingress.toml']
-
-    error_tables = []
-
-    # Build the tables based on issues with required fields missing in toml files
-    instruction_list.append("Use the tables to fix the missing values for the toml files")
-    # adding keystore password to list of fields to be fixed if fips is enabled and keystore password is less than 16 characters
-    if not keystore_password_valid:
-        instruction_list.append("Keystore password length should be at least 16 characters long when FIPS is enabled.")
-        if "fncm_user_group.toml" in required_fields:
-            if (["KEYSTORE_PASSWORD"], "<Required>") not in required_fields["fncm_user_group.toml"]:
-                required_fields["fncm_user_group.toml"].append((["KEYSTORE_PASSWORD"], "Incorrect Length"))
-        else:
-            required_fields["fncm_user_group.toml"] = []
-            required_fields["fncm_user_group.toml"].append((["KEYSTORE_PASSWORD"], "Incorrect Length"))
-    for file in required_fields:
-        if file in section_files:
-            parsed_parameters = parse_required_fields(required_fields[file])
-            error_table = Table(title=file)
-            error_table.add_column("Section", style="cyan", no_wrap=True)
-            error_table.add_column("Parameters", style="blue")
-            for section in parsed_parameters:
-                parameters = ""
-                for i in parsed_parameters[section]:
-                    parameters += "- " + i + "\n"
-                error_table.add_row(section, parameters)
-
-            error_tables.append(error_table)
-
-        elif file in unsectioned_files:
-            error_table = Table(title=file)
-            error_table.add_column("Parameters", style="blue")
-            for section in required_fields[file]:
-                parameters = ""
-                parameters += "- " + section[0][0]
-                error_table.add_row(parameters)
-            error_tables.append(error_table)
-
-    if certs:
-        instruction_list.append(
-            "Missing SSL certificates need to be added to respective folder under ./propertyFile/ssl-certs")
-        error_table = Table(title="SSL Certificates Missing")
-        error_table.add_column("Connection", style="magenta")
-        error_table.add_column("Missing", style="red")
-        for connection in certs:
-            files = ""
-            for i in certs[connection]:
-                files += "- " + i + "\n"
-            error_table.add_row(connection, files)
-
-        error_tables.append(error_table)
-
-    if incorrect_certs:
-        instruction_list.append("All SSL certificates need to be in PEM (Privacy Enhanced Mail) format")
-        error_table = Table(title="Incorrect SSL Certificates")
-        error_table.add_column("Connection", style="magenta")
-        error_table.add_column("Incorrect", style="red")
-        for connection in incorrect_certs:
-            files = ""
-            for i in incorrect_certs[connection]:
-                files += "- " + i + "\n"
-            error_table.add_row(connection, files)
-
-        error_tables.append(error_table)
-
-    if not masterkey_present:
-        instruction_list.append(
-            "Make sure masterkey.txt file has been added under ./propertyFile/icc for ICC for Email setup")
-        error_table = Table(title="ICC Setup")
-        error_table.add_column("Missing", style="red")
-        error_table.add_row("masterkey.txt")
-
-        error_tables.append(error_table)
-
-    if invalid_trusted_certs:
-        instruction_list.append("All trusted certificates need to be in PEM (Privacy Enhanced Mail) format")
-        error_table = Table(title="Incorrect Trusted Certificates")
-        error_table.add_column("Missing", style="red")
-        for cert in invalid_trusted_certs:
-            error_table.add_row(cert)
-        error_tables.append(error_table)
-
-    if incorrect_naming_conv or (invalid_db_password_list is not None and len(invalid_db_password_list) > 0):
-        incorrect_dbs = []
-        error_table = Table(title="Database Requirements")
-        error_table.add_column("Database(s)", style="red")
-        instruction_list.append("Review the list of database requirements below:\n")
-        if incorrect_naming_conv:
-            instruction_list.append("- DB2 Database name needs to be less than 9 characters\n")
-            for db in incorrect_naming_conv:
-                incorrect_dbs.append(db)
-        if len(invalid_db_password_list) > 0:
-            instruction_list.append(
-                "- Postgresql Database password length needs to be atleast 16 characters long when FIPS is enabled")
-            for db in invalid_db_password_list:
-                incorrect_dbs.append(db)
-        for db in incorrect_dbs:
-            error_table.add_row(db)
-        error_tables.append(error_table)
-
-    if not correct_ssl_mode:
-        instruction_list.append("SSL Mode for Postgresql can only be \"require\" when FIPS is enabled")
-
-    if tools:
-        if "connection" in tools:
-            instruction_list.append("Make sure you are connected to a K8s Cluster")
-            error_tables.append(Panel.fit("K8s Cluster not Connected", style="bold cyan"))
-            tools.remove("connection")
-
-        if "java_version" in tools:
-            instruction_list.append(
-                "Make sure you have the correct Java version installed , refer to the table on the right for the correct Java version to install.\n")
-            error_table = Table(title="Correct Java Version to use")
-            error_table.add_column("FNCM S Version", style="green")
-            error_table.add_column("Java Version", style="green")
-            if deployment_prop["FNCM_Version"] == "5.5.8":
-                error_table.add_row("5.5.8", "Java 8")
-            if deployment_prop["FNCM_Version"] == "5.5.11":
-                error_table.add_row("5.5.11", "Java 11")
-            if deployment_prop["FNCM_Version"] == "5.5.12":
-                error_table.add_row("5.5.12", "Java 17")
-            error_tables.append(error_table)
-            tools.remove("java_version")
-        if tools:
-            instruction_list.append("Install any missing tools")
-            error_table = Table(title="Tools Missing")
-            error_table.add_column("Tools", style="green")
-            for tool in tools:
-                if tool != "connection":
-                    error_table.add_row("- " + tool)
-            error_tables.append(error_table)
-
-    error_table_output = Columns(error_tables)
-
-    layout["lower"]["right"].update(error_table_output)
-
-    left_panel_list.append(next_steps_panel)
-
-    # Build instructions message from the list of instructions
-    instruction_msg = ""
-    for instruction in instruction_list:
-        instruction_msg += f":x: {instruction}\n\n"
-
-    instructions = Panel.fit(instruction_msg)
-    left_panel_list.append(instructions)
-
-    # Add note on rerunning generate if property files are fixed
-    # Add generate command to rerun
-    if mode == "validate":
-        validate_instruction_list = []
-        note = Panel.fit(
-            "Important: Rerun the below command once all issues have been resolved to update the generated files.")
-        validate_instruction_list.append(note)
-
-        code = "python3 prerequisites.py generate"
-        command = Panel.fit(
-            Syntax(code, "bash", theme="ansi_dark")
-        )
-        validate_instruction_list.append(command)
-        validate_group = Group(*validate_instruction_list)
-        left_panel_list.append(validate_group)
-
-    left_panel = Group(*left_panel_list)
-
-    layout["lower"]["left"].update(left_panel)
-
-    return layout
-
-
-def generate_generate_results(generate_folder: str) -> Layout:
-    # Build Layout for display
-    layout = Layout()
-    layout.split_column(
-        Layout(name="upper"),
-        Layout(name="lower"),
-    )
-
-    layout["upper"].size = None
-    layout["lower"].ratio = 9
-
-    layout["lower"].split_row(
-        Layout(name="left"),
-        Layout(name="right"),
-    )
-
-    layout["left"].size = None
-    layout["right"].ratio = 2
-
-    left_panel_list = []
-
-    right_panel_list = []
-
-    # Create the left side panel
-    # Create next steps panel
-    message = Text("Files Generated Successfully", style="bold cyan", justify="center")
-    result_panel = Panel(message)
-
-    layout["upper"].update(result_panel)
-
-    next_steps_panel = Panel.fit("Next Steps")
-    instructions = Panel.fit(
-        "1. Review the Generated files: \n"
-        "  - Database SQL files\n"
-        "  - Deployment Secrets \n"
-        "  - SSL Certs in yaml format\n"
-        "  - Custom Resource (CR) file\n"
-        "2. Use the SQL files to create the databases \n"
-        "3. Run the following command to validate \n"
-    )
-
-    code = "python3 prerequisites.py validate"
-
-    command = Panel.fit(
-        Syntax(code, "bash", theme="ansi_dark")
-    )
-
-    left_panel_list.append(next_steps_panel)
-    left_panel_list.append(instructions)
-    left_panel_list.append(command)
-
-    left_panel = Group(*left_panel_list)
-
-    right_panel_list.append(Panel.fit("Generated Files Structure"))
-    right_panel_list.append(print_directory_tree("generatedFiles", generate_folder))
-
-    right_panel = Group(*right_panel_list)
-
-    layout["lower"]["right"].update(right_panel)
-    layout["lower"]["left"].update(left_panel)
-
-    return layout
 
 
 def parse_required_fields(required_fields):
@@ -846,158 +392,815 @@ def check_db_ssl_mode(db_prop, deploy_prop):
                 correct_ssl_mode = False
     return correct_ssl_mode
 
-class ldap_entry_types(Enum):
-    USER = 0
-    GROUP = 1
-    USER_GROUP = 2
-
-# Function to display ldap search results
-def ldap_search_results(entries_result_dict):
-
-    user_table_list = []
-    group_table_list = []
-    user_group_table_list = []
-
-    # Build lists of users found, missing and duplicated
-    users_found = []
-    users_missing = []
-    users_duplicated = []
-
-    # Build lists of groups found, missing and duplicated
-    groups_found = []
-    groups_missing = []
-    groups_duplicated = []
-
-    user_or_group_missing = []
-
-    missing = False
-    duplicated = False
-
-    for entry, value in entries_result_dict.items():
-        if value["type"] == ldap_entry_types.USER:
-            if value["count"] == 1:
-                users_found.append(entry)
-            elif value["count"] == 0:
-                users_missing.append(entry)
-            else:
-                users_duplicated.append(entry)
-        elif value["type"] == ldap_entry_types.GROUP:
-            if value["count"] == 1:
-                groups_found.append(entry)
-            elif value["count"] == 0:
-                groups_missing.append(entry)
-            else:
-                groups_duplicated.append(entry)
-        else:
-            user_or_group_missing.append(entry)
-
-
-    # Build tables for users and groups
-    if len(users_found) > 0:
-        users_found_table = Table(title="Users Found")
-        users_found_table.add_column("User", style="green")
-        users_found_table.add_column("Found in", style="green")
-        for user in users_found:
-            users_found_table.add_row(user, entries_result_dict[user]["ldap_id"][0])
-
-        user_table_list.append(users_found_table)
-
-    if len(users_missing) > 0:
-        user_missing_table = Table(title="Users Missing")
-        user_missing_table.add_column("User", style="yellow")
-        for user in users_missing:
-            user_missing_table.add_row(user)
-
-        user_table_list.append(user_missing_table)
-        missing = True
-
-    if len(users_duplicated) > 0:
-        user_duplicate_table = Table(title="Users Duplicated")
-        user_duplicate_table.add_column("User", style="red")
-        user_duplicate_table.add_column("Found in", style="red")
-        for user in users_duplicated:
-            ldaps = ""
-            for i in entries_result_dict[user]["ldap_id"]:
-                ldaps += "- " + i + "\n"
-            user_duplicate_table.add_row(user, ldaps)
-
-        user_table_list.append(user_duplicate_table)
-        duplicated = True
-
-    if len(groups_found) > 0:
-        groups_found_table = Table(title="Groups Found")
-        groups_found_table.add_column("Group", style="green")
-        groups_found_table.add_column("Found in", style="green")
-        for group in groups_found:
-            groups_found_table.add_row(group, entries_result_dict[group]["ldap_id"][0])
-
-        group_table_list.append(groups_found_table)
-
-    if len(groups_missing) > 0:
-        group_missing_table = Table(title="Groups Missing")
-        group_missing_table.add_column("Group", style="yellow")
-        for group in groups_missing:
-            group_missing_table.add_row(group)
-
-        group_table_list.append(group_missing_table)
-        missing = True
-
-    if len(groups_duplicated) > 0:
-        group_duplicate_table = Table(title="Groups Duplicated")
-        group_duplicate_table.add_column("Group", style="red")
-        group_duplicate_table.add_column("Found in", style="red")
-        for group in groups_duplicated:
-            ldaps = ""
-            for i in entries_result_dict[group]["ldap_id"]:
-                ldaps += "- " + i + "\n"
-            group_duplicate_table.add_row(group, entries_result_dict[group]["ldap_id"])
-
-        group_table_list.append(group_duplicate_table)
-        duplicated = True
-
-    if len(user_or_group_missing) > 0:
-        user_group_missing_table = Table(title="Users or Groups Missing")
-        user_group_missing_table.add_column("Users or Groups", style="yellow")
-        for entry in user_or_group_missing:
-            user_group_missing_table.add_row(entry)
-
-        user_group_table_list.append(user_group_missing_table)
-        missing = True
-
-
-    panel_list = []
-
-    if len(user_table_list) != 0:
-        user_table_output = Group(*user_table_list)
-        user_panel = Panel.fit(user_table_output, title="Users Search Results")
-        panel_list.append(user_panel)
-
-    if len(group_table_list) != 0:
-        group_table_output = Group(*group_table_list)
-        group_panel = Panel.fit(group_table_output, title="Groups Search Results")
-        panel_list.append(group_panel)
-
-    if len(group_table_list) != 0:
-        user_group_table_output = Group(*user_group_table_list)
-        user_group_panel = Panel.fit(user_group_table_output, title="User or Groups Search Results")
-        panel_list.append(user_group_panel)
-
-    if duplicated:
-        panel_list.append(Panel.fit(f":x: Duplicated users and groups found!\n"
-                                    f"This can causes issue when logging in.", style="bold red"))
-
-    if missing:
-        panel_list.append(Panel.fit(f":exclamation_mark: Some users and groups where not found!\n"
-                                    f"Please review Property Files.", style="bold yellow"))
-
-    if not duplicated and not missing:
-        panel_list.append(Panel.fit(f":white_heavy_check_mark: All users and groups where found!", style="bold green"))
-
-    result_group = Group(*panel_list)
-
-    return result_group
-
 
 def collect_visible_files(folder_path: str) -> [str]:
     return [file for file in os.listdir(folder_path) if not file.startswith('.')]
 
+
+def get_kubectl_version(logger):
+    try:
+        # Get the kubectl version
+        kubectl_version = subprocess.check_output(["kubectl", "version", "--output=json"],
+                                                  stderr=subprocess.DEVNULL,
+                                                  timeout=5).decode("utf-8")
+        kubectl_version = json.loads(kubectl_version)["clientVersion"]["gitVersion"]
+        logger.info(f"Kubectl Version: {kubectl_version}")
+        return kubectl_version
+    except subprocess.TimeoutExpired:
+        logger.info("Error: Timeout while getting kubectl version")
+        return ""
+    except Exception as e:
+        logger.info(f"Error: {e}")
+        return ""
+
+
+def get_skopeo_version(logger):
+    try:
+        # Get the skopeo version
+        skopeo_version = subprocess.check_output(["skopeo", "--version"]).decode("utf-8")
+        skopeo_version = skopeo_version.split()[2]
+        logger.info(f"Skopeo Version: {skopeo_version}")
+        return skopeo_version
+    except Exception as e:
+        logger.info(f"Error: {e}")
+        return None
+
+
+def check_java_version(fncm_version):
+    try:
+        java_version_output = subprocess.check_output(['java', '-version'], stderr=subprocess.STDOUT, text=True)
+        version_match = re.search(r'"(\d+\.\d+\.\d+)', java_version_output)
+        java_version = version_match.group(1) if version_match else "Unknown"
+        if java_version != 'Unknown':
+            if fncm_version == "5.5.8":
+                if int(java_version.split(".")[1]) != 8:
+                    return False
+            if fncm_version == "5.5.11":
+                if int(java_version.split(".")[0]) != 11:
+                    return False
+
+            if fncm_version in ("5.5.12", "5.6.0"):
+                if int(java_version.split(".")[0]) != 17:
+                    return False
+        return True
+    except subprocess.CalledProcessError as e:
+        # If 'java -version' returns a non-zero exit code, print the error
+        return False
+
+
+# Function to do the prerequisite checks before the script starts
+def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.6.0'):
+    if prereqs is None:
+        prereqs = []
+
+    if files is None:
+        files = []
+    try:
+        missing_tools = []
+        missing_files = []
+
+        prereq_summary = {
+            "docker": False,
+            "podman": False,
+            "java": False,
+            "java_version": "",
+            "kubectl": False,
+            "kubectl_version": "",
+            "connection": False,
+            "skopeo": False,
+            "skopeo_version": "",
+        }
+
+        platform_type = platform.system()
+
+        if len(files) > 0:
+            descriptor_present = []
+            prereq_summary["descriptor_files"] = True
+            for descriptor in files:
+                present = filepath_validate(filepath=descriptor)
+                if not present:
+                    # Get only the file name
+                    descriptor = os.path.basename(descriptor)
+                    missing_files.append(descriptor)
+                descriptor_present.append(present)
+            if not all(descriptor_present):
+                logger.info(f"Prerequisites failed -> Descriptor files not present - {missing_files}")
+                prereq_summary["descriptor_files"] = False
+
+        if any(x in prereqs for x in ["podman", "docker"]):
+            podman = command_available("podman")
+            docker = docker_available()
+
+            # Either podman or docker needed
+            if docker:
+
+                logger.info("Docker Daemon available")
+                logger.info("Using Docker Daemon")
+                prereq_summary["docker"] = True
+
+            else:
+
+                if podman:
+
+                    logger.info("Podman available")
+                    logger.info("Using Podman Daemon")
+                    prereq_summary["podman"] = True
+
+                else:
+                    logger.info("neither podman or docker daemon present")
+                    missing_tools.append("Podman/Docker CLI")
+
+        # Java Check
+        if "java" in prereqs:
+            java_present = command_available("java")
+
+            if not java_present:
+                logger.info("Prerequisites failed -> Java not installed")
+                missing_tools.append("Java")
+            else:
+                logger.info("Java available")
+                prereq_summary["java"] = True
+                java_version = check_java_version(fncm_version)
+
+                if not java_version:
+                    logger.info("Prerequisites failed -> Java version not correct")
+                    missing_tools.append("Java Version")
+                else:
+                    logger.info("Java Version correct")
+                    prereq_summary["java_version"] = java_version
+
+        # kubectl check
+        if "kubectl" in prereqs:
+            kubectl = command_available("kubectl")
+            if not kubectl:
+                logger.info("Prerequisites failed -> kubectl not installed")
+                missing_tools.append("Kubectl CLI")
+            else:
+                logger.info("Kubectl CLI available")
+                prereq_summary["kubectl"] = True
+                kubectl_version = get_kubectl_version(logger)
+                prereq_summary["kubectl_version"] = kubectl_version
+
+            # check if cluster is logged in
+            ocp_logged_in = kubectl_log_in_check(logger)
+            if not ocp_logged_in:
+                logger.info("Prerequisites failed -> User is not logged into the OCP console")
+                missing_tools.append("connection")
+            else:
+                logger.info("User is logged into the OCP console")
+                prereq_summary["connection"] = True
+
+        if "skopeo" in prereqs:
+            if platform_type == "windows":
+                missing_tools.append("Windows OS")
+                logger.info("Prerequisites failed -> Windows Machine not supported")
+            else:
+                skopeo_available = command_available("skopeo")
+                if not skopeo_available:
+                    logger.info("Prerequisites failed -> Skopeo not installed")
+                    missing_tools.append("Skopeo CLI")
+                else:
+                    logger.info("Skopeo CLI available")
+                    prereq_summary["skopeo"] = True
+                    prereq_summary["skopeo_version"] = get_skopeo_version(logger)
+
+        return missing_tools, prereq_summary, missing_files
+
+    except Exception as e:
+        logger.info(
+            f"Exception from prerequisites check function -  {str(e)}")
+
+
+# Function to read a version toml file
+def read_version_toml(file_path, logger):
+    try:
+        version_data = toml.loads(open(file_path, encoding="utf-8").read())
+        return version_data
+    except FileNotFoundError:
+        logger.error(f"File not found: {file_path}")
+        return None
+    except TomlDecodeError as e:
+        logger.error(f"Error reading the toml file: {e}")
+        return None
+    except Exception as e:
+        logger.info(f"Error: {e}")
+        return None
+
+
+# Function to log in to a registry using docker
+def login_to_registry_docker(registry, username, password, logger, ssl_enabled=False, ssl_cert_path=''):
+    try:
+
+        if ssl_enabled:
+            registry_url = f"https://{registry}"
+
+            # Perform Docker login with TLS certificate
+            response = requests.get(f"{registry_url}/v2/", auth=(username, password), verify=ssl_cert_path)
+
+            # Check if login was successful
+            if response.status_code == 200:
+                logger.info("Successfully logged in to the Docker registry.")
+                return True
+            else:
+                logger.error(f"Failed to log in to the Docker registry. Status code: {response.status_code}")
+                return False
+        else:
+
+            client = docker.from_env()
+            client.ping()
+
+            # Log in to the Docker registry
+
+            login_result = client.login(username=username, password=password, registry=registry)
+            # Check if the login was successful
+            if login_result:
+                logger.info(f"Successfully logged in to {registry}")
+                return True
+            else:
+                logger.error(f"Failed to log in to {registry}")
+                return False
+
+    except docker.errors.APIError as e:
+        logger.info(f"Error: {e}")
+        return False
+
+
+# Function to log in to a registry using podman
+def login_to_registry_podman(registry, username, password, logger, ssl_enabled=False, ssl_cert_path=''):
+    try:
+        if ssl_enabled:
+            # Allow self-signed certificates
+            command = ["podman", "login", registry, "-u", username, "--password-stdin", "--cert-dir", ssl_cert_path,
+                       "--tls-verify=false"]
+        else:
+            command = ["podman", "login", registry, "-u", username, "--password-stdin", "--tls-verify=false"]
+
+        # Using subprocess to run the Podman login command
+        process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, error = process.communicate(input=password.encode())
+
+        if process.returncode == 0:
+            logger.info("Login succeeded!")
+            return True
+        else:
+            logger.info(f"Login failed. Error: {error.decode()}")
+            return False
+    except Exception as e:
+        logger.info(f"Error: {e}")
+        return False
+
+
+def connect_to_server(host, port, ssl=False, client_cert_file=None, pg=False, progress=None):
+    # If SSL is enabled, create an SSL socket
+    # Create an SSL context
+    if ssl:
+        context = SSL.Context(SSL.SSLv23_METHOD)
+        context.set_cipher_list(_CIPHERS)
+        context.set_min_proto_version(SSL.TLS1_2_VERSION)
+        if client_cert_file:
+            context.use_certificate_file(client_cert_file)
+
+        # Create an SSL socket
+        sock = socket()
+        conn = SSL.Connection(context, sock)
+    else:
+        conn = socket()
+
+    connected = False
+    try:
+        start_time = time.time()
+        conn.connect((host, port))
+        end_time = time.time()
+
+        if ssl:
+            # Postgres requires protocol negotiation before SSL since everything's on same port
+            # https://www.postgresql.org/docs/current/protocol-flow.html#PROTOCOL-FLOW-SSL
+            if pg:
+                version_ssl = struct.pack('!I', 1234 << 16 | 5679)
+                length = struct.pack('!I', 8)
+                packet = length + version_ssl
+                sock.sendall(packet)
+                sock.recv(1)
+            conn.do_handshake()
+        connected = True
+
+    # Now you can perform LDAP operations using 'conn' if needed
+    except gaierror as e:
+        message = Text(
+            f"Hostname \"{host}\" is not known.\n"
+            f"Please review the Property Files for all SERVERNAME parameters", style="bold red")
+        if progress:
+            progress.log(message)
+            progress.log()
+        return conn, 0, connected
+    except Exception as e:
+        if type(e.args) == list:
+            if e.args[0][0][0] == 'SSL routines' and e.args[0][0][2] == 'sslv3 alert handshake failure':
+                message = Text(
+                    f"SSL protocol used: \"{conn.get_protocol_version_name()}\", is not supported by the server!\n"
+                    f"Please review below list of supported protocols:\n"
+                    f" - \"TLSv1.2\"\n"
+                    f" - \"TLSv1.3\"", style="bold red")
+        else:
+            message = Text(f"Connection Error: {e}", style="bold red")
+            print(message)
+
+        if progress:
+            progress.log(message)
+            progress.log()
+        return conn, 0, connected
+
+    # Calculate RTT and format to milliseconds
+    rtt = (end_time - start_time) * 1000
+
+    return conn, rtt, connected
+
+
+# Function to check if podman, oc and other commands are available
+def command_available(command):
+    try:
+        if platform.system() == 'Windows':
+            subprocess.check_output("where " + command, stderr=subprocess.PIPE, shell=True)
+        else:
+            subprocess.check_output("which " + command, stderr=subprocess.PIPE, shell=True)
+        return True
+    except subprocess.CalledProcessError as error:
+        return False
+
+
+# Function to check if docker is available
+def docker_available():
+    try:
+        client = docker.from_env()
+        client.ping()
+        return True
+    except docker.errors.APIError:
+        return False
+    except Exception as e:
+        return False
+
+
+# Checks whether we are properly logged into a Kubernetes/OCP cluster
+# 'kubectl config current-context' is not sufficient it will show most recent cluster,
+# but we cannot apply yaml which is needed to test storage classes
+# (!!!) DOES NOT WORK WHEN INSIDE OPERATOR POD
+def kubectl_log_in_check(logger):
+    try:
+        subprocess.check_output("kubectl get pods", shell=True, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL,
+                                universal_newlines=True, timeout=5)
+        return True
+    except subprocess.TimeoutExpired:
+        return False
+    except subprocess.CalledProcessError as error:
+        logger.info("Kubectl is not logged into any cluster and " \
+                    + f"will cause errors when checking storage classes; error")
+        return False
+
+
+# method to check to if value in property file is valid
+def valid_check(prop_key, prop_value, valid_values, _error_list, _logger):
+    try:
+        # For sets and boolean validity check
+        if type(valid_values) is list:
+            if prop_value not in valid_values:
+                # Just extra formatting to match what is visible in toml file for strings
+                if type(prop_value) is str:
+                    prop_value = f"\"{prop_value}\""
+
+                error = f"Incorrect/missing parameter set in silent install file -  {prop_key}={prop_value} | Valid values - {valid_values}"
+                _error_list.append(error)
+                return False
+
+        # For range of integers check
+        elif type(valid_values) is tuple:
+            if valid_values[0] > prop_value >= valid_values[1]:
+                error = f"Incorrect/missing parameter set in silent install file -  {prop_key}={prop_value} | Valid values - {valid_values}"
+                _error_list.append(error)
+                return False
+
+        # For boolean values check
+        elif type(valid_values) is bool:
+            if type(prop_value) is not bool:
+                valid_values = "[true,false]"
+                error = f"Incorrect/missing parameter set in silent install file -  {prop_key}={prop_value} | Valid values - {valid_values}"
+                _error_list.append(error)
+                return False
+
+        elif type(valid_values) is str:
+            if valid_values == "url":
+                # Check if the url is valid
+                if prop_value is None or not prop_value.endswith(".well-known/openid-configuration"):
+                    error = f"URL is empty or invalid in silent install file -  {prop_key}={prop_value} | Valid values - ends with .well-known/openid-configuration"
+                    _error_list.append(error)
+                    return False
+
+        return True
+
+    except Exception as e:
+        _logger.info(
+            f"Exception from silent.py script in {inspect.currentframe().f_code.co_name} function -  {str(e)}")
+
+    # method to return variables in correct type for a given key from config file
+    # Currently can only read one table layer deep
+
+
+def gather_var(key, _logger, _envfile, _error_list, section_header='', valid_values=True):
+    try:
+        if section_header == '':
+            value = _envfile.get(key)
+        else:
+            value = _envfile[section_header][key]
+            section_header = "[" + section_header + "]"
+        # Check that the user/property file input is valid
+        if valid_check(prop_key=section_header + key, prop_value=value, valid_values=valid_values, _logger=_logger,
+                       _error_list=_error_list):
+            return value
+        return None
+
+    except Exception as e:
+        _logger.info(
+            f"Exception from utilities.py script in {inspect.currentframe().f_code.co_name} function -  {str(e)}")
+
+
+# Function to replace namespace variable in different yaml files used
+# could be repurposed for other text replacement in the future
+def replace_namespace_in_file(project_name, input_file, output_file, resource_type="", private=False):
+    # Read the content of the input file
+    with open(input_file, 'r') as f:
+        content = f.read()
+
+    if resource_type.lower() == "cluster role binding":
+        # Replace occurrences of '<NAMESPACE>' with the project_name
+        replaced_content = content.replace('<NAMESPACE>', project_name)
+    elif resource_type.lower() == "catalog source":
+        replaced_content = re.sub(r"namespace: .*", f"namespace: {project_name}", content)
+    elif resource_type.lower() == "operator group" or resource_type.lower() == "subscription":
+        # Replace occurrences of '<NAMESPACE>' with the project_name
+        replaced_content = content.replace('REPLACE_NAMESPACE', project_name)
+
+        replaced_content = re.sub(r'name: .*', f"name: ibm-fncm-operator", replaced_content)
+        if private:
+            replaced_content = re.sub(r"sourceNamespace: .*", f"sourceNamespace: {project_name}", replaced_content)
+    # Write the modified content to the output file
+    with open(output_file, 'w') as f:
+        f.write(replaced_content)
+
+
+# Function to recursively search for key value pairs in a yaml
+def extract_values(data, key):
+    """
+    Recursively extract values for a given key from a nested dictionary.
+    """
+    if isinstance(data, dict):
+        for k, v in data.items():
+            if k == key:
+                yield v
+            elif isinstance(v, dict):
+                yield from extract_values(v, key)
+            elif isinstance(v, list):
+                for item in v:
+                    yield from extract_values(item, key)
+
+
+# Function to check if key is present in a yaml file
+def is_key_present(dictionary, key):
+    # Check if the key is in the current level of the dictionary
+    if key in dictionary:
+        return True
+
+    # Iterate through the values of the dictionary
+    for value in dictionary.values():
+        # If the value is another dictionary, recursively check if the key is present in it
+        if isinstance(value, dict):
+            if is_key_present(value, key):
+                return True
+
+    # If the key is not found at any level of indentation
+    return False
+
+
+# Function to check if a key is present and return the path
+def find_keys_and_structures(dictionary, key, path=[], results=[]):
+    # Check if the key is in the current level of the dictionary
+    if key in dictionary:
+        results.append((dictionary, path, key))
+
+    # Iterate through the items of the dictionary
+    for k, v in dictionary.items():
+        # If the value is another dictionary, recursively check if the key is present in it
+        if isinstance(v, dict):
+            find_keys_and_structures(v, key, path + [k], results)
+
+    return results
+
+
+# Function to create current deployment info
+def create_current_operator_info(operator_details):
+    # Get Registry
+    registry = operator_details["image"].split("/")[0]
+
+    # Get CSV numbers
+    if operator_details["type"] == "OLM":
+        name, installed_csv = operator_details["installedCSV"].split(".", 1)
+
+        current_details = {
+            "deployment": operator_details["deployment"],
+            "release": operator_details["release"],
+            "type": operator_details["type"],
+            "installedCSV": installed_csv,
+            "channel": operator_details["channel"],
+            "catalogSource": operator_details["catalogSource"],
+            "catalogType": operator_details["catalogType"],
+            "registry": registry
+        }
+    else:
+        current_details = {
+            "deployment": operator_details["deployment"],
+            "release": operator_details["release"],
+            "type": operator_details["type"],
+            "registry": registry
+        }
+    return current_details
+
+
+def create_deployment_info(setup, version_data):
+    if version_data:
+        version = version_data["VERSION"]
+        csv = version_data["CSV"]
+        channel = version_data["CHANNEL"]
+    else:
+        version = "5.6.0"
+        csv = "56.0.0"
+        channel = "24.0.0"
+
+    platform = setup.platform
+    if platform == "other":
+        type = "YAML"
+    else:
+        type = "OLM"
+
+    if setup.private_catalog:
+        catalog_type = "Private"
+    else:
+        catalog_type = "Global"
+    catalog_source = "ibm-fncm-operator-catalog"
+
+    deployment_details = {
+        "deployment": "ibm-fncm-operator",
+        "release": version,
+        "type": type,
+        "installedCSV": csv,
+        "channel": channel,
+        "catalogSource": catalog_source,
+        "catalogType": catalog_type,
+        "registry": "icr.io"
+    }
+    return deployment_details
+
+
+def create_version_info(setup, version_data):
+    namespace = setup.namespace
+
+    platform = setup.platform
+    if platform == "other":
+        platform = "CNCF"
+
+    if version_data:
+        appVersion = version_data["APP_VERSION"]
+        version = version_data["VERSION"]
+    else:
+        appVersion = "24.0.0"
+        version = "5.6.0"
+
+    version_details = {
+        "version": version,
+        "namespace": namespace,
+        "platform": platform.upper(),
+        "appVersion": appVersion
+    }
+
+    return version_details
+
+#Function to compare the requests and limits section of CR and return a flag to denote if a update is required or not
+def resource_limits_comparison(current_value,upgrade_value,limits=False):
+    try:
+        # Assumption is that all values that do not have any letters in it are by default in Gigabytes
+        # Considering all values having Mi , M , m to be Megabytes and converting them to Gigabytes for comparison
+        if "Mi" in current_value or "M" in current_value or "m" in current_value:
+            current_gb_value = int(re.sub(r'[a-zA-Z]', '', current_value))/1024
+        else:
+            current_gb_value = int(re.sub(r'[a-zA-Z]', '', current_value))
+
+        if "Mi" in upgrade_value or "M" in upgrade_value or "m" in upgrade_value:
+            upgrade_gb_value = int(re.sub(r'[a-zA-Z]', '', upgrade_value))/1024
+        else:
+            upgrade_gb_value = int(re.sub(r'[a-zA-Z]', '', upgrade_value))
+
+        #comparison is different for requests and limits.
+        if limits:
+            if current_gb_value > upgrade_gb_value:
+                return True
+            else:
+                return False
+        else:
+            if current_gb_value < upgrade_gb_value:
+                return True
+            else:
+                return False
+    except Exception as e:
+        return True
+
+# Function to update a key value pair using the values present in a another dictionary
+# used to update tags and resources if they are present in the cr to be updated
+# We use dictionary2 to update values in dictionary1
+def update_value_by_path(dictionary1, path, dictionary2, requests=False, limits=False, logger=None):
+    # Get the first key in the path
+    key = path[0]
+
+    # If there's only one key in the path, update the value
+    if len(path) == 1:
+        if requests:
+            try:
+                if resource_limits_comparison(dictionary1[key]["requests"]["cpu"],dictionary2[key]["requests"]["cpu"]):
+                    dictionary1[key]["requests"]["cpu"] = dictionary2[key]["requests"]["cpu"]
+                if resource_limits_comparison(dictionary1[key]["requests"]["memory"],dictionary2[key]["requests"]["memory"]):
+                    dictionary1[key]["requests"]["memory"] = dictionary2[key]["requests"]["memory"]
+                if resource_limits_comparison(dictionary1[key]["requests"]["ephemeral_storage"],dictionary2[key]["requests"]["ephemeral_storage"]):
+                    dictionary1[key]["requests"]["ephemeral_storage"] = dictionary2[key]["requests"][
+                        "ephemeral_storage"]
+            except Exception as e:
+                logger.info(e)
+
+        elif limits:
+
+            try:
+                if resource_limits_comparison(dictionary1[key]["limits"]["cpu"],dictionary2[key]["limits"]["cpu"],limits=True):
+                    dictionary1[key]["limits"]["cpu"] = dictionary2[key]["limits"]["cpu"]
+                if resource_limits_comparison(dictionary1[key]["limits"]["memory"],dictionary2[key]["limits"]["memory"],limits=True):
+                    dictionary1[key]["limits"]["memory"] = dictionary2[key]["limits"]["memory"]
+                if resource_limits_comparison(dictionary1[key]["limits"]["ephemeral_storage"],dictionary2[key]["limits"]["ephemeral_storage"],limits=True):
+                    dictionary1[key]["limits"]["ephemeral_storage"] = dictionary2[key]["limits"]["ephemeral_storage"]
+            except Exception as e:
+                logger.info(e)
+
+        else:
+            # For image tags and repos we just pop the tag and repo out
+            try:
+
+                dictionary1[key] = {}
+            except Exception as e:
+                logger.info(e)
+    else:
+        # Recursively update the nested dictionary
+        if key in dictionary1 and key in dictionary2:
+            update_value_by_path(dictionary1[key], path[1:], dictionary2[key], requests, limits, logger=logger)
+        else:
+            raise KeyError(f"Key '{key}' not found in dictionary")
+
+
+def parse_yaml_for_keys(yaml_data, keys):
+    """
+    Parse YAML data for specified keys and extract values.
+    """
+    parsed_values = {key: list(extract_values(yaml_data, key)) for key in keys}
+    return parsed_values
+
+
+# Create tmp folder
+def create_tmp_folder():
+    tmp_folder = os.path.join(os.getcwd(), ".tmp")
+    if os.path.exists(tmp_folder):
+        try:
+            # Remove the directory and its contents
+            shutil.rmtree(tmp_folder)
+        except OSError as e:
+            print(f"Failed to delete directory '{tmp_folder}': {e}")
+    # Create the directory
+    try:
+        os.makedirs(tmp_folder)
+        return tmp_folder
+    except OSError as e:
+        print(f"Failed to create directory '{tmp_folder}': {e}")
+
+
+# image copying mechanism for loadimages.py
+def copy_image(source_image, dest_image, progress=None):
+    try:
+        # Construct Skopeo command to copy image with the same digest
+        command = f"skopeo copy docker://{source_image} docker://{dest_image} --all --dest-tls-verify=false --remove-signatures"
+
+        # Execute Skopeo command
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True, stderr=subprocess.PIPE)
+
+        while True:
+            line = process.stdout.readline().decode('utf-8')
+            if not line:
+                break
+            progress.log(line)
+
+        error = process.stderr.read().decode('utf-8')
+        error_split = error.split("msg=")
+        error_msg = error_split[-1]
+
+        if error != '':
+            progress.log(Text(error_msg, style="bold red"))
+            progress.log(Text(f"Error copying image to {dest_image}", style="bold red"))
+            progress.log()
+            return False
+
+        progress.log(Text(f"Image copied to {dest_image} successfully", style="bold green"))
+        progress.log()
+        return True
+
+    except Exception as e:
+        (f"Error: {e}")
+        return False
+
+
+# Validate the image tag and repo file details
+def validate_image_details_file(logger, image_tag_file):
+    try:
+        # Load property files if they exist
+        if os.path.exists(image_tag_file):
+            try:
+                image_prop = ReadPropImageTag(image_tag_file, logger)
+            except TomlDecodeError:
+                print(
+                    f"[prompt.invalid]Exception when reading ImageDetails File\n"
+                    f"Please Review your Property files for missing quotes and formatting.\n\n")
+                exit(1)
+            incorrect_keys = image_prop.check_toml()
+            if incorrect_keys:
+                print(f"[prompt.invalid]There are certain components which have incorrect format.\n"
+                      f"Please review the file and correct the following keys: {incorrect_keys}")
+                exit(1)
+
+        else:
+            print(
+                f"[prompt.invalid]Image details file {image_tag_file} is missing.\n"
+                f"Please run the script in generate mode to generate the file.")
+            exit(1)
+        # Create dictionaries for property files if not None
+        if image_prop:
+            image_prop_dict = image_prop.to_dict()
+        else:
+            image_prop_dict = {}
+
+        return image_prop_dict
+    except Exception as e:
+        logger.exception(
+            f"Exception when reading ImageDetails Files\n"
+            f"Please Review your Property files for missing quotes and formatting.{e}\n\n")
+        exit(1)
+
+
+def update_operator_template(input_file, output_file):
+    # Define the patterns and replacements
+    patterns_replacements = [
+        (r'dba_license', r'value:.*', r'value: accept'),
+        (r'baw_license', r'value:.*', r'value: accept'),
+        (r'fncm_license', r'value:.*', r'value: accept'),
+        (r'ier_license', r'value:.*', r'value: accept')
+    ]
+
+    # Read input file, apply replacements, and write to output file
+    with open(input_file, 'r') as fin, open(output_file, 'w') as fout:
+        for line in fin:
+            for pattern, search_pattern, replacement in patterns_replacements:
+                if re.search(pattern, line):
+                    next(fin)  # Skip to the next line
+                    line = re.sub(search_pattern, replacement, line)
+                    break  # Once a pattern is matched, break out of the loop
+            fout.write(line)
+
+
+# Function to check if a specific file path is present
+def filepath_validate(filepath):
+    if not os.path.exists(filepath):
+        return False
+    else:
+        return True
+
+
+def write_yaml_to_file(content, path):
+    if not isinstance(content, dict):
+        content = content.to_dict()
+    with open(path, 'w') as f:
+        yaml.dump(content, f, default_flow_style=False)
+
+
+def write_log_to_file(content, path):
+    with open(path, 'w') as f:
+        f.write(content)
+
+
+def compress_extract_from_pod(command):
+    subprocess.run(command, shell=True, check=True)
+
+
+# Clear console based on system OS
+def clear(console):
+    if platform.system() == 'Windows':
+        os.system('cls')
+    else:
+        console.clear()

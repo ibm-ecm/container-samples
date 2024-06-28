@@ -9,13 +9,12 @@
 #
 ###############################################################################
 import os
-import re
-
-from ruamel.yaml import YAML
-from ruamel.yaml import CommentedMap
 from urllib.parse import urlparse
 
-from helper_scripts.utilities.utilites import collect_visible_files
+from ruamel.yaml import CommentedMap
+from ruamel.yaml import YAML
+
+from ..utilities.utilites import collect_visible_files
 
 
 # Function to remove protocol from URL
@@ -154,7 +153,7 @@ class GenerateCR:
                     self._idp_properties[idp_key]["TOKEN_ENDPOINT"]
 
                 scim_section["spec"]["initialize_configuration"]["scim_configuration"][idx]["ssl_enabled"] = \
-                self._scim_properties[key]["SCIM_SSL_ENABLED"]
+                    self._scim_properties[key]["SCIM_SSL_ENABLED"]
 
                 scim_section["spec"]["initialize_configuration"]["scim_configuration"][idx][
                     "group_name_attribute"] = "displayName"
@@ -198,6 +197,7 @@ class GenerateCR:
         try:
             # Build LDAPType to sections mapping
             ldap_type_to_section = {
+                "IBM Security Verify Directory": "tds",
                 "IBM Security Directory Server": "tds",
                 "Microsoft Active Directory": "ad",
                 "NetIQ eDirectory": "ed",
@@ -210,7 +210,10 @@ class GenerateCR:
             if cr_key == "ldap_configuration":
                 key = "LDAP"
             # populating the base ldap section and also removing keys not required
-            ldap_dict["spec"][cr_key]["lc_selected_ldap_type"] = self._ldap_properties[key]["LDAP_TYPE"]
+            if self._ldap_properties[key]["LDAP_TYPE"] == "IBM Security Verify Directory":
+                ldap_dict["spec"][cr_key]["lc_selected_ldap_type"] = "IBM Security Directory Server"
+            else:
+                ldap_dict["spec"][cr_key]["lc_selected_ldap_type"] = self._ldap_properties[key]["LDAP_TYPE"]
             ldap_dict["spec"][cr_key]["lc_ldap_group_member_id_map"] = self._ldap_properties[key][
                 "LDAP_GROUP_MEMBERSHIP_ID_MAP"]
 
@@ -222,7 +225,11 @@ class GenerateCR:
                 ldap_dict["spec"][cr_key].pop('lc_ldap_ssl_secret_name')
                 ldap_dict["spec"][cr_key]['lc_ldap_ssl_enabled'] = False
 
-            ldap_dict["spec"][cr_key]["lc_selected_ldap_type"] = self._ldap_properties[key]["LDAP_TYPE"]
+            if self._ldap_properties[key]["LDAP_TYPE"] == "IBM Security Verify Directory":
+                ldap_dict["spec"][cr_key]["lc_selected_ldap_type"] = "IBM Security Directory Server"
+            else:
+                ldap_dict["spec"][cr_key]["lc_selected_ldap_type"] = self._ldap_properties[key]["LDAP_TYPE"]
+
             for ldap_property in self._ldap_properties["LDAP"]:
                 if "lc_" + ldap_property.lower() in list(
                         ldap_dict["spec"][cr_key].keys()):
@@ -416,6 +423,7 @@ class GenerateCR:
                                 'ORACLE_JDBC_URL']
                             db_dict["spec"]["datasource_configuration"][cr_key].pop("database_servername", None)
                             db_dict["spec"]["datasource_configuration"][cr_key].pop("database_port", None)
+                            db_dict["spec"]["datasource_configuration"][cr_key].pop("database_name", None)
 
                 # populating the OS section
                 else:
@@ -477,8 +485,12 @@ class GenerateCR:
                             else:
                                 db_dict["spec"]["datasource_configuration"]["dc_os_datasources"][os_number][
                                     "dc_oracle_os_jdbc_url"] = self._db_properties[prop_key]['ORACLE_JDBC_URL']
-                                db_dict["spec"]["datasource_configuration"]["dc_os_datasources"][os_number].pop("database_servername", None)
-                                db_dict["spec"]["datasource_configuration"]["dc_os_datasources"][os_number].pop("database_port", None)
+                                db_dict["spec"]["datasource_configuration"]["dc_os_datasources"][os_number].pop(
+                                    "database_servername", None)
+                                db_dict["spec"]["datasource_configuration"]["dc_os_datasources"][os_number].pop(
+                                    "database_port", None)
+                                db_dict["spec"]["datasource_configuration"]["dc_os_datasources"][os_number].pop(
+                                    "database_name", None)
 
             # based on the component deployed, certain sections of the CR can be removed.
             if self._deployment_properties["FNCM_Version"] != "5.5.8":
@@ -657,6 +669,28 @@ class GenerateCR:
                         "object_stores"][0]["oc_cpe_obj_store_admin_user_groups"]:
                 init_dict["spec"]["initialize_configuration"]["ic_obj_store_creation"]["object_stores"][
                     0]["oc_cpe_obj_store_admin_user_groups"].append(self._usergroup_properties["FNCM_LOGIN_USER"])
+
+            # Populating the PE WorkFlow Section if required
+            if "OS" in self._usergroup_properties.keys():
+                if "CPE_OBJ_STORE_OS_PE_WORKFLOW_ENABLE" in self._usergroup_properties["OS"]:
+                    if self._usergroup_properties["OS"]["CPE_OBJ_STORE_OS_PE_WORKFLOW_ENABLE"]:
+                        pe_workflow_dict = {}
+                        pe_workflow_dict["oc_cpe_obj_store_enable_workflow"] = True
+                        pe_workflow_dict["oc_cpe_obj_store_workflow_region_name"] = "os_region"
+                        pe_workflow_dict["oc_cpe_obj_store_workflow_region_number"] = 1
+                        pe_workflow_dict["oc_cpe_obj_store_workflow_data_tbl_space"] = self._db_properties["OS"][
+                            "DATA_TABLESPACE"]
+                        pe_workflow_dict["oc_cpe_obj_store_workflow_admin_group"] = \
+                        self._usergroup_properties["OS"]["CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS"][0]
+                        pe_workflow_dict["oc_cpe_obj_store_workflow_config_group"] = \
+                        self._usergroup_properties["OS"]["CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS"][0]
+                        pe_workflow_dict["oc_cpe_obj_store_workflow_date_time_mask"] = "mm/dd/yy hh:tt am"
+                        pe_workflow_dict["oc_cpe_obj_store_workflow_locale"] = "en"
+                        pe_workflow_dict["oc_cpe_obj_store_workflow_pe_conn_point_name"] = "os_pe_conn_point"
+
+                        init_dict["spec"]["initialize_configuration"]["ic_obj_store_creation"]["object_stores"][0].update(
+                            pe_workflow_dict)
+
             os_list = list(self._db_properties["_os_ids"])
             for os_number in range(1, len(os_list)):
                 obj_store = {}
@@ -676,6 +710,26 @@ class GenerateCR:
                         "oc_cpe_obj_store_admin_user_groups"]:
                         obj_store["oc_cpe_obj_store_admin_user_groups"].append(
                             self._usergroup_properties["FNCM_LOGIN_USER"])
+
+                    if os_list[os_number] in self._usergroup_properties.keys():
+                        if "OS" in self._usergroup_properties.keys():
+                            if "CPE_OBJ_STORE_OS_PE_WORKFLOW_ENABLE" in self._usergroup_properties[os_list[os_number]]:
+                                if self._usergroup_properties[os_list[os_number]]["CPE_OBJ_STORE_OS_PE_WORKFLOW_ENABLE"]:
+                                    pe_workflow_dict = {}
+                                    pe_workflow_dict["oc_cpe_obj_store_enable_workflow"] = True
+                                    pe_workflow_dict["oc_cpe_obj_store_workflow_region_name"] = f"{os_list[os_number].lower()}_region"
+                                    pe_workflow_dict["oc_cpe_obj_store_workflow_region_number"] = 1
+                                    pe_workflow_dict["oc_cpe_obj_store_workflow_data_tbl_space"] = \
+                                        self._db_properties[os_list[os_number]]["DATA_TABLESPACE"]
+                                    pe_workflow_dict["oc_cpe_obj_store_workflow_admin_group"] = \
+                                        self._usergroup_properties[os_list[os_number]]["CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS"][0]
+                                    pe_workflow_dict["oc_cpe_obj_store_workflow_config_group"] = \
+                                        self._usergroup_properties[os_list[os_number]]["CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS"][0]
+                                    pe_workflow_dict["oc_cpe_obj_store_workflow_date_time_mask"] = "mm/dd/yy hh:tt am"
+                                    pe_workflow_dict["oc_cpe_obj_store_workflow_locale"] = "en"
+                                    pe_workflow_dict["oc_cpe_obj_store_workflow_pe_conn_point_name"] = f"{os_list[os_number].lower()}_pe_conn_point"
+
+                                    obj_store.update(pe_workflow_dict)
 
                 init_dict["spec"]["initialize_configuration"]["ic_obj_store_creation"][
                     "object_stores"].append(obj_store)

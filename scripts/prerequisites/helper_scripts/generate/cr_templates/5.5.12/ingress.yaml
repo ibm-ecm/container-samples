@@ -9,7 +9,8 @@ spec:
     ## For ROKS and CNCF Ingress, provide TLS secret name for Ingress controller.
     sc_ingress_tls_secret_name: "<Required>"
 
-    ## This is the deployment hostname suffix, this is optional and the default hostname suffix will be used as {meta.namespace}.router-canonicalhostname
+    ## OCP: Hostname suffix added to the default ingress hostname, this is optional and the default hostname suffix will be {meta.namespace}.
+    ## CNCF: Hostname used to access your deployment. This is required for ingress creation.
     sc_deployment_hostname_suffix: "{{ meta.namespace }}"
 
     ## Used for single Ingress creation for both ECM and BAN.

@@ -1,0 +1,76 @@
+###############################################################################
+#
+# Licensed Materials - Property of IBM
+#
+# (C) Copyright IBM Corp. 2024. All Rights Reserved.
+#
+# US Government Users Restricted Rights - Use, duplication or
+# disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+#
+###############################################################################
+
+# ####################################################
+# ##                  Namespace                     ##
+# ####################################################
+
+# The value can't be empty or any of the following:
+# - services
+# - default
+# - calico-system
+# - ibm-cert-store
+# - ibm-observe
+# - ibm-system
+# - ibm-odf-validation-webhook
+# - openshift-*
+# - kube-*
+
+NAMESPACE = "<Namespace>"
+
+# ####################################################
+# ##         Collect Configuration and Secrets       ##
+# ####################################################
+
+# Collect configuration and secrets - Valid values: [true; false]
+COLLECT_SENSITIVE_DATA = false
+
+# ####################################################
+# ##                 Components                     ##
+# ####################################################
+
+# In addition to the deployment artifacts, the FNCM MustGather can collect components specific logs and configuration files.
+# This includes the following components:
+
+# - Component Logs
+# - Component Version
+# - Java Version
+# - Liberty Version
+# - JVM Options
+
+# Components will only be collected if they are selected as part of your deployment.
+
+# Content Search Services (CSS).
+CSS = false
+
+# Content Management Interoperability Services (CMIS).
+CMIS = false
+
+# Task Manager (TM).
+TM = false
+
+# Content Platform Engine (CPE).
+CPE = false
+
+# Grahql (GRAPHQL).
+GRAPHQL = false
+
+# Navigator (BAN).
+BAN = false
+
+# External Share (ES).
+ES = false
+
+# IBM Enterprise Records (IER).
+IER = false
+
+# IBM Content Collector for SAP (ICCSAP).
+ICCSAP = false

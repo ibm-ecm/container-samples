@@ -1,11 +1,22 @@
-FileNet Deployment Prerequisite Script Installer Readme
+=====================================================
+FileNet Deployment DevOps Suite Readme
 =====================================================
 
+------------
 Introduction
 ------------
 
-Welcome to the FileNet Deployment Prerequisite Script Installer! This readme provides instructions for installing and using the script that streamlines the preparation phase for deploying a FileNet Standalone system in containerized environments.
-For more details on the script and its usage, please refer to the provided `documentation <https://www.ibm.com/docs/SSNW2F_5.5.12/com.ibm.p8.containers.doc/containers_tsk_script_prep.htm>`_.
+Welcome to the FileNet Deployment DevOps Suite!
+
+This suite provides a set of tools and scripts to streamline the deployment / management / troubleshooting of FileNet Standalone systems in containerized environments.
+
+The FNCM Standalone Suite includes the following tools:
+
+- Deployment Prerequisite
+    Building a FileNet Standalone system in a containerized environment requires gathering information about your desired deployment, generating SQL templates and YAML files based on the gathered information, and validating the connections to external services and the usage of storage classes. The FileNet Deployment Preparation Script helps you automate these tasks and streamline the preparation phase for deploying FileNet in containerized environments.
+- MustGather
+    The MustGather script helps you gather information about your FileNet Standalone deployment. This script automates the collection of logs, configuration files, and other diagnostic information to help troubleshoot issues with your FileNet Standalone Install.
+
 
 Prerequisites
 -------------
@@ -13,34 +24,62 @@ Prerequisites
 Before proceeding with the installation, please ensure that you have the following prerequisites in place:
 
 - Operating System: Windows, Linux, or macOS
-- Java 8, Semeru 11, Semeru 17: Installed and properly configured on your system
+- Java 8, Semeru 11, Semeru 17: Installed and properly configured on your system (Prerequisite Script only)
 - Kubernetes: Installed and properly configured on your system
 - Python: Installed on your system (Python 3.8 or later)
-- FileNet Standalone CASE Package: Downloaded and available for installation
+- FileNet Standalone Container Github: Downloaded and available for installation
 
     .. note::
 
-        The FileNet Deployment Prerequisites Script can also be run from the FileNet Standalone Operator, where all the prerequisites are already in place.
+        The Deployment Prerequisites Script can also be run from the FileNet Standalone Operator, where all the prerequisites are already in place.
 
+------------------
 Installation Steps
 ------------------
 
-Follow the steps below to install and set up the FileNet Deployment Preparation Script:
 
-1. Download the installer package from the provided source.
-2. Extract the contents of the CASE package or container-samples repo to a directory of your choice.
-3. Open a terminal or command prompt and navigate to the directory where the installer package was extracted::
+Follow the steps below to prepare your python environment::
 
-    cd ./container-samples/scripts/prerequisites
+1. Extract the contents of the container Github repo to a directory of your choice.
+2. Open a terminal or command prompt and navigate to the directory where the installer package was extracted::
+
+    cd container-samples/scripts/prerequisites
 
 4. Run the following command to install the required Python packages from the `requirements.txt` file::
 
-    python -m pip install -r requirements.txt
+    python3 -m pip install -r requirements.txt
+
+--------
+Overview
+--------
+
+All python scripts provided in the FNCM DevOps Suite has the following features:
+
+- **Help**: Provides information about the script and its usage.
+- **Silent Mode**: Runs the script without any prompts.
+- **Verbose Mode**: Provides detailed information about the script execution.
+- **Dry Run Mode**: Simulates the script execution without making any changes to the system.
+- **Automatic Backups**: If a mode is rerun, and the output files already exist, the script will automatically backup the existing files `scripts/prerequisites/backups`.
+
+To use verbose and / or dryrun mode, you can include the `--verbose` and / or `--dryrun` flag in the command. For example::
+
+    python3 mustgather.py --verbose --dryrun
+
+To use silent mode, fill out the corresponding configuration file and include the `--silent` flag in the command. For example::
+
+    python3 mustgather.py --silent
+
+.. note::
+    All silent configuration files are located in the `scripts/prerequisites/silent_config` directory.
 
 Usage
 -----
 
-Once the installation is complete, you can use the FileNet Deployment Preparation Script in the following modes:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Deployment Prerequisites: `prerequisites.py`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can use the Deployment Preparation Script in the following modes:
 
 1. **Gather Mode**: This mode helps gather information about your desired deployment.
 
@@ -85,15 +124,36 @@ Once the installation is complete, you can use the FileNet Deployment Preparatio
     .. note::
         The FileNet Deployment Preparation Script can also be run from the FileNet Standalone Operator.
 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+MustGather: `mustgather.py`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   - Open a terminal or command prompt.
+   - Navigate to the installation directory of the script.
+   - Run the script using the following command::
+
+       python3 mustgather.py
+
+   - Follow the prompts and provide the required information.
+
+   .. note::
+         After the mustgather scripts completes, the zipped up file will be located in `scripts/prerequisites/MustGather.tar.gz`.
+
+   .. tip::
+        You can select the components you want to gather information for by selecting the corresponding options in the script.
+        Deployment artifacts and Operator logs will be gathered by default.
+
+For more information on running the MustGather Script, refer to the `documentation <https://www.ibm.com/support/pages/node/7152864>`_.
+
 
 Troubleshooting
 ---------------
 
-If you encounter any issues during the installation or usage of the FileNet Deployment Preparation Script, please refer to the troubleshooting section in the provided `documentation <https://www.ibm.com/docs/SSNW2F_5.5.12/com.ibm.p8.containers.doc/containers_tsk_script_prep.htm>`_. Additionally, feel free to reach out to our support team for further assistance.
+If you encounter any issues during the installation or usage of the FileNet Deployment DevOps Suite, please refer to the troubleshooting section in the provided `documentation <https://www.ibm.com/docs/SSNW2F_5.6.0/com.ibm.p8.containers.doc/containers_tsk_script_prep.htm>`_. Additionally, feel free to reach out to our support team for further assistance.
 
 Conclusion
 ----------
 
-Congratulations! You have successfully installed the FileNet Deployment Preparation Script. This script will help simplify and optimize the preparation phase for deploying FileNet in containerized environments.
+Congratulations! You have successfully installed the FileNet Deployment DevOps Suite.
 
-Thank you for choosing our solution, and we hope this script enhances your FileNet deployment experience.
+Thank you for choosing our solution, and we hope these script enhances your FileNet deployment experience.

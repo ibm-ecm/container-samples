@@ -7,32 +7,52 @@
 -- sqlcmd -S serverName\instanceName -U dbaUser -P dbaPassword -i C:\createOS1DB.sql
 
 
--- create ${os_name} object store database, you could update FILENAME as your requirement.
+-- Create ${os_name} object store database, update or remove FILENAME as per your database requirements.
 -- Please make sure you change the drive and path to your MSSQL database.
 CREATE DATABASE ${os_name}
-ON PRIMARY
-(  NAME = ${os_name}_DATA,
-   FILENAME = 'C:\MSSQL_DATABASE\${os_name}_DATA.mdf',
-   SIZE = 400MB,
-   FILEGROWTH = 128MB ),
+GO
 
-FILEGROUP ${os_name}SA_DATA_FG
-(  NAME = ${os_name}SA_DATA,
-   FILENAME = 'C:\MSSQL_DATABASE\${os_name}SA_DATA.ndf',
-   SIZE = 300MB,
-   FILEGROWTH = 128MB),
+USE master
+GO
 
-FILEGROUP ${os_name}SA_IDX_FG
-(  NAME = ${os_name}SA_IDX,
-   FILENAME = 'C:\MSSQL_DATABASE\${os_name}SA_IDX.ndf',
-   SIZE = 300MB,
-   FILEGROWTH = 128MB)
+ALTER DATABASE ${os_name}
+ADD FILEGROUP ${os_name}SA_DATA_FG;
+GO
 
-LOG ON
-(  NAME = '${os_name}_LOG',
-   FILENAME = 'C:\MSSQL_DATABASE\${os_name}_LOG.ldf',
-   SIZE = 160MB,
-   FILEGROWTH = 50MB )
+ALTER DATABASE ${os_name}
+ADD FILEGROUP ${os_name}SA_IDX_FG;
+GO
+
+ALTER DATABASE ${os_name}
+ADD FILE
+(
+    NAME = ${os_name}_DATA,
+    FILENAME = 'C:\MSSQL_DATABASE\${os_name}_DATA.mdf',
+    SIZE = 400MB,
+    FILEGROWTH = 128MB
+)
+GO
+
+ALTER DATABASE ${os_name}
+ADD FILE
+(
+    NAME = ${os_name}SA_DATA,
+    FILENAME = 'C:\MSSQL_DATABASE\${os_name}SA_DATA.ndf',
+    SIZE = 300MB,
+    FILEGROWTH = 128MB
+)
+TO FILEGROUP ${os_name}SA_DATA_FG;
+GO
+
+ALTER DATABASE ${os_name}
+ADD FILE
+(
+    NAME = ${os_name}SA_IDX,
+    FILENAME = 'C:\MSSQL_DATABASE\${os_name}SA_IDX.ndf',
+    SIZE = 300MB,
+    FILEGROWTH = 128MB
+)
+TO FILEGROUP ${os_name}SA_IDX_FG;
 GO
 
 ALTER DATABASE ${os_name} SET RECOVERY SIMPLE
