@@ -1,0 +1,84 @@
+###############################################################################
+#
+# Licensed Materials - Property of IBM
+#
+# (C) Copyright IBM Corp. 2024. All Rights Reserved.
+#
+# US Government Users Restricted Rights - Use, duplication or
+# disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+#
+###############################################################
+
+###############################################################################
+
+# ####################################################
+# ##                   License                     ##
+# ####################################################
+
+# IBM FileNet Content Manager license information here: https://ibm.biz/CPE_FNCM_License_5_6_0       │
+# IBM Content Foundation license information here: https://ibm.biz/CPE_ICF_License_5_6_0             │
+# IBM Content Platform Engine Software Notices here: https://ibm.biz/CPE_FNCM_ICF_Notices_5_6_0      │
+# IBM Enterprise Records information here: https://ibm.biz/ier_license_521                           │
+# IBM Content Collector for SAP license information here: https://ibm.biz/iccsap_license_4002        │
+# IBM Cloud Pak for Business Automation license information here: https://ibm.biz/cp4ba_license_2400
+
+# License Acceptance - Valid values: [true; false]
+LICENSE_ACCEPT = false
+
+# ####################################################
+# ##                   Platform                     ##
+# ####################################################
+
+# Platform of choice - Valid values: [1; 2; 3]
+# 1. OCP
+# 2. ROKS
+# 3. CNCF
+PLATFORM = 1
+
+
+# ####################################################
+# ##                  Namespace                     ##
+# ####################################################
+
+# The value can't be empty or any of these -> "services","default","calico-system","ibm-cert-store","ibm-observe","ibm-system","ibm-odf-validation-webhook"
+# The value also can't start from openshift or kube
+NAMESPACE = "<Namespace>"
+
+# ####################################################
+# ##            Registry Authentication             ##
+# ####################################################
+
+# Key used to authenticate with IBM Entitlement Registry
+# Check the link on how to obtain an IBM Entitlement key https://www.ibm.com/docs/SSNW2F_5.6.0/com.ibm.dba.install/op_topics/tsk_images_enterp_entitled.html
+ENTITLEMENT_KEY = "<IBMEntitlementKey>"
+
+# CNCF Deploy Only
+# The FileNet Content Manager Operator Image can be installed with the follow options
+#    Online - Pull the Operator image from the IBM Entitlement Registry
+#    Private - Pull the Operator image from a Private Registry
+PRIVATE_REGISTRY = false
+
+PRIVATE_REGISTRY_HOST = "<RegistryHost>"
+
+PRIVATE_REGISTRY_PORT = 5000
+
+PRIVATE_REGISTRY_USERNAME = "<RegistryUser>"
+
+PRIVATE_REGISTRY_PASSWORD = "<RegistryPassword>"
+
+# Is your private registry using SSL - Valid values: [true; false]
+PRIVATE_REGISTRY_SSL_ENABLED = true
+
+# File Path to the ssl cert of the private registry
+# Required Field only if PRIVATE_REGISTRY_SSL_ENABLED is true
+# Cerificates needs to in PEM format
+PRIVATE_REGISTRY_SSL_CRT_PATH = "/path/to/crt/certificate.pem"
+
+# ####################################################
+# ##            Cluster Configuration               ##
+# ####################################################
+
+# The FileNet Content Manager Operator Catalog Source can be installed with the follow options
+#   Private Catalog - Install the catalog in the same target namespace
+#   Global Catalog - Install the catalog in the openshift-marketplace namespace
+GLOBAL_CATALOG = false

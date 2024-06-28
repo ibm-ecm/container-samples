@@ -1,0 +1,56 @@
+{
+  "CPE": {
+    "value": false,
+    "comment": [
+      "Deploy Content Platform Engine (CPE)."
+    ]
+  },
+  "GRAPHQL": {
+    "value": false,
+    "comment": [
+      "Deploy Graphql (GRAPHQL)."
+    ]
+  },
+  "BAN": {
+    "value": false,
+    "comment": [
+      "Deploy Business Automation Navigator (BAN)."
+    ]
+  },
+  "CSS": {
+    "value": false,
+    "comment": [
+      "Deploy Content Search Services (CSS)."
+    ]
+  },
+  "CMIS": {
+    "value": false,
+    "comment": [
+      "Deploy Content Management Interoperability Services (CMIS)."
+    ]
+  },
+  "TM": {
+    "value": false,
+    "comment": [
+      "Deploy Task Manager (TM)."
+    ]
+  },
+  "ES": {
+    "value": false,
+    "comment": [
+      "Deploy External Share (ES)."
+    ]
+  },
+    "IER": {
+    "value": false,
+    "comment": [
+      "Deploy Enterprise Records (IER)."
+    ]
+  },
+    "ICCSAP": {
+    "value": false,
+    "comment": [
+      "Deploy Content Collector for SAP (ICCSAP)."
+    ]
+  }
+}

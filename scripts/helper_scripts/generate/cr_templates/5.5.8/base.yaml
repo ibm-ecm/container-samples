@@ -1,0 +1,142 @@
+###############################################################################
+##
+##Licensed Materials - Property of IBM
+##
+##(C) Copyright IBM Corp. 2022. All Rights Reserved.
+##
+##US Government Users Restricted Rights - Use, duplication or
+##disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+##
+###############################################################################
+apiVersion: fncm.ibm.com/v1
+kind: FNCMCluster
+metadata:
+  name: fncmdeploy
+  labels:
+    app.kubernetes.io/instance: ibm-fncm
+    app.kubernetes.io/managed-by: ibm-fncm
+    app.kubernetes.io/name: ibm-fncm
+    release: 5.5.8
+spec:
+  ##########################################################################
+  ## This section contains the shared configuration for all FNCM components #
+  ##########################################################################
+  appVersion: 21.0.3
+
+  ## MUST exist, used to accept ibm license, valid value only can be "accept"
+  ibm_license: ""
+
+  shared_configuration:
+
+    ## The deployment context as selected.
+    sc_deployment_context: FNCM
+
+    ## All FNCM components must use/share the image_pull_secrets to pull images
+    image_pull_secrets:
+      - admin.registrykey
+
+    ## All FNCM components must use/share the same docker image repository.  For example, if IBM Entitlement Registry is used, then 
+    ## it should be "cp.icr.io".  Otherwise, it will be a local docker registry.
+    sc_image_repository: cp.icr.io
+
+    ## All FNCM components must use/share the root_ca_secret in order for integration
+    root_ca_secret: fncm-root-ca
+
+    ## FNCM capabilities to be deployed.  This CR represents the "content" pattern (aka FileNet Content Manager), which includes the following 
+    ## mandatory components: cpe, icn (Navigator), graphql and optional components: css, cmis, es (External Share) and tm (Task Manager)
+    sc_deployment_patterns: content
+
+
+    ## The optional components to be installed if listed here.  The user can choose what components to be installed.
+    ## The optional components are: css (Content Search Services), cmis, es (External Share) and tm (Task Manager)
+    sc_optional_components:
+
+    ## The deployment type as selected.
+    sc_deployment_type: production
+    
+    ## Choose the licensing model for the Product you are installing.
+    ## IBM Content Foundation:
+    ## - ICF.PVUNonProd
+    ## - ICF.PVUProd
+    ## - ICF.UVU
+    ## - ICF.CU
+    ## IBM Filenet Content Manager:
+    ## - FNCM.PVUNonProd
+    ## - FNCM.PVUProd
+    ## - FNCM.UVU
+    ## - FNCM.CU
+    ## IBM Cloud Pak for Business Automation:
+    ## - CP4BA.NonProd
+    ## - CP4BA.Prod
+    ## - CP4BA.User
+    sc_fncm_license_model: "<Required>"
+
+    ## Optional: You can specify a profile size for CloudPak - valid values are small,medium,large - default is small.
+    sc_deployment_profile_size: "small"
+
+    ## Specify the RunAsUser for the security context of the pod.  This is usually a numeric value that corresponds to a user ID.
+    ## For non-OCP (e.g., CNCF platforms such as AWS, GKE, etc), this parameter is optional. It is not supported on OCP and ROKS.
+    sc_run_as_user:
+
+    ## The platform to be deployed specified by the user.  Possible values are: OCP, ROKS and other.
+    ## based on input from the user.
+    sc_deployment_platform: "<Required>"
+
+
+    ## OCP: Hostname suffix added to the default ingress hostname, this is optional and the default hostname suffix will be {meta.namespace}.
+    ## CNCF: Hostname used to access your deployment.
+    # sc_deployment_hostname_suffix: "{{ meta.namespace }}.<Required>"
+
+
+    ## If the root certificate authority (CA) key of the external service is not signed by the operator root CA key, provide the TLS certificate of
+    ## the external service to the component's truststore.
+    trusted_certificate_list: [ ]
+
+    ## This is necessary if you want to use your own JDBC drivers and/or need to provide ICCSAP drivers.  If you are providing multiple JDBC drivers and ICCSAP drivers, 
+    ## all the files must be compressed in a single file.
+    ## First you need to package your drivers into a compressed package in the format of "saplibs/drivers_files" and/or 
+    ## "jdbc/db2|oracle|postgresql|sqlserver/driver_files". For example, if you are providing your own DB2 and Oracle JDBC drivers and ICCSAP drivers, then the compressed
+    ## file should have the following structure and content:
+    ##   /jdbc/db2/db2jcc4.jar
+    ##   /jdbc/db2/db2jcc_license_cu.jar
+    ##   /jdbc/oracle/ojdbc8.jar
+    ##   /saplibs/libicudata.so.50
+    ##   /saplibs/...
+    ## Then you need to put the compressed package on an anonymously accessible web server and provide the link here.
+    ## The CR can handle .zip files using unzip as well as .tar, .tar.gz, .tar.bz2, .tar.xz. Does not handle .gz files, .bz2 files, .xz, or .zst files that do not contain a .tar archive.    
+    #sc_drivers_url:
+    
+    ## Enable/disable ECM (FNCM) / BAN initialization (e.g., creation of P8 domain, creation/configuration of object stores,
+    ## creation/configuration of CSS servers, and initialization of Navigator (ICN)).  If the "initialize_configuration" section
+    ## is defined with the required parameters in the CR (below) and sc_content_initialization is set to "true" (or the parameter doesn't exist), then the initialization will occur.
+    ## However, if sc_content_initialization is set to "false", then the initialization will not occur (even with the "initialize_configuration" section defined)
+    sc_content_initialization: false
+    ## OR
+    ## If you want to enable the initialize for a specific product for ECM (FNCM) / BAN, you will need to use
+    ## these fields instead.  Otherwise, use the default sc_content_initialization: false
+    # sc_content_initialization:
+    #  cpe: false
+    #  css: false
+    #  ban: false
+
+
+    ## Enable/disable the ECM (FNCM) / BAN verification (e.g., creation of test folder, creation of test document,
+    ## execution of CBR search, and creation of Navigator demo repository and desktop).  If the "verify_configuration"
+    ## section is defined in the CR, then that configuration will take precedence overriding this parameter.  Note that if you are upgrading or
+    ## migrating, set this parameter to "false" since the env has been previously verified.
+    sc_content_verification: false
+    ## OR
+    ## If you want to enable the verification for a specific product for ECM (FNCM) / BAN, you will need to use
+    ## these fields instead.  Otherwise, use the default sc_content_verification: false
+    # sc_content_verification:
+    #  cpe: false
+    #  css: false
+    #  ban: false
+
+
+    ## Provide the storage class names for the storage. It can be one storage class for all storage classes or can provide different one for each.
+    ## Operator will use the provided storage classes to provision required PVC volumes.
+    storage_configuration:
+      sc_slow_file_storage_classname: "<Required>"
+      sc_medium_file_storage_classname: "<Required>"
+      sc_fast_file_storage_classname: "<Required>"

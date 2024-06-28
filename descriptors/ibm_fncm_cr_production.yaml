@@ -17,19 +17,19 @@ metadata:
     app.kubernetes.io/instance: ibm-fncm
     app.kubernetes.io/managed-by: ibm-fncm
     app.kubernetes.io/name: ibm-fncm
-    release: 5.5.12
+    release: 5.6.0
 spec:
   ##########################################################################
   ## This section contains the shared configuration for all FNCM components #
   ##########################################################################
-  appVersion: 23.0.2
+  appVersion: 24.0.0
 
   ## MUST exist, used to accept ibm license, valid value only can be "true"
   license:
     accept:
 
   ## The optional components to be installed if listed here.  The user can choose what components to be installed.
-  ## The optional components are: css (Content Search Services), cmis, es (External Share) and tm (Task Manager)
+  ## The optional components are: css (Content Search Services), cmis, es (External Share), tm (Task Manager), iccsap and ier (Enterprise Records).
   ## By default cpe, ban (Navigator) and graphql are installed.
   content_optional_components:
     cpe: true
@@ -39,6 +39,8 @@ spec:
     es: false
     tm: false
     ban: true
+    iccsap: false
+    ier: false
 
   shared_configuration:
 

@@ -16,12 +16,12 @@ metadata:
     app.kubernetes.io/instance: ibm-fncm
     app.kubernetes.io/managed-by: ibm-fncm
     app.kubernetes.io/name: ibm-fncm
-    release: 5.5.12
+    release: 5.6.0
 spec:
   ##########################################################################
   ## This section contains the shared configuration for all FNCM components #
   ##########################################################################
-  appVersion: 23.0.2
+  appVersion: 24.0.0
 
   ## MUST exist, used to accept ibm license, valid value only can be "true"
   license:
@@ -32,15 +32,17 @@ spec:
   ## var_operator_pvc: operator-shared-pvc
   
   ## The optional components to be installed if listed here.  The user can choose what components to be installed.
-  ## The optional components are: css (Content Search Services), cmis, es (External Share) and tm (Task Manager)
+  ## The optional components are: css (Content Search Services), cmis, es (External Share), tm (Task Manager), iccsap and ier (Enterprise Records).
   content_optional_components:
-    cpe: false 
-    graphql: false 
+    cpe: true
+    graphql: true
     cmis: false
     css: false
     es: false
     tm: false
-    ban: false 
+    ban: true
+    iccsap: false
+    ier: false
 
   shared_configuration:
     ## This is the deployment context is FNCM. No update it required.
@@ -77,9 +79,9 @@ spec:
     #  localhost_profile: # Local path of custom seccomp profile when type `Localhost` is used. The custom profile must be accessible by the pod and must exist locally on all worker nodes.  For example: `/profiles/fine-grained.json`.
 
     sc_egress_configuration:
-      ## Required. Enable or disable egress access to external systems.  If "sc_restricted_internet_access" is defined and has no value set, then default will be "true".  If
-      ## "sc_restricted_internet_access" is not defined  (e.g., in the case of upgrade, the existing CR will not have sc_restricted_internet_access ), then
-      ## "sc_restricted_internet_access" will be "false"
+      ## Required. Enable or disable egress access to external systems.
+      ## If "sc_restricted_internet_access" is defined and has no value set, then default will be "true".
+      ## If "sc_restricted_internet_access" is not defined (e.g., in the case of upgrade, the existing CR will not have sc_restricted_internet_access), then "sc_restricted_internet_access" will be "false"
       sc_restricted_internet_access: true
       ## Optional.  Kubernetes API server namespace(s) (comma separated) to be used for egress network policy when `sc_restricted_internet_access: true` and `sc_deployment_platform: "other"`.
       ## "{}" can also be used as a value.  It is equivalent to all namespaces (eg: namespaceSelector:{})
@@ -153,7 +155,7 @@ spec:
     images:
       keytool_init_container:
         repository: cp.icr.io/cp/cp4a/common/dba-keytool-initcontainer
-        tag: "23.0.2-IF005"
+        tag: "24.0.0"
     
     ## This is necessary if you want to use your own JDBC drivers and/or need to provide ICCSAP drivers.  If you are providing multiple JDBC drivers and ICCSAP drivers, 
     ## all the files must be compressed in a single file.
@@ -524,7 +526,7 @@ spec:
       dc_hadr_validation_timeout: 15
       ######################################################################################
       ## If the database type is "Db2HADR", then complete the rest of the parameters below.
-      ## Otherwise, remove or comment out the rest of the parameters below.
+      ## Provide the database server name or IP address of the standby database server.
       ######################################################################################
       dc_hadr_standby_servername: "<Required>"
       ## Provide the standby database server port.  For Db2, the default is "50000".
@@ -661,6 +663,8 @@ spec:
  #   collectd_interval: 10
  #   collectd_disable_host_monitoring: false
  #   collectd_plugin_write_prometheus_port: 9103
+## You can use this configmap to customize PCH counters mounted at /opt/ibm/monitoring/pchmonitor/counters.xml. If not provided, Operator will create a default config map and any updates to it will not be overwritten by the Operator.
+  #   pch_counters_configmap: {{ meta.name }}-pch-counters-config
 
  ## Logging setting
  # logging_configuration:
@@ -678,7 +682,7 @@ spec:
     ## LDAP user and password, CPE username and password, keystore password, and LTPA passs, etc.
     fncm_secret_name: ibm-fncm-secret
 
-    ## By default all the components create ingress and routes with required annotations. In case any custom annotation is needed for the environment provide below.
+    ## By default, all the components create ingress and routes with required annotations. In case any custom annotation is needed for the environment provide below.
     #    route_ingress_annotations:
     #      - haproxy.router.openshift.io/balance: roundrobin
     route_ingress_annotations:
@@ -743,7 +747,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cpe
-        tag: ga-5512-p8cpe-la110
+        tag: ga-560-p8cpe
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -764,8 +768,8 @@ spec:
         # Defines behavior for changing ownership and permission of the volume before being exposed inside a Pod. This field has two possible values (Always,OnRootMismatch)
         # For example fs_groupchangepolicy: "OnRootMismatch"
         fs_groupchangepolicy:
-      
-      ## The initial resources (CPU, memory) requests and limits.  If more resources are needed,
+
+      ## The initial resources (CPU, memory, and ephemeral storage) requests and limits.  If more resources are needed,
       ## make the changes here to meet your requirement.
       resources:
         requests:
@@ -812,6 +816,9 @@ spec:
         ##  -XX:+SomeJVMSettings
         ##  -XshowSettings:vm"
         ## Then set the following: jvm_customize_options="-Dmy.test.jvm.arg1=123,-Dmy.test.jvm.arg2=abc,-XX:+SomeJVMSettings,-XshowSettings:vm"
+        ## If your JVM option contains comma then you have to include 'DELIM=;' to use a different separator, for example jvm_customize_options="DELIM=;-Dmy.test.jvm.arg1=123;-Dcom.filenet.authentication.wsi.AuthTokenOrder=oauth,oidc,ltpa". Semicolon can be replaced with any other char.
+        ## If your JVM option contains double quotes then you need to escape it like this: jvm_customize_options="-Dsettings.navigator.default=logging.level={\"_value\":\"4\",\"_mergeOption\":\"replace\"}"
+
         jvm_customize_options:
 
         ## Default JNDI name for GCD for non-XA data source
@@ -862,7 +869,7 @@ spec:
           size: 1Gi
         existing_pvc_for_cpe_textextstore: 
           name: "cpe-textextstore"
-          size: 1Gi
+          size: 3Gi
         existing_pvc_for_cpe_bootstrapstore: 
           name: "cpe-bootstrapstore"
           size: 1Gi
@@ -876,11 +883,7 @@ spec:
           initial_delay_seconds: 120
           period_seconds: 30
           timeout_seconds: 10
-          failure_threshold: 16
-        readiness:
-          period_seconds: 30
-          timeout_seconds: 10
-          failure_threshold: 6
+          failure_threshold: 40
         liveness:
           period_seconds: 30
           timeout_seconds: 5
@@ -911,7 +914,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/css
-        tag: ga-5512-p8css-la110
+        tag: ga-560-p8css
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -920,7 +923,7 @@ spec:
       log:
         format: json
 
-      ## The initial resources (CPU, memory) requests and limits.  If more resources are needed,
+      ## The initial resources (CPU, memory, and ephemeral storage) requests and limits.  If more resources are needed,
       ## make the changes here to meet your requirement.
       resources:
         requests:
@@ -1009,7 +1012,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cmis
-        tag: ga-307-cmis-if005
+        tag: ga-307-cmis-la502
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1018,7 +1021,7 @@ spec:
       log:
         format: json
 
-      ## The initial resources (CPU, memory) requests and limits.  If more resources are needed,
+      ## The initial resources (CPU, memory, and ephemeral storage) requests and limits.  If more resources are needed,
       ## make the changes here to meet your requirement.
       resources:
         requests:
@@ -1059,6 +1062,8 @@ spec:
         ##  -XX:+SomeJVMSettings
         ##  -XshowSettings:vm"
         ## Then set the following: jvm_customize_options="-Dmy.test.jvm.arg1=123,-Dmy.test.jvm.arg2=abc,-XX:+SomeJVMSettings,-XshowSettings:vm"
+        ## If your JVM option contains comma then you have to include 'DELIM=;' to use a different separator, for example jvm_customize_options="DELIM=;-Dmy.test.jvm.arg1=123;-Dcom.filenet.authentication.wsi.AuthTokenOrder=oauth,oidc,ltpa". Semicolon can be replaced with any other char.
+        ## If your JVM option contains double quotes then you need to escape it like this: jvm_customize_options="-Dsettings.navigator.default=logging.level={\"_value\":\"4\",\"_mergeOption\":\"replace\"}"
         jvm_customize_options:
 
         ## Enable/disable Web Services Security
@@ -1168,7 +1173,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/graphql
-        tag: ga-5512-p8cgql-la110
+        tag: ga-560-p8cgql
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1177,7 +1182,7 @@ spec:
       log:
         format: json
 
-      ## The initial resources (CPU, memory) requests and limits.  If more resources are needed,
+      ## The initial resources (CPU, memory, and ephemeral storage) requests and limits.  If more resources are needed,
       ## make the changes here to meet your requirement.
       resources:
         requests:
@@ -1213,6 +1218,8 @@ spec:
         ##  -XX:+SomeJVMSettings
         ##  -XshowSettings:vm"
         ## Then set the following: jvm_customize_options="-Dmy.test.jvm.arg1=123,-Dmy.test.jvm.arg2=abc,-XX:+SomeJVMSettings,-XshowSettings:vm"
+        ## If your JVM option contains comma then you have to include 'DELIM=;' to use a different separator, for example jvm_customize_options="DELIM=;-Dmy.test.jvm.arg1=123;-Dcom.filenet.authentication.wsi.AuthTokenOrder=oauth,oidc,ltpa". Semicolon can be replaced with any other char.
+        ## If your JVM option contains double quotes then you need to escape it like this: jvm_customize_options="-Dsettings.navigator.default=logging.level={\"_value\":\"4\",\"_mergeOption\":\"replace\"}"
         jvm_customize_options:
 
         license_model: FNCM.PVUNonProd
@@ -1287,12 +1294,12 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/extshare
-        tag: ga-3015-es-la201
+        tag: ga-310-es
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
 
-      ## The initial resources (CPU, memory) requests and limits.  If more resources are needed,
+      ## The initial resources (CPU, memory, and ephemeral storage) requests and limits.  If more resources are needed,
       ## make the changes here to meet your requirement.
       resources:
         requests:
@@ -1395,12 +1402,12 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/taskmgr
-        tag: ga-3015-tm-la201
+        tag: ga-310-tm
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
 
-      ## The initial resources (CPU, memory) requests and limits.  If more resources are needed,
+      ## The initial resources (CPU, memory, and ephemeral storage) requests and limits.  If more resources are needed,
       ## make the changes here to meet your requirement.
       resources:
         requests:
@@ -1436,6 +1443,8 @@ spec:
         ##  -XX:+SomeJVMSettings
         ##  -XshowSettings:vm"
         ## Then set the following: jvm_customize_options="-Dmy.test.jvm.arg1=123,-Dmy.test.jvm.arg2=abc,-XX:+SomeJVMSettings,-XshowSettings:vm"
+        ## If your JVM option contains comma then you have to include 'DELIM=;' to use a different separator, for example jvm_customize_options="DELIM=;-Dmy.test.jvm.arg1=123;-Dcom.filenet.authentication.wsi.AuthTokenOrder=oauth,oidc,ltpa". Semicolon can be replaced with any other char.
+        ## If your JVM option contains double quotes then you need to escape it like this: jvm_customize_options="-Dsettings.navigator.default=logging.level={\"_value\":\"4\",\"_mergeOption\":\"replace\"}"
         jvm_customize_options: "-Dcom.ibm.ecm.task.StartUpListener.defaultLogLevel=FINE"
         license: accept
 
@@ -1540,7 +1549,7 @@ spec:
     image:
       ## The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/ban/navigator
-      tag: ga-3015-icn-la201
+      tag: ga-310-icn
 
       ## This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
@@ -1549,7 +1558,7 @@ spec:
     log:
       format: json
 
-    ## The initial resources (CPU, memory) requests and limits.  If more resources are needed,
+    ## The initial resources (CPU, memory, and ephemeral storage) requests and limits.  If more resources are needed,
     ## make the changes here to meet your requirement.
     resources:
       requests:
@@ -1559,7 +1568,7 @@ spec:
       limits:
         cpu: "1"
         memory: "3072Mi"
-        ephemeral_storage: "2.5Gi"
+        ephemeral_storage: "3Gi"
 
       ## By default "Autoscaling" is disabled (i.e., enabled: false).  If you enable auto_scaling (i.e., enabled: true), be sure to 
       ## provide values for max_replicas, min_replicas, and target_cpu_utilization_percentage.
@@ -1603,6 +1612,19 @@ spec:
     # Disable FIPS for the component (default value is "false"), change it to "true" if you enable FIPS mode for the deployment with shared_configuration.enable_fips = true, but want to disable FIPS mode for the component.
     disable_fips: false
 
+    ## Set securityContext for Navigator deployment.
+    security_context:
+      ## Controls which group IDs containers add. For example "supplemental_groups: [1000620001,1000620002]"
+      supplemental_groups:
+      ## This can take an array of key value pairs to assign SELinux labels to a Container, for example
+      ## selinux_options:
+        ## level: "s0:c123,c456"
+        ## type: "spc_t
+      selinux_options:
+      # Defines behavior for changing ownership and permission of the volume before being exposed inside a Pod. This field has two possible values (Always,OnRootMismatch)
+      # For example fs_groupchangepolicy: "OnRootMismatch"
+      fs_groupchangepolicy:
+
     ## Below are the default ICN Production settings.  Make the necessary changes as you see fit.  Refer to IBM Documentation for details.
     icn_production_setting:
       timezone: Etc/UTC
@@ -1622,6 +1644,8 @@ spec:
       ##  -XX:+SomeJVMSettings
       ##  -XshowSettings:vm"
       ## Then set the following: jvm_customize_options="-Dmy.test.jvm.arg1=123,-Dmy.test.jvm.arg2=abc,-XX:+SomeJVMSettings,-XshowSettings:vm"
+      ## If your JVM option contains comma then you have to include 'DELIM=;' to use a different separator, for example jvm_customize_options="DELIM=;-Dmy.test.jvm.arg1=123;-Dcom.filenet.authentication.wsi.AuthTokenOrder=oauth,oidc,ltpa". Semicolon can be replaced with any other char.
+      ## If your JVM option contains double quotes then you need to escape it like this: jvm_customize_options="-Dsettings.navigator.default=logging.level={\"_value\":\"4\",\"_mergeOption\":\"replace\"}"
       jvm_customize_options:
 
       icn_jndids_name: ECMClientDS
@@ -1700,6 +1724,267 @@ spec:
     ## Enabling this will give the user the option to sign-in using the LDAP.
     #enable_ldap: true
 
+  ########################################################################
+  ########   IBM Enterprise Records configuration      ########
+  ########################################################################
+  ier_configuration:
+    ## IER secret that contains the password to be used for the generation of Keystore and Truststore files
+    ier_secret_name: ibm-ier-secret
+
+    ## The architecture of the cluster.  This is the default for Linux on x86 and should not be changed.
+    arch:
+      amd64: "3 - Most preferred"
+
+    ## The number of replicas or pods to be deployed.  The default is 1 replica and for high availability in a production env,
+    ## it is recommended to have 2 or more.
+    replica_count: 2
+
+    # Optional: Use an existing certificate for automatic creation of OpenShift routes.
+    # Set this key if you have an external TLS certificate. Leave this empty if you don't have an external TLS certificate, operator will generate one for you.
+    #ier_ext_tls_secret_name:
+    ## Optional. The Certificate Authority (CA) used to sign the external TLS secret for automatic creation of OpenShift routes.
+    ## Set this key if you have a CA to sign the external TLS certificate, leave this parameter empty if you don't have the CA of your external TLS certificate.
+    #ier_auth_ca_secret_name:
+
+    ## This is the image repository and tag that correspond to image registry, which is where the image will be pulled.
+    image:
+      # The default repository is the IBM Entitled Registry
+      repository: cp.icr.io/cp/cp4a/ier/ier
+      tag: "24.0.0"
+
+      # This will override the image pull policy in the shared_configuration.
+      pull_policy: IfNotPresent
+
+    ## Logging for workloads.  This is the default setting.
+    log:
+     format: json
+
+    ## The initial resources (CPU, memory, and ephemeral storage) requests and limits.  If more resources are needed,
+    ## make the changes here to meet your requirement.
+    resources:
+      requests:
+        cpu: "1"
+        memory: "1024Mi"
+        ephemeral_storage: "1Gi"
+      limits:
+        cpu: "1"
+        memory: "1024Mi"
+        ephemeral_storage: "1Gi"
+
+      ## By default "Autoscaling" is disabled (i.e., enabled: false).  If you enable auto_scaling (i.e., enabled: true), be sure to
+      ## provide values for max_replicas, min_replicas, and target_cpu_utilization_percentage.
+      auto_scaling:
+        enabled: false
+        max_replicas: "<Required>"
+        min_replicas: "<Required>"
+        ## This is the default cpu percentage before autoscaling occurs.
+        target_cpu_utilization_percentage: "<Required>"
+
+    node_affinity:
+      #-------------------------------------
+      # custom_node_selector_match_expression will be added in node selector match expressions.
+      # It accepts array list inputs. You can assign multiple selector match expressions except (kubernetes.io/arch)
+      # Example value:
+      # - key: kubernetes.io/hostname
+      #   operator: In
+      #   values:
+      #     - worker0
+      #     - worker1
+      #     - worker3
+      #-------------------------------------
+      custom_node_selector_match_expression: [ ]
+    ## Values in this field will be used as annotations in all generated pods, and it must be valid annotation key value pairs.
+    # Example:
+    # customAnnotationKey: customAnnotationValue
+    ## To include '{{ }}' in annotation like '{{example}}', add a backward slash before curly brace like '\{\{example\}\}'.
+    custom_annotations: { }
+    ## Values in this field will be used as labels in all generated pods, and it must be valid label key value pairs
+    # Example:
+    # customLabelKey: customLabelValue
+    custom_labels: { }
+
+    ## Below are the default IER Production settings.  Make the necessary changes as you see fit.  Refer to IBM Documentation for details.
+    ier_production_setting:
+      time_zone: Etc/UTC
+
+      ## The initial use of available memory.
+      jvm_initial_heap_percentage: 40
+      ## The maximum percentage of available memory to use.
+      jvm_max_heap_percentage: 66
+
+      # The license must be set to "accept" in order for the component to install.  This is the default value.
+      license: accept
+
+      ## This section is optional, and it takes a list of configmaps.
+      ## A configmap can hold files or environment data, but it cannot a mix of both.
+      ## The volume_path is optional for a configmap that holds files as its data and if it's not specified,
+      ## then the files will be mounted to the overrides directory.  If the configmap data holds environment variables
+      ## then is_env is required and set it to true.
+
+      #custom_configmap:
+      # - name: <name of configmap>
+      #   volume_path:  # optional
+      # - name: <name of configmap>
+      #   is_env: # required if the configmap holds environment variables.
+
+    ## By default, the plugin for Graphite is enabled to emit container metrics.
+    collectd_enable_plugin_write_graphite: false
+
+    ## Persistent Volume Claims for IER.  If the storage_configuration in the shared_configuration is configured,
+    ## the Operator will create the PVC using the names below.
+    datavolume:
+      existing_pvc_for_ier_logstore:
+        name: "ier-logstore"
+        size: 1Gi
+
+    ## Default values for both startup, readiness and liveness probes.  Modify these values to meet your requirements.
+    probe:
+      startup:
+        initial_delay_seconds: 180
+        period_seconds: 10
+        timeout_seconds: 10
+        failure_threshold: 6
+      readiness:
+        period_seconds: 5
+        timeout_seconds: 10
+        failure_threshold: 6
+      liveness:
+        period_seconds: 5
+        timeout_seconds: 5
+        failure_threshold: 6
+
+    ## Only use this parameter if you want to override the image_pull_secrets setting in the shared_configuration above.
+    image_pull_secrets:
+      name: "ibm-entitlement-key"
+
+  ########################################################################
+  ########             IBM Content Collector for SAP              ########
+  ########################################################################
+  iccsap_configuration:
+    ## ICCSAP secret that contains the password to be used for the generation of Keystore and Truststore files
+    iccsap_secret_name: "ibm-iccsap-secret"
+
+    ## The architecture of the cluster.  This is the default for Linux and should not be changed.
+    arch:
+      amd64: "3 - Most preferred"
+
+    ## The number of replicas or pods to be deployed.  The default is 1 replica and for high availability in a production env,
+    ## it is recommended to have 2 or more.
+    replica_count: 2
+
+    ## This is the image repository and tag that correspond to image registry, which is where the image will be pulled.
+    image:
+      ## The default repository is the IBM Entitled Registry
+      repository: cp.icr.io/cp/cp4a/iccsap/iccsap
+      tag: "24.0.0"
+
+      ## This will override the image pull policy in the shared_configuration.
+      pull_policy: IfNotPresent
+
+    ## Logging for workloads.  This is the default setting.
+    log:
+      format: json
+
+    ## The initial resources (CPU, memory) requests and limits.  If more resources are needed,
+    ## make the changes here to meet your requirement.
+    resources:
+      requests:
+        cpu: "1"
+        memory: "1024Mi"
+        ephemeral_storage: "2Gi"
+      limits:
+        cpu: "1"
+        memory: "1024Mi"
+        ephemeral_storage: "2Gi"
+
+    ## By default "Autoscaling" is disabled (i.e., enabled: false).  If you enable auto_scaling (i.e., enabled: true), be sure to
+    ## provide values for max_replicas, min_replicas, and target_cpu_utilization_percentage.
+    auto_scaling:
+      enabled: false
+      max_replicas: "<Required>"
+      min_replicas: "<Required>"
+      ## This is the default cpu percentage before autoscaling occurs.
+      target_cpu_utilization_percentage: "<Required>"
+
+    node_affinity:
+      #-------------------------------------
+      # custom_node_selector_match_expression will be added in node selector match expressions.
+      # It accepts array list inputs. You can assign multiple selector match expressions except (kubernetes.io/arch)
+      # Example value:
+      # - key: kubernetes.io/hostname
+      #   operator: In
+      #   values:
+      #     - worker0
+      #     - worker1
+      #     - worker3
+      #-------------------------------------
+      custom_node_selector_match_expression: [ ]
+    ## Values in this field will be used as annotations in all generated pods, and it must be valid annotation key value pairs.
+    # Example:
+    # customAnnotationKey: customAnnotationValue
+    ## To include '{{ }}' in annotation like '{{example}}', add a backward slash before curly brace like '\{\{example\}\}'.
+    custom_annotations: { }
+    ## Values in this field will be used as labels in all generated pods, and it must be valid label key value pairs
+    # Example:
+    # customLabelKey: customLabelValue
+    custom_labels: { }
+
+    ## Below are the default ICCSAP Production settings.  Make the necessary changes as you see fit.  Refer to Knowledge Center documentation for details.
+    iccsap_production_setting:
+      time_zone: Etc/UTC
+
+      # The license must be set to "accept" in order for the component to install.  This is the default value.
+      license: accept
+
+      ## This section is optional, and it takes a list of configmaps.
+      ## A configmap can hold files or environment data, but it cannot a mix of both.
+      ## The volume_path is optional for a configmap that holds files as its data and if it's not specified,
+      ## then the files will be mounted to the overrides directory.  If the configmap data holds environment variables
+      ## then is_env is required and set it to true.
+
+      #custom_configmap:
+      # - name: <name of configmap>
+      #   volume_path:  # optional
+      # - name: <name of configmap>
+      #   is_env: # required if the configmap holds environment variables
+
+    ## Default settings for monitoring
+    monitor_enabled: false
+    ## Default settings for logging
+    logging_enabled: false
+
+    ## Persistent Volume Claims for ICCSAP.  If the storage_configuration in the shared_configuration is configured,
+    ## the Operator will create the PVC using the names below.
+    datavolume:
+      existing_pvc_for_iccsap_instance:
+        name: "iccsap-instance"
+        size: 1Gi
+      existing_pvc_for_iccsap_logs:
+        name: "iccsap-logstore"
+        size: 1Gi
+      existing_pvc_for_tsm_setup:
+        name: "tsm-setup"
+        size: 1Gi
+
+    ## Default values for both startup, readiness and liveness probes.  Modify these values to meet your requirements.
+    probe:
+      startup:
+        initial_delay_seconds: 240
+        period_seconds: 30
+        timeout_seconds: 10
+        failure_threshold: 16
+      readiness:
+        period_seconds: 5
+        timeout_seconds: 10
+        failure_threshold: 6
+      liveness:
+        period_seconds: 5
+        timeout_seconds: 5
+        failure_threshold: 6
+
+    ## Only use this parameter if you want to override the image_pull_secrets setting in the shared_configuration above.
+    image_pull_secrets:
+      name: "ibm-entitlement-key"
 
 #  ########################################################################
 #  ######## IBM FileNet Content Manager Initialization configuration ######

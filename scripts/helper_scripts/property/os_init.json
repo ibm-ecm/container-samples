@@ -1,0 +1,17 @@
+{
+  "CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS": {
+    "value": [
+      "<Required>"
+    ],
+    "comment": [
+      "List of admin groups and users for the Object Store.",
+      "The FNCM_LOGIN_USER will be added as an Object Store Admin by default"
+    ]
+  },
+  "CPE_OBJ_STORE_OS_PE_WORKFLOW_ENABLE": {
+    "value": false,
+    "comment": [
+      "Enable/disable the PE Workflow for the Object Store"
+    ]
+  }
+}

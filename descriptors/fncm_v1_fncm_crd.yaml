@@ -16,7 +16,7 @@ metadata:
     app.kubernetes.io/instance: ibm-fncm
     app.kubernetes.io/managed-by: ibm-fncm
     app.kubernetes.io/name: ibm-fncm
-    release: 5.5.12
+    release: 5.6.0
 spec:
   group: fncm.ibm.com
   names:
@@ -77,6 +77,10 @@ spec:
                     tm:
                       type: boolean
                     ban:
+                      type: boolean
+                    iccsap:
+                      type: boolean
+                    ier:
                       type: boolean
                 shared_configuration:
                   description: Shared Configuration for FNCM
@@ -745,6 +749,82 @@ spec:
                   x-kubernetes-preserve-unknown-fields: true
                   properties:
                     ban_secret_name:
+                      type: string
+                      nullable: true
+                    replica_count:
+                      type: number
+                      nullable: true
+                    resources:
+                      type: object
+                      nullable: true
+                      x-kubernetes-preserve-unknown-fields: true
+                      properties:
+                        requests:
+                          type: object
+                          nullable: true
+                          x-kubernetes-preserve-unknown-fields: true
+                          properties:
+                            cpu:
+                              type: string
+                              nullable: true
+                            memory:
+                              type: string
+                              nullable: true
+                        limits:
+                          type: object
+                          nullable: true
+                          x-kubernetes-preserve-unknown-fields: true
+                          properties:
+                            cpu:
+                              type: string
+                              nullable: true
+                            memory:
+                              type: string
+                              nullable: true
+                ier_configuration:
+                  type: object
+                  nullable: true
+                  x-kubernetes-preserve-unknown-fields: true
+                  properties:
+                    ier_secret_name:
+                      type: string
+                      nullable: true
+                    replica_count:
+                      type: number
+                      nullable: true
+                    resources:
+                      type: object
+                      nullable: true
+                      x-kubernetes-preserve-unknown-fields: true
+                      properties:
+                        requests:
+                          type: object
+                          nullable: true
+                          x-kubernetes-preserve-unknown-fields: true
+                          properties:
+                            cpu:
+                              type: string
+                              nullable: true
+                            memory:
+                              type: string
+                              nullable: true
+                        limits:
+                          type: object
+                          nullable: true
+                          x-kubernetes-preserve-unknown-fields: true
+                          properties:
+                            cpu:
+                              type: string
+                              nullable: true
+                            memory:
+                              type: string
+                              nullable: true
+                iccsap_configuration:
+                  type: object
+                  nullable: true
+                  x-kubernetes-preserve-unknown-fields: true
+                  properties:
+                    iccsap_secret_name:
                       type: string
                       nullable: true
                     replica_count:

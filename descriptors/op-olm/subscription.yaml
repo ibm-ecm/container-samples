@@ -14,7 +14,7 @@ metadata:
   name: ibm-fncm-operator-catalog-subscription
   namespace: REPLACE_NAMESPACE
 spec:
-  channel: v23.2
+  channel: v24.0
   name: ibm-fncm-operator
   installPlanApproval: Automatic
   source: ibm-fncm-operator-catalog

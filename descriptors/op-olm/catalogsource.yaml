@@ -17,7 +17,7 @@ spec:
   displayName: ibm-fncm-operator
   publisher: IBM
   sourceType: grpc
-  image: icr.io/cpopen/ibm-fncm-catalog@sha256:01272f23a0c781c57b69a1fb4aa6f458e7265d1ab29f62542d747205ae1bbc56
+  image: icr.io/cpopen/ibm-fncm-catalog@sha256:3effd576286efe58f09819647bac128fd3e5e9033b5c7688a3b2fcc9785e5272
   updateStrategy:
     registryPoll:
       interval: 45m

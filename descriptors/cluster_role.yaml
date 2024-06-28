@@ -16,41 +16,40 @@ metadata:
     app.kubernetes.io/instance: ibm-fncm
     app.kubernetes.io/managed-by: ibm-fncm
     app.kubernetes.io/name: ibm-fncm
-    release: 5.5.12
+    release: 5.6.0
 rules:
+  # Allow the operator to obtain the cluster's ingress domain for route creation
+  - apiGroups:
+      - operator.openshift.io
+    resources:
+      - ingresscontrollers
+    verbs:
+      - get
 
-# Allow the operator to obtain the cluster's ingress domain for route creation
-- apiGroups:
-  - operator.openshift.io
-  resources:
-  - ingresscontrollers
-  verbs:
-    - get
+  # Allow the operator to determine the version of the installed operator, supporting all-namespace deployment
+  - apiGroups:
+      - operators.coreos.com
+    resources:
+      - clusterserviceversions
+    verbs:
+      - get
+      - list
 
-# Allow the operator to determine the version of the installed operator, supporting all-namespace deployment
-- apiGroups:
-  - operators.coreos.com
-  resources:
-  - clusterserviceversions
-  verbs:
-  - get
-  - list
+  # Allow the operator to check where the operator is running, supporting all-namespace deployment
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - list
+      - get
+      - delete
 
-# Allow the operator to check where the operator is running, supporting all-namespace deployment
-- apiGroups:
-  - ""
-  resources:
-  - pods
-  verbs:
-  - list
-  - get
-  - delete
-
-# Allow the operator to obtain the network type of the cluster to create egress policy CIDR ranges
-- apiGroups:
-  - config.openshift.io
-  resources:
-  - networks
-  verbs:
-  - get
-  - list
+  # Allow the operator to obtain the network type of the cluster to create egress policy CIDR ranges
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - networks
+    verbs:
+      - get
+      - list
