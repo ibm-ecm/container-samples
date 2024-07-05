@@ -51,12 +51,12 @@ from helper_scripts.generate.generate_sql import GenerateSql
 from helper_scripts.property import property as p
 from helper_scripts.property.read_prop import *
 from helper_scripts.utilities.utilites import zip_folder, \
-    create_generate_folder, generate_gather_results, generate_generate_results, display_issues, \
-    clear, check_ssl_folders, check_icc_masterkey, check_trusted_certs, check_dbname, check_keystore_password_length, \
-    collect_visible_files, check_db_password_length , check_db_ssl_mode
+    create_generate_folder, check_ssl_folders, check_icc_masterkey, check_trusted_certs, check_dbname, \
+    check_keystore_password_length, collect_visible_files, check_db_password_length, check_db_ssl_mode
+from helper_scripts.utilities.interface import clear, generate_gather_results, generate_generate_results, display_issues
 from helper_scripts.validate import validate as v
 
-__version__ = "2.4.10"
+__version__ = "2.7.0"
 
 app = typer.Typer()
 state = {
@@ -72,6 +72,7 @@ def version_callback(value: bool):
     if value:
         print(f"FileNet Content Manager Deployment Prerequisites CLI: {__version__}")
         raise typer.Exit()
+
 
 
 @app.callback()
@@ -151,7 +152,7 @@ def gather(
     move_ldap = False
 
     # this is the user details object
-    deploy1 = g.GatherOptions(state["logger"], console)
+    deploy1 = g.GatherPrereqOptions(state["logger"], console)
 
     if not state["silent"]:
         if move == '':
@@ -263,10 +264,10 @@ def gather(
         # add logic to populate user_details using silent mode
 
         # deploy1 = s.SilentGather(state["logger"])
-        # above line is for default silent install file path
+        # above line is for default silent installation file path
         # below line is for custom silent install config file
-        deploy1 = sg.SilentGather(state["logger"],
-                                  os.path.join("helper_scripts", "gather", "silent_config", "silent_install.toml"))
+        deploy1 = sg.SilentGatherPrereqOptions(state["logger"],
+                                  os.path.join("silent_config", "silent_install_prerequisites.toml"))
 
         # The following will run through the whole env file for silent install
         # deploy1.parse_envfile()
@@ -360,12 +361,16 @@ def generate():
 
     # Loading property folder locations
     prop_folder = os.path.join(os.getcwd(), "propertyFile")
+
+    if not os.path.exists(prop_folder):
+        state["logger"].error("Property files are missing. Please run the gather command first.")
+        raise typer.Exit()
+
     ssl_cert_folder = os.path.join(os.getcwd(), "propertyFile", "ssl-certs")
     icc_folder = os.path.join(os.getcwd(), "propertyFile", "icc")
     trusted_certs_folder = os.path.join(os.getcwd(), "propertyFile", "ssl-certs", "trusted-certs")
 
     # Loading generated folder location
-    os.path.join(os.getcwd(), "generatedFiles")
     generated_folder = os.path.join(os.getcwd(), "generatedFiles")
 
     # Loading property files locations
@@ -536,6 +541,17 @@ def generate():
             if "CPE" in deployment_prop.to_dict().keys():
                 if deployment_prop.to_dict()["CPE"]:
                     cpe_present = True
+
+        # Added for 5.6.0 and above. Checking for IER / ICCSAP.
+        if deployment_prop.to_dict()["FNCM_Version"] not in ["5.5.8", "5.5.11", "5.5.12"]:
+            if "IER" in deployment_prop.to_dict().keys():
+                if deployment_prop.to_dict()["IER"]:
+                    generate_secrets.create_ier_secret()
+
+            if "ICCSAP" in deployment_prop.to_dict().keys():
+                if deployment_prop.to_dict()["ICCSAP"]:
+                    generate_secrets.create_iccsap_secret()
+
         if ban_present:
             generate_secrets.create_ban_secret()
         if ldap_prop:
@@ -787,7 +803,7 @@ def validate(
             #     task4 = progress.add_task("[blue]Validate IDP", total=idp_prop_dict["idp_number"])
 
             while not progress.finished:
-                if deployment_prop_dict["FNCM_Version"] == "5.5.12" and deployment_prop_dict["FIPS_SUPPORT"]:
+                if (deployment_prop_dict["FNCM_Version"] == "5.5.12" or deployment_prop_dict["FNCM_Version"] == "5.6.0")  and deployment_prop_dict["FIPS_SUPPORT"]:
                     progress.log(Panel.fit(Text("Validating all connections with FIPS protocol.\n"
                                             "These tests will only pass on FIPS enabled platforms.", style="bold purple")))
                 vobject.validate_all_storage_classes(task3, progress)

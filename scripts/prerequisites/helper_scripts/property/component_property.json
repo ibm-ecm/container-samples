@@ -40,5 +40,17 @@
     "comment": [
       "Deploy External Share (ES)."
     ]
+  },
+    "IER": {
+    "value": false,
+    "comment": [
+      "Deploy Enterprise Records (IER)."
+    ]
+  },
+    "ICCSAP": {
+    "value": false,
+    "comment": [
+      "Deploy Content Collector for SAP (ICCSAP)."
+    ]
   }
 }

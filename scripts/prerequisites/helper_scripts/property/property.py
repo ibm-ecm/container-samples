@@ -10,17 +10,17 @@
 ###############################################################################
 
 import copy
-import json
 import os
-from importlib import resources
 
 import xmltodict
 from tomlkit import comment
 from tomlkit import document
 from tomlkit import nl
-from tomlkit import table
 from tomlkit import string
+from tomlkit import table
 from tomlkit.toml_file import TOMLFile
+
+from ..utilities.utilites import read_json
 
 
 # Create a class Property that accepts a dictionary of key value pairs
@@ -42,23 +42,24 @@ class Property:
         self._trusted_certs_directory_folder = os.path.join(self._property_folder, 'ssl-certs', 'trusted-certs')
 
         # Create a dictionary of properties
-        self._db_properties = self.__read_json("db_property.json")
-        self._ldap_properties = self.__read_json("ldap_property.json")
-        self._idp_properties = self.__read_json("idp_property.json")
-        self._common_credentials = self.__read_json("common_credentials.json")
-        self._p8_credentials = self.__read_json("p8_credentials.json")
-        self._icn_credentials = self.__read_json("icn_credentials.json")
-        self._ingress_properties = self.__read_json("ingress_property.json")
-        self._init_properties = self.__read_json("init_properties.json")
-        self._os_init_properties = self.__read_json("os_init.json")
-        self._verify_properties = self.__read_json("verify_property.json")
-        self._deployment_properties = self.__read_json("deployment_property.json")
-        self._storage_properties = self.__read_json("storage_property.json")
-        self._component_properties = self.__read_json("component_property.json")
-        self._sendmail_custom_properties = self.__read_json("sendmail_customproperty.json")
-        self._icc_custom_properties = self.__read_json("icc_customproperty.json")
-        self._tm_custom_properties = self.__read_json("tm_customproperty.json")
-        self._scim_properties = self.__read_json("scim_property.json")
+        self._json_directory = os.path.dirname(__file__)
+        self._db_properties = read_json(self._json_directory, "db_property.json")
+        self._ldap_properties = read_json(self._json_directory, "ldap_property.json")
+        self._idp_properties = read_json(self._json_directory, "idp_property.json")
+        self._common_credentials = read_json(self._json_directory, "common_credentials.json")
+        self._p8_credentials = read_json(self._json_directory, "p8_credentials.json")
+        self._icn_credentials = read_json(self._json_directory, "icn_credentials.json")
+        self._ingress_properties = read_json(self._json_directory, "ingress_property.json")
+        self._init_properties = read_json(self._json_directory, "init_properties.json")
+        self._os_init_properties = read_json(self._json_directory, "os_init.json")
+        self._verify_properties = read_json(self._json_directory, "verify_property.json")
+        self._deployment_properties = read_json(self._json_directory, "deployment_property.json")
+        self._storage_properties = read_json(self._json_directory, "storage_property.json")
+        self._component_properties = read_json(self._json_directory, "component_property.json")
+        self._sendmail_custom_properties = read_json(self._json_directory, "sendmail_customproperty.json")
+        self._icc_custom_properties = read_json(self._json_directory, "icc_customproperty.json")
+        self._tm_custom_properties = read_json(self._json_directory, "tm_customproperty.json")
+        self._scim_properties = read_json(self._json_directory, "scim_property.json")
 
     def move_ldap(self, path, move_dict, ldap_properties_list):
         if move_dict["LDAP"]:
@@ -95,10 +96,19 @@ class Property:
                 ldap_properties["LC_GROUP_FILTER"]['value'] = prop['value']
 
             if prop['@name'] == "LDAPUserIDMap":
-                ldap_properties["LDAP_USER_NAME_ATTRIBUTE"]['value'] = prop['value']
+                mapping = prop['value']
 
-            if prop['@name'] == "LDAP_GROUP_NAME_ATTRIBUTE":
-                ldap_properties["DATABASE_USERNAME"]['value'] = prop['value']
+                if ":" in mapping:
+                    ldap_properties["LDAP_USER_NAME_ATTRIBUTE"]['value'] = mapping
+                    ldap_properties["LDAP_USER_DISPLAY_NAME_ATTR"]['value'] = mapping.split(":")[1]
+                else:
+                    ldap_properties["LDAP_USER_NAME_ATTRIBUTE"]['value'] = f"*:{mapping}"
+                    ldap_properties["LDAP_USER_DISPLAY_NAME_ATTR"]['value'] = mapping
+
+
+            if prop['@name'] == "LDAPGroupIDMap":
+                ldap_properties["LDAP_GROUP_NAME_ATTRIBUTE"]['value'] = prop['value']
+                ldap_properties["LDAP_GROUP_DISPLAY_NAME_ATTR"]['value'] = prop['value'].split(":")[1]
 
         return ldap_properties
 
@@ -159,12 +169,6 @@ class Property:
     def __parse_xml(filename):
         with open(filename, 'r') as file:
             return xmltodict.parse(file.read())
-
-    # create a private method that reads in json into a dictionary
-    @staticmethod
-    def __read_json(json_file):
-        with resources.open_text("helper_scripts.property", json_file) as f:
-            return json.load(f)
 
     # Create a property that gets the property folder
     @property
@@ -267,7 +271,7 @@ class Property:
             # for other releases cpe graphql and ban are optional and will be in toml files
             else:
                 if len(self._gather.optional_components) > 0:
-                    ecm_components = ["cpe", "graphql", "ban", "css", "cmis", "tm", "es"]
+                    ecm_components = ["cpe", "graphql", "ban", "css", "cmis", "tm", "es", "ier", "iccsap"]
                     for component in ecm_components:
                         if component in self._gather.optional_components:
                             component_dict[component.upper()]['value'] = True
@@ -474,7 +478,7 @@ class Property:
                                       value=value['value'],
                                       note=value['comment'])
 
-            os_init = self._os_init_properties
+            os_init = self.__populate_os_init_dict()
 
             # Adjust the db properties for OS
             for i in range(self._gather.os_number):
@@ -523,7 +527,21 @@ class Property:
 
         except Exception as e:
             self._logger.exception(
-                "Exception from gather script in create_db_propertyfile function -  {}".format(str(e)))
+                "Exception from gather script in populate_verify_dict function -  {}".format(str(e)))
+
+    def __populate_os_init_dict(self):
+        try:
+            # Create a copy of the user group dictionary
+            os_init_dict = copy.deepcopy(self._os_init_properties)
+
+            if "ier" in self._gather.optional_components:
+                os_init_dict['CPE_OBJ_STORE_OS_PE_WORKFLOW_ENABLE']['value'] = True
+
+            return os_init_dict
+
+        except Exception as e:
+            self._logger.exception(
+                "Exception from gather script in populate_os_init_dict function -  {}".format(str(e)))
 
     # Create a method that creates a db property file
     def create_db_propertyfile(self, db_properties):
@@ -986,16 +1004,16 @@ class Property:
                     ldap_prop.pop('LC_AD_GC_PORT')
 
                 if ldap_dict['type'] == 'Microsoft Active Directory':
-                    default_value = self.__read_json("ad_ldap_property.json")
-                elif ldap_dict['type'] == 'IBM Security Directory Server':
-                    default_value = self.__read_json("tds_ldap_property.json")
+                    default_value = read_json(self._json_directory, "ad_ldap_property.json")
+                elif ldap_dict['type'] == 'IBM Security Verify Directory':
+                    default_value = read_json(self._json_directory, "tds_ldap_property.json")
                 elif ldap_dict['type'] in ['Oracle Internet Directory', 'Oracle Unified Directory',
                                            'Oracle Directory Server Enterprise Edition']:
-                    default_value = self.__read_json("oracle_ldap_property.json")
+                    default_value = read_json(self._json_directory, "oracle_ldap_property.json")
                 elif ldap_dict['type'] == 'NetIQ eDirectory':
-                    default_value = self.__read_json("novell_ldap_property.json")
+                    default_value = read_json(self._json_directory, "novell_ldap_property.json")
                 elif ldap_dict['type'] == 'CA eTrust':
-                    default_value = self.__read_json("ca_ldap_property.json")
+                    default_value = read_json(self._json_directory, "ca_ldap_property.json")
 
                 for key, value in default_value.items():
                     ldap_prop[key]['value'] = value['value']

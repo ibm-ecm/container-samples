@@ -10,25 +10,35 @@
 ###############################################################################
 
 import inspect
+import os
+import platform
 import re
+import shutil
 import ssl
 import string
 import subprocess
 import time
-import struct
-from socket import socket, gaierror
+from urllib.parse import urlparse
 
 import ldap3
 import requests
-requests.packages.urllib3.disable_warnings()
 import typer
-from OpenSSL import SSL
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
 from ldap3 import Server, Connection, ALL
 from ldap3.core.exceptions import LDAPBindError
 from rich import print
-from urllib.parse import urlparse
+from rich.panel import Panel
+from rich.syntax import Syntax
+from rich.text import Text
 
-from helper_scripts.utilities.utilites import *
+from ..utilities.interface import ldap_search_results, ldap_entry_types
+from ..utilities.utilites import command_available, check_java_version, kubectl_log_in_check, collect_visible_files, \
+    connect_to_server
+
+requests.packages.urllib3.disable_warnings()
+
 
 # Function to remove protocol from URL
 def remove_protocol(url):
@@ -36,6 +46,7 @@ def remove_protocol(url):
     if hostname is None:
         hostname = url
     return hostname
+
 
 class Validate:
     # Is commandline keytool command present in this env?
@@ -52,10 +63,10 @@ class Validate:
     _TMP_DIR = os.path.join(os.getcwd(), "helper_scripts", "validate", "tmp")
 
     _CIPHERS = bytes(
-        "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:TLS_RSA_WITH_AES_256_CBC_SHA",
+        "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256",
         'utf-8')
 
-    # Cannot default prop to a ReadProp object because Readprop requires a logger to be pased in
+    # Cannot default prop to a ReadProp object because Readprop requires a logger to be passed in
     def __init__(self, logger,
                  db_prop=None,
                  ldap_prop=None,
@@ -106,7 +117,6 @@ class Validate:
 
         self.is_validated = {}
         self.roundtriptime = 0
-
 
         self._entries_dict = self.get_entries()
 
@@ -167,70 +177,35 @@ class Validate:
     def check_env_util(self) -> list:
         missing_tools = []
 
-        self._keytool_present = self.__is_cmd_present("keytool")
+        self._keytool_present = command_available("keytool")
         if not self._keytool_present:
             missing_tools.append("keytool")
-        self._java_present = self.__is_cmd_present("java")
+        self._java_present = command_available("java")
         if not self._java_present:
             missing_tools.append("java")
-        self._powershell_present = self.__is_cmd_present("powershell.exe")
+        self._powershell_present = command_available("powershell.exe")
         if not self._powershell_present and platform.system() == 'Windows':
             missing_tools.append("powershell")
-            
+
         if self._java_present:
-            self._java_correct_version = self.__check_java_version()
+            self._java_correct_version = check_java_version(self.deploy_prop["FNCM_Version"])
             if not self._java_correct_version:
                 missing_tools.append("java_version")
 
-        self._kubectl_present = self.__is_cmd_present("kubectl")
+        self._kubectl_present = command_available("kubectl")
         if not self._kubectl_present:
             missing_tools.append("kubectl")
 
         if self._kubectl_present:
-            self._kubectl_logged_in = self.__is_kubectl_logged_in()
+            self._kubectl_logged_in = kubectl_log_in_check(self._logger)
             if not self._kubectl_logged_in:
                 missing_tools.append("connection")
         return missing_tools
-
-    # Check keytool,kubernetes,java
-    def __is_cmd_present(self, cmd):
-        try:
-            # TODO: Add windows support if where is missing
-            if platform.system() == 'Windows':
-                subprocess.check_output("where " + cmd, stderr=subprocess.PIPE, shell=True)
-            else:
-                subprocess.check_output("which " + cmd, stderr=subprocess.PIPE, shell=True)
-            return True
-        except subprocess.CalledProcessError as error:
-            self._logger.info(
-                f"{cmd} is not found on this machine, please install the necessary dependencies. Error: {error}")
-            return False
 
     def __check_java(self):
         if not self._java_present:
             raise typer.Exit(code=1)
 
-    def __check_java_version(self):
-        try:
-            java_version_output = subprocess.check_output(['java', '-version'], stderr=subprocess.STDOUT, text=True)
-            version_match = re.search(r'"(\d+\.\d+\.\d+)', java_version_output)
-            java_version = version_match.group(1) if version_match else "Unknown"
-            if java_version != 'Unknown':
-                if self.deploy_prop["FNCM_Version"] == "5.5.8":
-                    if int(java_version.split(".")[1]) != 8:
-                        return False
-                if self.deploy_prop["FNCM_Version"] == "5.5.11":
-                    if int(java_version.split(".")[0]) != 11:
-                        return False
-
-                if self.deploy_prop["FNCM_Version"] == "5.5.12":
-                    if int(java_version.split(".")[0]) != 17:
-                        return False
-            return True
-        except subprocess.CalledProcessError as e:
-            # If 'java -version' returns a non-zero exit code, print the error
-            return False
-            #raise typer.Exit(code=1)
     def __check_keytool(self):
         if not self._keytool_present:
             raise typer.Exit(code=1)
@@ -238,20 +213,6 @@ class Validate:
     def __check_kubectl(self):
         if not self._kubectl_present:
             raise typer.Exit(code=1)
-
-    # Checks whether or not we are properly logged into a Kubernetes/OCP cluster
-    # 'kubectl config current-context' is not sufficient it will show most recent cluster
-    # but we cannot apply yaml which is needed to test storage classes
-    # (!!!) DOES NOT WORK WHEN INSIDE OPERATOR POD
-    def __is_kubectl_logged_in(self):
-        try:
-            subprocess.check_output("kubectl get pods", shell=True, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL,
-                                    universal_newlines=True)
-            return True
-        except subprocess.CalledProcessError as error:
-            self._logger.info("Kubectl is not logged into any cluster and " \
-                              + f"will cause errors when checking storage classes; error")
-            return False
 
     def cleanup_tmp(self):
         if os.path.exists(self._TMP_DIR):
@@ -268,14 +229,14 @@ class Validate:
         if db_type == "postgresql":
             max_transactions = Panel.fit(Text(
                 "Ensure Postgresql Max Transactions has been configured.\n"
-                "Please see https://www.ibm.com/docs/SSNW2F_5.5.12/com.ibm.p8.performance.doc/p8ppi308.htm.",
+                "Please see https://www.ibm.com/docs/SSNW2F_5.6.0/com.ibm.p8.performance.doc/p8ppi308.htm.",
                 style="bold green"))
             progress.log(max_transactions)
             progress.log()
         if db_type == "sqlserver":
             xa_enabled = Panel.fit(Text(
                 "Ensure XA Transactions have been enabled.\n"
-                "Please see https://www.ibm.com/docs/SSNW2F_5.5.12/com.ibm.p8.planprepare.doc/p8ppi027.htm.",
+                "Please see https://www.ibm.com/docs/SSNW2F_5.6.0/com.ibm.p8.planprepare.doc/p8ppi027.htm.",
                 style="bold green"))
             progress.log(xa_enabled)
             progress.log()
@@ -313,7 +274,7 @@ class Validate:
                     progress.log()
                     self.validate_db("ICN", task3, progress)
 
-    def parse_shell_command (self, parameter):
+    def parse_shell_command(self, parameter):
         # Create a function to escape any single quotes in the password
         # This is needed for the DB connection jar
 
@@ -338,7 +299,6 @@ class Validate:
         else:
             db_servername = remove_protocol(self._db_prop[db_label]['DATABASE_SERVERNAME'])
             db_port = self._db_prop[db_label]['DATABASE_PORT']
-            
 
         # Escape any single quotes in the password & username
         db_pwd = self.parse_shell_command(db_pwd)
@@ -347,11 +307,13 @@ class Validate:
         connected = False
         # Validates DB server and checks whether postgres pre-SSL packet needs to be sent
         if db_type == 'postgresql':
-            connected = self.validate_server(progress=progress, server=db_servername, port=db_port, ssl_enabled=ssl_enabled,
-                                         display_rtt=False, pg=True)
+            connected = self.validate_server(progress=progress, server=db_servername, port=db_port,
+                                             ssl_enabled=ssl_enabled,
+                                             display_rtt=False, pg=True)
         else:
-            connected = self.validate_server(progress=progress, server=db_servername, port=db_port, ssl_enabled=ssl_enabled,
-                                         display_rtt=False)
+            connected = self.validate_server(progress=progress, server=db_servername, port=db_port,
+                                             ssl_enabled=ssl_enabled,
+                                             display_rtt=False)
 
         if not connected:
             self.is_validated[db_label] = connected
@@ -467,11 +429,11 @@ class Validate:
                     auth_str = f"-ca \"{server_ca}\""
 
                 jar_cmd = "java " + f"-D\"semeru.fips={self.fips_enabled}\" -D\"user.language=en\" -D\"user.country=US\" -D\"com.ibm.jsse2.overrideDefaultTLS=true\" " \
-                          f"-cp \"{self._DB_JDBC_PATH}{class_path_delim_char}" \
-                          f"{self._DB_CONNECTION_JAR_PATH}\" " \
-                          f"PostgresConnection -h '{db_servername}' -p {db_port} -db '{db_name}' " \
-                          f"-u '{db_user}' -pwd '{db_pwd}' -sslmode {self._db_prop['SSL_MODE']} " \
-                          f"{auth_str}"
+                                    f"-cp \"{self._DB_JDBC_PATH}{class_path_delim_char}" \
+                                    f"{self._DB_CONNECTION_JAR_PATH}\" " \
+                                    f"PostgresConnection -h '{db_servername}' -p {db_port} -db '{db_name}' " \
+                                    f"-u '{db_user}' -pwd '{db_pwd}' -sslmode {self._db_prop['SSL_MODE']} " \
+                                    f"{auth_str}"
         else:
             if db_type == "db2":
                 jar_cmd = "java " + f"-D\"semeru.fips={self.fips_enabled}\" -D\"user.language=en\" -D\"user.country=US\" " \
@@ -680,7 +642,7 @@ class Validate:
                         [".crt", ".cer", ".pem", ".cert", ".key", ".arm"])
 
                 self.ldap_search(ldap_id, progress, ssl_enabled, cert_path)
-                
+
             result_panel = ldap_search_results(self._entries_dict)
 
             progress.log(result_panel)
@@ -768,7 +730,7 @@ class Validate:
         # Construct a dictionary to store username, count and ldap id
         users_dict = {}
         for user in users_list:
-            users_dict[user] = {"type": ldap_entry_types.USER,"count": 0, "ldap_id": []}
+            users_dict[user] = {"type": ldap_entry_types.USER, "count": 0, "ldap_id": []}
 
         return users_dict
 
@@ -782,7 +744,6 @@ class Validate:
                 groups_list.extend(self._component_prop["PERMISSIONS"]["TASK_ADMIN_GROUP_NAMES"])
                 groups_list.extend(self._component_prop["PERMISSIONS"]["TASK_USER_GROUP_NAMES"])
                 groups_list.extend(self._component_prop["PERMISSIONS"]["TASK_AUDITOR_GROUP_NAMES"])
-
         if "GCD_ADMIN_GROUPS_NAME" in self._user_group_prop.keys():
             groups_list.extend(self._user_group_prop["GCD_ADMIN_GROUPS_NAME"])
 
@@ -907,7 +868,6 @@ class Validate:
                 authenticated = False
                 return authenticated, conn
 
-
     def ldap_item_exists(self, connect, base_dn, filter):
         try:
             search_results = connect.search(search_base=base_dn, search_filter=filter)
@@ -929,7 +889,7 @@ class Validate:
 
             if authenticated:
                 for entry, value in self._entries_dict.items():
-                    if value['type'] == ldap_entry_types.USER: 
+                    if value['type'] == ldap_entry_types.USER:
                         search_filter = user_filter.replace("%v", entry)
                         if self.ldap_item_exists(connect, base_dn, search_filter):
                             self._entries_dict[entry]["count"] += 1
@@ -940,6 +900,7 @@ class Validate:
                         if self.ldap_item_exists(connect, base_dn, search_filter):
                             self._entries_dict[entry]["count"] += 1
                             self._entries_dict[entry]["ldap_id"].append(ldap_id)
+
                     elif value['type'] == ldap_entry_types.USER_GROUP:
                         search_filter = user_filter.replace("%v", entry)
                         if self.ldap_item_exists(connect, base_dn, search_filter):
@@ -957,73 +918,8 @@ class Validate:
         except Exception as e:
             self._logger.info(f"Error found in ldap_search function in validation script --- {str(e)}")
 
-    # Function to connect to ldap
-    def connect_to_server(self, host, port, progress, ssl=False, client_cert_file=None, pg = False):
-
-        # If SSL is enabled, create an SSL socket
-        # Create an SSL context
-        if ssl:
-            context = SSL.Context(SSL.SSLv23_METHOD)
-            context.set_cipher_list(self._CIPHERS)
-            context.set_min_proto_version(SSL.TLS1_2_VERSION)
-            if client_cert_file:
-                context.use_certificate_file(client_cert_file)
-
-            # Create an SSL socket
-            sock = socket()
-            conn = SSL.Connection(context, sock)
-        else:
-            conn = socket()
-
-        connected = False
-        try:
-            start_time = time.time()
-            conn.connect((host, port))
-            end_time = time.time()
-            
-            if ssl:
-                # Postgres requires protocal negotiation before SSL since everything's on same port
-                # https://www.postgresql.org/docs/current/protocol-flow.html#PROTOCOL-FLOW-SSL
-                if pg:
-                    version_ssl = struct.pack('!I', 1234 << 16 | 5679)
-                    length = struct.pack('!I', 8)
-                    packet = length + version_ssl
-                    sock.sendall(packet)
-                    sock.recv(1)
-                conn.do_handshake()
-            connected = True
-
-        # Now you can perform LDAP operations using 'conn' if needed
-        except gaierror as e:
-            message = Text(
-                f"Hostname \"{host}\" is not known.\n"
-                f"Please review the Property Files for all SERVERNAME parameters", style="bold red")
-
-            progress.log(message)
-            progress.log()
-            return conn, 0, connected
-        except Exception as e:
-            if type(e.args) == list:
-                if e.args[0][0][0] == 'SSL routines' and e.args[0][0][2] == 'sslv3 alert handshake failure':
-                    message = Text(
-                        f"SSL protocol used: \"{conn.get_protocol_version_name()}\", is not supported by the server!\n"
-                        f"Please review below list of supported protocols:\n"
-                        f" - \"TLSv1.2\"\n"
-                        f" - \"TLSv1.3\"", style="bold red")
-            else:
-                message = Text(f"Connection Error: {e}", style="bold red")
-
-            progress.log(message)
-            progress.log()
-            return conn, 0, connected
-
-        # Calculate RTT and format to milliseconds
-        rtt = (end_time - start_time) * 1000
-
-        return conn, rtt, connected
-
     # Validates a single LDAP, defaults to the first one by its id: "LDAP"
-    def validate_server(self, progress, server, port, ssl_enabled=False, cert_path="", display_rtt=True, pg = False):
+    def validate_server(self, progress, server, port, ssl_enabled=False, cert_path="", display_rtt=True, pg=False):
         connected = False
 
         progress.log(Text(f"Validating Server \"{server}\" Reachability"))
@@ -1032,9 +928,9 @@ class Validate:
         # Test for SSL connections
         # Return a connection object, RTT and a boolean indicating if the connection was successful
         if ssl_enabled:
-            conn_result, rtt, connected = self.connect_to_server(server, int(port), progress, True, cert_path, pg)
+            conn_result, rtt, connected = connect_to_server(host=server, port=int(port), ssl=True, client_cert_file=cert_path, pg=pg,  progress=progress)
         else:
-            conn_result, rtt, connected = self.connect_to_server(server, int(port), progress)
+            conn_result, rtt, connected = connect_to_server(host=server, port=int(port), progress=progress)
 
         # Construct the message to be displayed
         # If the SSL connection was successful, display the cipher
@@ -1106,8 +1002,9 @@ class Validate:
         self.__check_java()
         try:
             if platform.system() == 'Windows':
-                output = subprocess.check_output(["powershell.exe", jar_cmd], shell=True, stderr=subprocess.PIPE, universal_newlines=True)
-            else: 
+                output = subprocess.check_output(["powershell.exe", jar_cmd], shell=True, stderr=subprocess.PIPE,
+                                                 universal_newlines=True)
+            else:
                 output = subprocess.check_output(jar_cmd, shell=True, stderr=subprocess.PIPE, universal_newlines=True)
             round_trip_statement = output.split("Round Trip time:")[1]
             match = re.search(r'([\d.]+)', round_trip_statement)
@@ -1148,7 +1045,7 @@ class Validate:
             kubectl_cmd = f"kubectl get pvc | findstr {sample_pvc_name} | findstr \"Bound\""
         else:
             kubectl_cmd = f"kubectl get pvc | grep {sample_pvc_name}| grep -q -m 1 \"Bound\""
-        
+
         for i in range(TIMEOUT_ATTEMPTS):
             progress.log(f"\nChecking for {sample_pvc_name} liveness - Attempt {i + 1}/{TIMEOUT_ATTEMPTS}\n")
             validated = True

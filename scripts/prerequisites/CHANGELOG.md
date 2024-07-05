@@ -1,3 +1,20 @@
+## 2.7.0 (2024-06-27)
+
+### Feat
+
+- added new script: 'mustGather'
+- added support for Process Engine workflow enablement in prerequisites
+- updated MSSQL Server SQL template to support AzureSQL Managed Instance
+- added support for TLS 1.3 in prerequisites
+
+### Fix
+
+- enhanced 'move' logic for LDAP xml files
+
+### Refactor
+
+- changed IBM Security Directory Server (SDS) to IBM Security Verify Directory (ISVD) in prerequisites
+
 ## 2.4.10 (2024-05-30)
 
 ### Fix

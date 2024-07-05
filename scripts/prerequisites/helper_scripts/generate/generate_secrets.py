@@ -18,7 +18,7 @@ import os
 
 import yaml
 
-from helper_scripts.utilities.utilites import collect_visible_files
+from ..utilities.utilites import collect_visible_files
 
 
 def represent_str(dumper, data):
@@ -427,7 +427,32 @@ class GenerateSecrets:
             yaml.dump(fncm_data, file)
             logging.info("FNCM secret ibm-fncm-secret.yaml has been created at---- " + fncmsecret_filepath)
 
+    # Function to generate ier secret
+    def create_ier_secret(self):
+        self._logger.info("Creating IER secret")
+        iersecret_filepath = os.path.join(self._generate_secrets_folder, "ibm-ier-secret.yaml")
+        ier_data = {"apiVersion": "v1", "kind": "Secret", "metadata": {"name": "ibm-ier-secret"}, "type": "Opaque"}
+        stringData = {}
+        stringData["keystorePassword"] = self._usergroup_properties['KEYSTORE_PASSWORD']
 
+        ier_data["stringData"] = stringData
+        with open(iersecret_filepath, 'w+') as file:
+            yaml.dump(ier_data, file)
+            logging.info("IER secret ibm-ier-secret.yaml has been created at---- " + iersecret_filepath)
+
+    # Function to generate iccsap secret
+    def create_iccsap_secret(self):
+        self._logger.info("Creating ICCSAP secret")
+        iccsapsecret_filepath = os.path.join(self._generate_secrets_folder, "ibm-iccsap-secret.yaml")
+        iccsap_data = {"apiVersion": "v1", "kind": "Secret", "metadata": {"name": "ibm-iccsap-secret"}, "type": "Opaque"}
+        stringData = {}
+        stringData["keystorePassword"] = self._usergroup_properties['KEYSTORE_PASSWORD']
+
+
+        iccsap_data["stringData"] = stringData
+        with open(iccsapsecret_filepath, 'w+') as file:
+            yaml.dump(iccsap_data, file)
+            logging.info("ICCSAP secret ibm-iccsap-secret.yaml has been created at---- " + iccsapsecret_filepath)
 
     # Function to generate icc related secrets
     def create_icc_secrets(self):

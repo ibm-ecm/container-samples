@@ -88,6 +88,22 @@ class ReadPropDb(ReadProp):
                 os_ids.append(key)
         self._toml_dict["_os_ids"] = os_ids
 
+    def __generate_tablespace_names(self):
+        # Generate tablespace names for each OS
+        if self._toml_dict["DATABASE_TYPE"] == "sqlserver":
+            for os_id in self._toml_dict["_os_ids"]:
+                self._toml_dict[os_id]["DATA_TABLESPACE"] = "PRIMARY"
+        elif self._toml_dict["DATABASE_TYPE"] == "oracle":
+            for os_id in self._toml_dict["_os_ids"]:
+                self._toml_dict[os_id]["DATA_TABLESPACE"] = f"{os_id}DATATS"
+        elif self._toml_dict["DATABASE_TYPE"] == "postgresql":
+            for os_id in self._toml_dict["_os_ids"]:
+                self._toml_dict[os_id]["DATA_TABLESPACE"] = f"{os_id}_tbs"
+        elif self._toml_dict["DATABASE_TYPE"] == "db2":
+            for os_id in self._toml_dict["_os_ids"]:
+                self._toml_dict[os_id]["DATA_TABLESPACE"] = f"{os_id}DATA_TS"
+
+
     def __force_postgres_dbnames(self):
         # Forcing lowercase on postgres db names
         if self._toml_dict["DATABASE_TYPE"] == "postgresql":
@@ -108,6 +124,7 @@ class ReadPropDb(ReadProp):
         super().__init__(propertyfile, logger)
         self.__find_os_ids()
         self.__force_postgres_dbnames()
+        self.__generate_tablespace_names()
 
         # Calculate DB number based on sections in property file
         db_keys = self._toml_dict.keys()
@@ -183,3 +200,19 @@ class ReadPropIngress(ReadProp):
 class ReadPropCustomComponent(ReadProp):
     def __init__(self, propertyfile, logger):
         super().__init__(propertyfile, logger)
+
+class ReadPropImageTag(ReadProp):
+    def __init__(self, propertyfile, logger):
+        super().__init__(propertyfile, logger)
+
+    def check_toml(self):
+        keys_to_check = ["TAG", "REPOSITORY"]
+        self._incorrect_keys_list = []
+        for key, value in self._toml_dict.items():
+            if set(value.keys()) != set(keys_to_check):
+                self._incorrect_keys_list.append(key)
+        if not self._incorrect_keys_list:
+            for key,value in self._toml_dict.items():
+                if not value["REPOSITORY"] or not value["TAG"]:
+                    self._incorrect_keys_list.append(key)
+        return self._incorrect_keys_list

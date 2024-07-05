@@ -16,24 +16,41 @@ metadata:
     app.kubernetes.io/instance: ibm-fncm
     app.kubernetes.io/managed-by: ibm-fncm
     app.kubernetes.io/name: ibm-fncm
-    release: 5.5.8
+    release: 5.6.0
 spec:
   ##########################################################################
   ## This section contains the shared configuration for all FNCM components #
   ##########################################################################
-  appVersion: 21.0.3
+  appVersion: 24.0.0
 
-  ## MUST exist, used to accept ibm license, valid value only can be "accept"
-  ibm_license: ""
+  ## MUST exist, used to accept ibm license, valid value only can be "true"
+  license:
+    accept:
+
+  ## The optional components to be installed if listed here.  The user can choose what components to be installed.
+  ## The optional components are: css (Content Search Services), cmis, es (External Share) and tm (Task Manager)
+  content_optional_components:
+    cmis: false
+    css: false
+    es: false
+    tm: false
+    cpe: true
+    graphql: true
+    ban: true
+    ier: true
+    iccsap: true
 
   shared_configuration:
 
     ## The deployment context as selected.
     sc_deployment_context: FNCM
 
+    # Enable/disable FIPS mode for the deployment (default value is "false")
+    enable_fips: false
+
     ## All FNCM components must use/share the image_pull_secrets to pull images
     image_pull_secrets:
-      - admin.registrykey
+      - ibm-entitlement-key
 
     ## All FNCM components must use/share the same docker image repository.  For example, if IBM Entitlement Registry is used, then 
     ## it should be "cp.icr.io".  Otherwise, it will be a local docker registry.
@@ -45,11 +62,6 @@ spec:
     ## FNCM capabilities to be deployed.  This CR represents the "content" pattern (aka FileNet Content Manager), which includes the following 
     ## mandatory components: cpe, icn (Navigator), graphql and optional components: css, cmis, es (External Share) and tm (Task Manager)
     sc_deployment_patterns: content
-
-
-    ## The optional components to be installed if listed here.  The user can choose what components to be installed.
-    ## The optional components are: css (Content Search Services), cmis, es (External Share) and tm (Task Manager)
-    sc_optional_components:
 
     ## The deployment type as selected.
     sc_deployment_type: production
@@ -81,12 +93,6 @@ spec:
     ## The platform to be deployed specified by the user.  Possible values are: OCP, ROKS and other.
     ## based on input from the user.
     sc_deployment_platform: "<Required>"
-
-
-    ## OCP: Hostname suffix added to the default ingress hostname, this is optional and the default hostname suffix will be {meta.namespace}.
-    ## CNCF: Hostname used to access your deployment.
-    # sc_deployment_hostname_suffix: "{{ meta.namespace }}.<Required>"
-
 
     ## If the root certificate authority (CA) key of the external service is not signed by the operator root CA key, provide the TLS certificate of
     ## the external service to the component's truststore.
@@ -133,6 +139,14 @@ spec:
     #  css: false
     #  ban: false
 
+    ## For ROKS and CNCF, this is used to enable the creation of ingresses. The default value is "false".
+    sc_ingress_enable: false
+
+    sc_egress_configuration:
+      ## Required. Enable or disable egress access to external systems.  Default will be false if not defined.
+      ## true: FNCM pods will not have access to any external systems unless a custom, curated egress network policy or multiple network policies with specific 'matchLabels' are created. Please refer to documentation for more detail.
+      ## false: All FNCM pods will have unrestricted network access to external systems.
+      sc_restricted_internet_access: "<Required>"
 
     ## Provide the storage class names for the storage. It can be one storage class for all storage classes or can provide different one for each.
     ## Operator will use the provided storage classes to provision required PVC volumes.
