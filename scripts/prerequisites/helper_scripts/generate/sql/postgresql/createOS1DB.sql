@@ -9,11 +9,11 @@
 CREATE ROLE ${youruser1} WITH INHERIT LOGIN ENCRYPTED PASSWORD '${yourpassword}';
 
 -- please modify location follow your requirement
-create tablespace ${os_name}_tbs owner ${youruser1} location '/pgsqldata/${os_name}';
-grant create on tablespace ${os_name}_tbs to ${youruser1};
+create tablespace ${datatablespace} owner ${youruser1} location '/pgsqldata/${os_name}';
+grant create on tablespace ${datatablespace} to ${youruser1};
 
 -- create database ${os_name}
-create database ${os_name} owner ${youruser1} tablespace ${os_name}_tbs template template0 encoding UTF8 ;
+create database ${os_name} owner ${youruser1} tablespace ${datatablespace} template template0 encoding UTF8 ;
 revoke connect on database ${os_name} from public;
 grant all privileges on database ${os_name} to ${youruser1};
 grant connect, temp, create on database ${os_name} to ${youruser1};

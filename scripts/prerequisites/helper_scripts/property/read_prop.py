@@ -95,13 +95,19 @@ class ReadPropDb(ReadProp):
                 self._toml_dict[os_id]["DATA_TABLESPACE"] = "PRIMARY"
         elif self._toml_dict["DATABASE_TYPE"] == "oracle":
             for os_id in self._toml_dict["_os_ids"]:
-                self._toml_dict[os_id]["DATA_TABLESPACE"] = f"{os_id}DATATS"
+                os_name = self._toml_dict[os_id]["DATABASE_NAME"]
+                self._toml_dict[os_id]["DATA_TABLESPACE"] = f"{os_name}DATATS"
+                self._toml_dict[os_id]["TMP_TABLESPACE"] = f"{os_name}DATATSTEMP"
         elif self._toml_dict["DATABASE_TYPE"] == "postgresql":
             for os_id in self._toml_dict["_os_ids"]:
-                self._toml_dict[os_id]["DATA_TABLESPACE"] = f"{os_id}_tbs"
+                os_name = self._toml_dict[os_id]["DATABASE_NAME"]
+                self._toml_dict[os_id]["DATA_TABLESPACE"] = f"{os_name}_tbs"
         elif self._toml_dict["DATABASE_TYPE"] == "db2":
             for os_id in self._toml_dict["_os_ids"]:
-                self._toml_dict[os_id]["DATA_TABLESPACE"] = f"{os_id}DATA_TS"
+                os_name = self._toml_dict[os_id]["DATABASE_NAME"]
+                self._toml_dict[os_id]["DATA_TABLESPACE"] = f"{os_name}DATA_TS"
+                self._toml_dict[os_id]["VWDATA_TABLESPACE"] = f"{os_name}VWDATA_TS"
+                self._toml_dict[os_id]["TMP_TABLESPACE"] = f"{os_name}_TMP_TBS"
 
 
     def __force_postgres_dbnames(self):

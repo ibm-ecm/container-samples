@@ -1,3 +1,10 @@
+## 2.7.1 (2024-08-01)
+
+### Fix
+
+- updated pyyaml to 6.0.2rc1, tomlkit to 0.13.0, cryptography to 43.0.0, kubernetes to 30.1.0
+- fix for mismatched tablespace for PE initialization in custom resource file
+
 ## 2.7.0 (2024-06-27)
 
 ### Feat
