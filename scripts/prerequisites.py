@@ -56,7 +56,7 @@ from helper_scripts.utilities.utilites import zip_folder, \
 from helper_scripts.utilities.interface import clear, generate_gather_results, generate_generate_results, display_issues
 from helper_scripts.validate import validate as v
 
-__version__ = "3.0.0"
+__version__ = "3.0.1"
 
 app = typer.Typer()
 state = {

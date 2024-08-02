@@ -33,7 +33,7 @@ from helper_scripts.utilities.interface import clear, display_issues, display_pr
 from helper_scripts.utilities.utilites import prereq_checks, read_version_toml, create_deployment_info, \
     create_version_info, create_current_operator_info
 
-__version__ = "3.0.0"
+__version__ = "3.0.1"
 
 app = typer.Typer()
 

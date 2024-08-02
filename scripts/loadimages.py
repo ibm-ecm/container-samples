@@ -36,7 +36,7 @@ from helper_scripts.utilities.interface import clear, display_issues, display_pr
     generate_loadimages_results, generate_loadimage_results
 from helper_scripts.utilities.utilites import validate_image_details_file, prereq_checks
 
-__version__ = "3.0.0"
+__version__ = "3.0.1"
 
 app = typer.Typer()
 

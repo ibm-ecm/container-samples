@@ -37,7 +37,7 @@ from helper_scripts.utilities.interface import (
     display_prereq_passed, mustgather_details)
 from helper_scripts.utilities.utilites import prereq_checks, zip_folder
 
-__version__ = "3.0.0"
+__version__ = "3.0.1"
 
 # app = typer.Typer()
 
