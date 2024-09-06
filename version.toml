@@ -10,16 +10,16 @@
 ###############################################################################
 
 # Release Details
-DATE = "2024-07-31"
-RELEASE = "IBM FileNet Content Manager 5.6.0-LA003"
+DATE = "2024-09-05"
+RELEASE = "IBM FileNet Content Manager 5.6.0-LA004"
 
 # Repository Details
-VERSION = "5.6.0-LA003"
+VERSION = "5.6.0-LA004"
 APP_VERSION = "24.0.0"
 
 # OLM Version Details
 CHANNEL = "v24.0"
-CSV = "v56.0.1-1"
+CSV = "v56.0.1-2"
 
 
 
