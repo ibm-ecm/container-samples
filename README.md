@@ -5,6 +5,7 @@ Installation of the capabilities is done with the operator.
 
 | Release          | Github Tag | Date           |
 |------------------|------------|----------------|
+| FNCM 5.5.8-LA734 | v5.5.8.8-2 | 09 / 08 / 2024 |
 | FNCM 5.5.8-LA733 | v5.5.8.8-1 | 07 / 31 / 2024 |
 | FNCM 5.5.8-IF7   | v5.5.8.7   | 06 / 28 / 2024 |
 | FNCM 5.5.8-LA631 | v5.5.8.7-2 | 05 / 29 / 2024 |
