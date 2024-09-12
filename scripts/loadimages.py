@@ -30,13 +30,13 @@ from rich.prompt import Confirm
 from typing_extensions import Annotated
 
 from helper_scripts.gather import gather as g
-from helper_scripts.gather import silent as sg
+from helper_scripts.gather import silent_gather as sg
 from helper_scripts.loadimages import load_extract as le
 from helper_scripts.utilities.interface import clear, display_issues, display_prereq_passed, \
     generate_loadimages_results, generate_loadimage_results
-from helper_scripts.utilities.utilites import validate_image_details_file, prereq_checks
+from helper_scripts.utilities.utilities import validate_image_details_file, prereq_checks
 
-__version__ = "3.0.1"
+__version__ = "3.1.0"
 
 app = typer.Typer()
 

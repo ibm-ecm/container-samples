@@ -20,7 +20,7 @@ from tomlkit import string
 from tomlkit import table
 from tomlkit.toml_file import TOMLFile
 
-from ..utilities.utilites import read_json
+from ..utilities.prerequisites_utilites import read_json
 
 
 # Create a class Property that accepts a dictionary of key value pairs

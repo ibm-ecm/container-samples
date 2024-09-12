@@ -33,12 +33,12 @@ from typing_extensions import Annotated
 
 from helper_scripts.cleanup import cleanup as dc
 from helper_scripts.gather import gather as g
-from helper_scripts.gather import silent as sg
+from helper_scripts.gather import silent_gather as sg
 from helper_scripts.utilities.interface import display_prereq_passed, display_issues, clear, \
     display_deployment_resources
-from helper_scripts.utilities.utilites import prereq_checks, create_version_info, read_version_toml
+from helper_scripts.utilities.utilities import prereq_checks, create_version_info, read_version_toml
 
-__version__ = "3.0.1"
+__version__ = "3.1.0"
 
 app = typer.Typer()
 

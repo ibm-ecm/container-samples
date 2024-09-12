@@ -43,20 +43,20 @@ from rich.prompt import Confirm
 from rich.syntax import Syntax
 from rich.text import Text
 
-from helper_scripts.gather import gather as g
-from helper_scripts.gather import silent as sg
+from helper_scripts.gather import gather_prerequisites as g
+from helper_scripts.gather import silent_gather_prerequisites as sg
 from helper_scripts.generate.generate_cr import GenerateCR
 from helper_scripts.generate.generate_secrets import GenerateSecrets
 from helper_scripts.generate.generate_sql import GenerateSql
 from helper_scripts.property import property as p
 from helper_scripts.property.read_prop import *
-from helper_scripts.utilities.utilites import zip_folder, \
+from helper_scripts.utilities.prerequisites_utilites import zip_folder, \
     create_generate_folder, check_ssl_folders, check_icc_masterkey, check_trusted_certs, check_dbname, \
     check_keystore_password_length, collect_visible_files, check_db_password_length, check_db_ssl_mode
 from helper_scripts.utilities.interface import clear, generate_gather_results, generate_generate_results, display_issues
 from helper_scripts.validate import validate as v
 
-__version__ = "3.0.1"
+__version__ = "3.1.0"
 
 app = typer.Typer()
 state = {
@@ -627,10 +627,10 @@ def validate(
 
     command_panel = (Panel.fit(
         Syntax("cd ..\n"
-               "export OPERATOR=$(kubectl get pods | grep operator | awk '{print $1}')\n"
-               "kubectl cp prerequisites $OPERATOR:/opt/ansible\n"
+               "export OPERATOR=$(kubectl get pods -l 'name=ibm-fncm-operator' | awk 'NR>1 {print $1}')\n"
+               "kubectl cp scripts  $OPERATOR:/opt/ansible\n"
                "kubectl exec -it $OPERATOR -- bash\n"
-               "cd /opt/ansible\n"
+               "cd /opt/ansible/scripts\n"
                "python3 prerequisites.py validate",
                "bash", theme="ansi_dark"
                ),

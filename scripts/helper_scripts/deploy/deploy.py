@@ -21,7 +21,7 @@ from rich.syntax import Syntax
 from rich.text import Text
 
 from ..utilities import kubernetes_utilites as k
-from ..utilities.utilites import replace_namespace_in_file, create_tmp_folder
+from ..utilities.utilities import replace_namespace_in_file, create_tmp_folder
 
 
 # CLass that contains functions to delete the CR as well delete the Operator
@@ -89,13 +89,13 @@ class Deploy:
         try:
             if self._setup.private_registry_valid:
                 progress.log(
-                    f"Creating image pull secret for private registry: {self._setup.private_registry_servername}")
+                    f"Creating image pull secret for private registry: {self._setup.private_registry_server}")
                 progress.log()
                 data = {
                     '.dockerconfigjson': base64.b64encode(
                         bytes(
                             '{{"auths": {{"{}": {{"username": "{}", "password": "{}", "email": "example@example.com"}}}}}}'.format(
-                                self._setup.private_registry_servername,
+                                self._setup.private_registry_server,
                                 self._setup.private_registry_username,
                                 self._setup.private_registry_password),
                             'utf-8'

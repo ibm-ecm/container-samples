@@ -24,12 +24,12 @@ from typing_extensions import Annotated
 
 from helper_scripts.deploy import deploy as d
 from helper_scripts.gather import gather as g
-from helper_scripts.gather import silent as sg
+from helper_scripts.gather import silent_gather as sg
 from helper_scripts.utilities.interface import clear, display_issues, display_prereq_passed, deploy_details
-from helper_scripts.utilities.utilites import prereq_checks, read_version_toml, create_deployment_info, \
+from helper_scripts.utilities.utilities import prereq_checks, read_version_toml, create_deployment_info, \
     create_version_info
 
-__version__ = "3.0.1"
+__version__ = "3.1.0"
 
 app = typer.Typer()
 state = {

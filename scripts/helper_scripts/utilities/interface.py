@@ -12,7 +12,6 @@
 import os
 import pathlib
 import platform
-import random
 from enum import Enum
 
 from rich.columns import Columns
@@ -26,7 +25,7 @@ from rich.table import Table
 from rich.text import Text
 from rich.tree import Tree
 
-from .utilites import parse_required_fields
+from .prerequisites_utilites import parse_required_fields
 
 
 # Create a method to print directory tree
@@ -960,8 +959,7 @@ def generate_loadimage_results(summary: {}) -> Layout:
     next_steps_panel = Panel.fit("Next Steps")
     instructions = Panel.fit(
         "1. If any failures review the generated image details TOML file\n"
-        "2. To configure your FNCM Standalone deployment to use the private registry \n"
-        "   Set the following in your Custom Resource File"
+        "2. To configure your FNCM Standalone deployment to use the private registry set the following in your Custom Resource File"
     )
     private_registry = summary["private_registry"]
     code = f"spec:\n" \

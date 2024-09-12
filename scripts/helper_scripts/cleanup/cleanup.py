@@ -11,9 +11,7 @@
 import time
 
 import requests
-from kubernetes.client import ApiException
 from rich.panel import Panel
-from rich.text import Text
 
 requests.packages.urllib3.disable_warnings()
 from ..utilities import kubernetes_utilites as k
