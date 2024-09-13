@@ -15,16 +15,15 @@ from datetime import datetime
 from time import sleep
 
 import yaml
-
-from kubernetes.client import ApiException
+from rich import print
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.text import Text
-from rich import print
 
 from ..utilities import kubernetes_utilites as k
-from ..utilities.utilites import replace_namespace_in_file, create_tmp_folder, zip_folder, write_yaml_to_file, \
-    is_key_present, update_value_by_path, find_keys_and_structures
+from ..utilities.prerequisites_utilites import zip_folder, write_yaml_to_file
+from ..utilities.utilities import replace_namespace_in_file, create_tmp_folder, is_key_present, update_value_by_path, \
+    find_keys_and_structures
 
 
 # Class to handle upgrade operator and deployment related functionalities

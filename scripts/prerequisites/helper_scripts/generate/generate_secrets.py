@@ -18,7 +18,7 @@ import os
 
 import yaml
 
-from ..utilities.utilites import collect_visible_files
+from ..utilities.prerequisites_utilites import collect_visible_files
 
 
 def represent_str(dumper, data):

@@ -1,3 +1,17 @@
+## 2.8.0 (2024-09-12)
+
+### Feat
+
+- added support for running MustGather with only the operator deployed
+- added support for inProgress Operator Ansible log in MustGather
+
+### Fix
+
+- fixed python package error when running prerequisite scripts inside of operator pod
+- fix for outdated script copy instructions
+- fix for incorrect folder path for operator image push
+- fix for silent deploy entitlement key issue
+
 ## 2.7.1 (2024-08-01)
 
 ### Fix

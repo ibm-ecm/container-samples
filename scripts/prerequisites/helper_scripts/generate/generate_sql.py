@@ -180,9 +180,3 @@ class GenerateSql:
         self._dest_path = value
 
 
-# Test Code
-if __name__ == "__main__":
-    db2scripts = Db2(os.path.join(os.getcwd(), "helper_scripts", "generate", "fncm_db_server.property"))
-    db2scripts.createGCD()
-    db2scripts.createICN()
-    db2scripts.createOS()

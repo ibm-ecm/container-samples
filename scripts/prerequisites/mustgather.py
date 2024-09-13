@@ -28,16 +28,17 @@ from rich.prompt import Confirm
 from typing_extensions import Annotated
 
 from helper_scripts.gather import gather as g
-from helper_scripts.gather import silent as sg
+from helper_scripts.gather import silent_gather as sg
 from helper_scripts.mustgather import mustgather as mg
 from helper_scripts.utilities import kubernetes_utilites as k
 from helper_scripts.utilities.interface import (
     clear,
     display_issues,
     display_prereq_passed, mustgather_details)
-from helper_scripts.utilities.utilites import prereq_checks, zip_folder
+from helper_scripts.utilities.prerequisites_utilites import  zip_folder
+from helper_scripts.utilities.utilities import prereq_checks
 
-__version__ = "2.7.1"
+__version__ = "2.8.0"
 
 # app = typer.Typer()
 
@@ -107,7 +108,7 @@ def filter_deployments(deployment, component):
     return False
 
 
-def create_mustgather_folder(progress, platform, components, collect_sensitive_data):
+def create_mustgather_folder(progress, platform, components, collect_sensitive_data, cr_present=True, operator_present=True):
     progress.log()
     progress.log("Creating MustGather folder")
     if os.path.exists(os.path.join(os.getcwd(), "MustGather")):
@@ -127,23 +128,27 @@ def create_mustgather_folder(progress, platform, components, collect_sensitive_d
     progress.log("Creating MustGather components subfolders")
 
     folder_names = [
-        "operator",
-        "deployments",
-        "services",
-        "pvcs",
-        "storageclasses",
         "cluster"
     ]
 
-    if platform == "other":
-        folder_names.append("ingresses")
-    else:
-        folder_names.append("routes")
+    if operator_present:
+        folder_names.append("operator")
 
-    folder_names.extend(components)
+    if cr_present:
+        folder_names.append("deployments")
+        folder_names.append("services")
+        folder_names.append("pvcs")
+        folder_names.append("storageclasses")
 
-    if collect_sensitive_data:
-        folder_names.extend(["secrets", "configmaps"])
+        if platform == "other":
+            folder_names.append("ingresses")
+        else:
+            folder_names.append("routes")
+
+        folder_names.extend(components)
+
+        if collect_sensitive_data:
+            folder_names.extend(["secrets", "configmaps"])
 
     for folder_name in folder_names:
         os.mkdir(
@@ -240,6 +245,8 @@ def main(
     operator_deployment = "ibm-fncm-operator"
     operator_details = kube.get_operator_details(namespace, operator_deployment)
 
+    operator_present = bool(operator_details)
+
     if len(custom_resources) == 0:
         cr_present = False
         print("[prompt.invalid] No custom resources found.")
@@ -278,8 +285,15 @@ def main(
             transient=False,
     ) as progress:
         task1 = progress.add_task("[cyan]Collecting Cluster Info", total=None)
-        if operator_details:
+        # Check is operator is present
+        if operator_present:
             task2 = progress.add_task("[purple]Collecting FNCM Operator Info", total=None)
+            if operator_details["type"] == "YAML":
+                platform = "other"
+            else:
+                platform = "OCP"
+
+        # Check if CR is present
         if cr_present:
             cr_name = deployment_details["name"]
             platform = deployment_details["platform"]
@@ -330,10 +344,11 @@ def main(
 
         task5 = progress.add_task("[blue]Creating MustGather Tar File", total=1)
 
-        while not progress.finished:
-            mustgather_folder = create_mustgather_folder(progress, platform, components, collect_sensitive_data)
 
-            must_gather = mg.MustGather(console, state["logger"], mustgather_folder, deployment_details, kube)
+        while not progress.finished:
+            mustgather_folder = create_mustgather_folder(progress, platform, components, collect_sensitive_data, cr_present, operator_present)
+
+            must_gather = mg.MustGather(console, namespace, state["logger"], mustgather_folder, deployment_details, operator_details, kube)
             must_gather.collect_cluster_info(progress)
 
             progress.update(task1, total=2, completed=2)

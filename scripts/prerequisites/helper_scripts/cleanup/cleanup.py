@@ -11,9 +11,7 @@
 import time
 
 import requests
-from kubernetes.client import ApiException
 from rich.panel import Panel
-from rich.text import Text
 
 requests.packages.urllib3.disable_warnings()
 from ..utilities import kubernetes_utilites as k
@@ -204,7 +202,7 @@ class CleanDeployment:
             progress.log(f"Deleting CSV...")
             if installed_csv:
                 self._kube.delete_clusterserviceversion(csv_name=installed_csv,
-                                                    namespace=self._namespace)
+                                                        namespace=self._namespace)
             else:
                 progress.log()
                 progress.log(Panel.fit("CSV not found", style="bold red"))
