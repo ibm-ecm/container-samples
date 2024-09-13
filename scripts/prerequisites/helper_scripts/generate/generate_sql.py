@@ -14,10 +14,12 @@ import inspect
 import os
 import string
 
+
 def parse_yaml_sql(parameter):
     if parameter:
         parameter = parameter.replace("'", "''")
     return parameter
+
 
 # Class to create GCD, ICN, and OS db scripts
 class GenerateSql:
@@ -75,8 +77,10 @@ class GenerateSql:
         try:
             path = os.path.join(self._dest_path, "createGCD.sql")
             finished_output = self._gcd_template.safe_substitute(gcd_name=self._dbprop['GCD']['DATABASE_NAME'],
-                                                                 youruser1=parse_yaml_sql(self._dbprop['GCD']['DATABASE_USERNAME']),
-                                                                 yourpassword=parse_yaml_sql(self._dbprop['GCD']['DATABASE_PASSWORD']))
+                                                                 youruser1=parse_yaml_sql(
+                                                                     self._dbprop['GCD']['DATABASE_USERNAME']),
+                                                                 yourpassword=parse_yaml_sql(
+                                                                     self._dbprop['GCD']['DATABASE_PASSWORD']))
             with open(path, "w", encoding='UTF-8') as output:
                 output.write(finished_output)
 
@@ -119,10 +123,31 @@ class GenerateSql:
         try:
             for index, os_id in enumerate(self._dbprop["_os_ids"]):
                 path = os.path.join(self._dest_path, f"create{self._dbprop[os_id]['OS_LABEL']}.sql")
-                finished_output = self._os_template.safe_substitute(
-                    os_name=self._dbprop[os_id.upper()]['DATABASE_NAME'],
-                    youruser1=parse_yaml_sql(self._dbprop[os_id.upper()]['DATABASE_USERNAME']),
-                    yourpassword=parse_yaml_sql(self._dbprop[os_id.upper()]['DATABASE_PASSWORD']))
+
+                if self._dbprop["DATABASE_TYPE"] == "db2":
+                    finished_output = self._os_template.safe_substitute(
+                        os_name=self._dbprop[os_id.upper()]['DATABASE_NAME'],
+                        youruser1=parse_yaml_sql(self._dbprop[os_id.upper()]['DATABASE_USERNAME']),
+                        yourpassword=parse_yaml_sql(self._dbprop[os_id.upper()]['DATABASE_PASSWORD']),
+                        datatablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['DATA_TABLESPACE']),
+                        vwdatatablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['VWDATA_TABLESPACE']),
+                        tmp_tablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['TMP_TABLESPACE'])
+                    )
+                elif self._dbprop["DATABASE_TYPE"] == "oracle":
+                    finished_output = self._os_template.safe_substitute(
+                        os_name=self._dbprop[os_id.upper()]['DATABASE_NAME'],
+                        youruser1=parse_yaml_sql(self._dbprop[os_id.upper()]['DATABASE_USERNAME']),
+                        yourpassword=parse_yaml_sql(self._dbprop[os_id.upper()]['DATABASE_PASSWORD']),
+                        datatablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['DATA_TABLESPACE']),
+                        tmp_tablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['TMP_TABLESPACE'])
+                    )
+                else:
+                    finished_output = self._os_template.safe_substitute(
+                        os_name=self._dbprop[os_id.upper()]['DATABASE_NAME'],
+                        youruser1=parse_yaml_sql(self._dbprop[os_id.upper()]['DATABASE_USERNAME']),
+                        yourpassword=parse_yaml_sql(self._dbprop[os_id.upper()]['DATABASE_PASSWORD']),
+                        datatablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['DATA_TABLESPACE'])
+                    )
                 with open(path, "w", encoding='UTF-8') as output:
                     output.write(finished_output)
 
@@ -155,9 +180,3 @@ class GenerateSql:
         self._dest_path = value
 
 
-# Test Code
-if __name__ == "__main__":
-    db2scripts = Db2(os.path.join(os.getcwd(), "helper_scripts", "generate", "fncm_db_server.property"))
-    db2scripts.createGCD()
-    db2scripts.createICN()
-    db2scripts.createOS()

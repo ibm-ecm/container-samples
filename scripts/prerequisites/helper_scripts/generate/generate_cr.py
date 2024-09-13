@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 from ruamel.yaml import CommentedMap
 from ruamel.yaml import YAML
 
-from ..utilities.utilites import collect_visible_files
+from ..utilities.prerequisites_utilites import collect_visible_files
 
 
 # Function to remove protocol from URL

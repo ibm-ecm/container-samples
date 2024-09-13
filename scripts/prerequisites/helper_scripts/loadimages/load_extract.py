@@ -24,7 +24,8 @@ from tomlkit import table
 from tomlkit.toml_file import TOMLFile
 
 from ..utilities import kubernetes_utilites as k
-from ..utilities.utilites import parse_yaml_for_keys, copy_image, zip_folder, read_json
+from ..utilities.prerequisites_utilites import zip_folder, read_json
+from ..utilities.utilities import parse_yaml_for_keys, copy_image
 
 
 # CLass that contains functions to delete the CR as well delete the Operator
@@ -218,7 +219,10 @@ class LoadExtract:
             repository = self._repo_tag_dict_from_file["repository"][i]
             new_image_repo = repository.split("/")[-1]
             src_path = f"{repository}:{tag}"
-            dest_path = f"{self._private_registry_server}/{new_image_repo}:{tag}"
+            if self._repo_tag_dict_from_file["components"][i] == 'IBM-FNCM-OPERATOR':
+                dest_path = f"{self._private_registry_server}/cpopen/{new_image_repo}:{tag}"
+            else:
+                dest_path = f"{self._private_registry_server}/{new_image_repo}:{tag}"
             progress.log(Panel.fit(Text(f"Copying {new_image_repo}:{tag}", style="bold cyan")))
             progress.log()
             image_copied = copy_image(src_path, dest_path, progress)

@@ -34,7 +34,8 @@ from rich.syntax import Syntax
 from rich.text import Text
 
 from ..utilities.interface import ldap_search_results, ldap_entry_types
-from ..utilities.utilites import command_available, check_java_version, kubectl_log_in_check, collect_visible_files, \
+from ..utilities.prerequisites_utilites import command_available, check_java_version, kubectl_log_in_check, \
+    collect_visible_files, \
     connect_to_server
 
 requests.packages.urllib3.disable_warnings()

@@ -15,22 +15,38 @@ import subprocess
 from rich.panel import Panel
 from rich.text import Text
 
-from ..utilities.utilites import write_yaml_to_file, write_log_to_file
+from ..utilities.prerequisites_utilites import write_yaml_to_file, write_log_to_file
 
 
 # Create a MustGather Class
 
 class MustGather:
 
-    def __init__(self, console, logger=None, mustgather_folder="", deployment_details=dict, kube=None):
+    def __init__(self, console, namespace, logger=None, mustgather_folder="", deployment_details=dict, operator_details={}, kube=None):
         self._logger = logger
         self._console = console
         self._deployment_details = deployment_details
+        self._operator_details = operator_details
         self._kube = kube
         self._mustgather_folder = mustgather_folder
-        self._namespace = deployment_details["namespace"]
+        self._namespace = namespace
+        self._version = "5.6.0"
+        self._cr_name = ""
         if "name" in self._deployment_details.keys():
             self._cr_name = deployment_details["name"]
+        if "version" in deployment_details.keys():
+            self._version = deployment_details["version"]
+        elif "release" in operator_details.keys():
+            self._version = operator_details["release"]
+
+    def to_dict(self):
+        return {
+            "deployment_details": self._deployment_details,
+            "operator_details": self._operator_details,
+            "mustgather_folder": self._mustgather_folder,
+            "namespace": self._namespace,
+            "cr_name": self._cr_name
+        }
 
     def collect_cluster_info(self, progress):
         # Number of tasks = 4
@@ -953,7 +969,7 @@ class MustGather:
             write_yaml_to_file(deployment_response, path)
 
             deployment_type = operator_details["type"]
-            version = self._deployment_details["version"]
+            version = self._version
 
             if deployment_type == "OLM":
 
@@ -1015,6 +1031,14 @@ class MustGather:
                 progress.log()
                 return
 
+            for pod in operator_pods:
+                progress.log(Panel.fit(f"Collecting for Content Operator pod: {pod}", style="yellow"))
+                progress.log()
+
+                init_containers = operator_details["init_containers"]
+
+                self.collect_pod_info(progress, operator_folder_path, pod, init_containers, "operator")
+
             progress.log(f"Collecting FNCM Operator Ansible logs")
             progress.log()
             path = os.path.join(
@@ -1024,19 +1048,28 @@ class MustGather:
             if not os.path.exists(path):
                 os.makedirs(path)
 
-            if version == "5.5.8":
+            if self._version == "5.5.8":
                 command = f'kubectl exec -n {self._namespace} {operator_pods[0]} -- bash -c "cd /logs/{operator_pods[0]}/ansible-operator/runner/fncm.ibm.com/v1/FNCMCluster/{self._namespace}/{self._cr_name}/artifacts/ && tar -zcf - *" | tar xzf - -C {path}'
             else:
+
                 command = f'kubectl exec -n {self._namespace} {operator_pods[0]} -- bash -c "cd /logs/*/ansible-operator/runner/fncm.ibm.com/v1/FNCMCluster/{self._namespace}/{self._cr_name}/artifacts/ && tar -zcf - *" | tar xzf - -C {path}'
             subprocess.run(command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-            for pod in operator_pods:
-                progress.log(Panel.fit(f"Collecting for Content Operator pod: {pod}", style="yellow"))
+            # Check if the logs folder is empty
+            # if logs folder is empty, download the logs from the tmp folder
+            if not os.listdir(path):
+                inprogressPath = os.path.join(
+                    f"{path}",
+                    f"inProgress"
+                )
+
+                if not os.path.exists(inprogressPath):
+                    os.makedirs(inprogressPath)
+
+                progress.log(f"No completed Ansible logs found in /logs folder. Downloading the in progress logs from /tmp folder")
                 progress.log()
-
-                init_containers = operator_details["init_containers"]
-
-                self.collect_pod_info(progress, operator_folder_path, pod, init_containers, "operator")
+                command = f'kubectl exec -n {self._namespace} {operator_pods[0]} -- bash -c "cd /tmp/ansible-operator/runner/fncm.ibm.com/v1/FNCMCluster/{self._namespace}/{self._cr_name}/artifacts/* && tar -zcf - stdout" | tar xzf - -C {inprogressPath}'
+                subprocess.run(command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
             progress.log(Panel.fit("Content Operator Information Collection Completed", style="bold green"))
             progress.log()
