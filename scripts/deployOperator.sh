@@ -4,7 +4,7 @@
 #
 # Licensed Materials - Property of IBM
 #
-# (C) Copyright IBM Corp. 2021. All Rights Reserved.
+# (C) Copyright IBM Corp. 2022. All Rights Reserved.
 #
 # US Government Users Restricted Rights - Use, duplication or
 # disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
@@ -17,7 +17,6 @@ source ${CUR_DIR}/helper/common.sh
 RUNTIME_MODE=$1
 
 TEMP_FOLDER=${CUR_DIR}/.tmp
-INSTALL_BAI=""
 CRD_FILE=${PARENT_DIR}/descriptors/fncm_v1_fncm_crd.yaml
 SA_FILE=${PARENT_DIR}/descriptors/service_account.yaml
 CLUSTER_ROLE_FILE=${PARENT_DIR}/descriptors/cluster_role.yaml
@@ -32,39 +31,24 @@ LOG_FILE=${CUR_DIR}/prepare_install.log
 PLATFORM_SELECTED=""
 PLATFORM_VERSION=""
 PROJ_NAME=""
-DOCKER_RES_SECRET_NAME="admin.registrykey"
-REGISTRY_IN_FILE="cp.icr.io"
+PROJ_NAME_ALL_NAMESPACE="openshift-operators"
+DOCKER_RES_SECRET_NAME="ibm-entitlement-key"
+REGISTRY_IN_FILE="icr.io"
 OPERATOR_FILE=${PARENT_DIR}/descriptors/operator.yaml
 OPERATOR_FILE_TMP=$TEMP_FOLDER/.operator_tmp.yaml
 SCRIPT_MODE=""
 
-OPERATOR_PVC_FILE=${PARENT_DIR}/descriptors/operator-shared-pvc.yaml
-OPERATOR_PVC_FILE_TMP1=${TEMP_FOLDER}/.operator-shared-pvc_tmp1.yaml
-OPERATOR_PVC_FILE_TMP=${TEMP_FOLDER}/.operator-shared-pvc_tmp.yaml
-OPERATOR_PVC_FILE_BAK=${TEMP_FOLDER}/.operator-shared-pvc.yaml
-JDBC_DRIVER_DIR=${CUR_DIR}/jdbc
-
+# Make temporary folder
 mkdir -p $TEMP_FOLDER >/dev/null 2>&1
-echo "creating temp folder"
+
 # During the development cycle we will need to apply cp4a_catalogsource.yaml
 # catalog_source.yaml is the final deliver yaml.
-if [[ $RUNTIME_MODE == "dev" ]]; then
-  OLM_CATALOG=${PARENT_DIR}/descriptors/op-olm/cp4a_catalogsource.yaml
-  OLM_OPT_GROUP=${PARENT_DIR}/descriptors/op-olm/operator_group.yaml
-  OLM_SUBSCRIPTION=${PARENT_DIR}/descriptors/op-olm/subscription.yaml
-else
-  OLM_CATALOG=${PARENT_DIR}/descriptors/op-olm/catalog_source.yaml
-  OLM_OPT_GROUP=${PARENT_DIR}/descriptors/op-olm/operator_group.yaml
-  OLM_SUBSCRIPTION=${PARENT_DIR}/descriptors/op-olm/subscription.yaml
-fi
+OLM_CATALOG=${PARENT_DIR}/descriptors/op-olm/catalogsource.yaml
+OLM_OPT_GROUP=${PARENT_DIR}/descriptors/op-olm/operator_group.yaml
+OLM_SUBSCRIPTION=${PARENT_DIR}/descriptors/op-olm/subscription.yaml
 # the source is different for stage of development and final public
-if [[ $RUNTIME_MODE == "dev" ]]; then
-  online_source="ibm-cp4a-operator-catalog"
-else
-  online_source="ibm-operator-catalog"
-fi
+online_source="ibm-fncm-operator-catalog"
 
-OLM_CATALOG_TMP=${TEMP_FOLDER}/.catalog_source.yaml
 OLM_OPT_GROUP_TMP=${TEMP_FOLDER}/.operator_group.yaml
 OLM_SUBSCRIPTION_TMP=${TEMP_FOLDER}/.subscription.yaml
 
@@ -88,8 +72,56 @@ function validate_cli() {
   fi
 }
 
+function select_all_namespace() {
+  printf "\n"
+  while true; do
+    if [ -z "$FNCM_AUTO_ALL_NAMESPACES" ]; then
+      printf "\x1B[1mDo you want IBM FileNet Content Manager Operator support 'All Namespaces'? (Yes/No, default: No) \x1B[0m"
+
+      read -rp "" ans
+      case "$ans" in
+      "y" | "Y" | "yes" | "Yes" | "YES")
+        ALL_NAMESPACE="Yes"
+        break
+        ;;
+      "n" | "N" | "no" | "No" | "NO" | "")
+        ALL_NAMESPACE="No"
+        break
+        ;;
+      *)
+        ALL_NAMESPACE=""
+        echo -e "Answer must be \"Yes\" or \"No\"\n"
+        ;;
+      esac
+    else
+      printf "\x1B[1mDo you want IBM FileNet Content Manager Operator support 'All Namespaces'? (Yes/No, default: No)  \x1B[0m$FNCM_AUTO_ALL_NAMESPACES\n"
+      case "$FNCM_AUTO_ALL_NAMESPACES" in
+      "y" | "Y" | "yes" | "Yes" | "YES")
+        ALL_NAMESPACE="Yes"
+        break
+        ;;
+      "n" | "N" | "no" | "No" | "NO")
+        ALL_NAMESPACE="No"
+        break
+        ;;
+      *)
+        ALL_NAMESPACE=""
+        echo -e "Answer must be \"Yes\" or \"No\"\n"
+        exit 1
+        ;;
+      esac
+    fi
+  done
+}
+
 function collect_input() {
   project_name=""
+  if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
+    select_all_namespace
+    user_name=""
+    select_user
+  fi
+
   while [[ $project_name == "" ]]; do
     if [ -z "$FNCM_NAMESPACE" ]; then
       echo
@@ -116,10 +148,6 @@ function collect_input() {
       create_project
     fi
   done
-  if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
-    user_name=""
-    select_user
-  fi
 }
 
 function create_project() {
@@ -222,7 +250,9 @@ function prepare_install() {
   echo -n "Creating ibm-fncm-operator role binding ..."
   ${CLI_CMD} apply -f ${ROLE_BINDING_FILE} -n ${project_name} --validate=false >>${LOG_FILE}
   echo "Done!"
-  if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
+
+  # Add non-administrator user to role if chosen from prompt
+  if [[ "$PLATFORM_SELECTED" == "OCP" && -n "$user_name" || "$PLATFORM_SELECTED" == "ROKS" && -n "$user_name" ]]; then
     echo
     echo -ne Adding the user ${user_name} to the ibm-fncm-operator role...
     ${CLI_CMD} project ${project_name} >>${LOG_FILE}
@@ -238,7 +268,7 @@ function prepare_install() {
   echo "Done!"
 }
 
-function apply_cp4a_operator() {
+function apply_operator_cncf() {
   ${COPY_CMD} -rf ${OPERATOR_FILE} ${OPERATOR_FILE_TMP}
 
   printf "\n"
@@ -246,14 +276,14 @@ function apply_cp4a_operator() {
   # set db2_license
   ${SED_COMMAND} '/fncm_license/{n;s/value:.*/value: accept/;}' ${OPERATOR_FILE_TMP}
   # Set operator image pull secret
-  ${SED_COMMAND} "s/admin.registrykey/$DOCKER_RES_SECRET_NAME/g" ${OPERATOR_FILE_TMP}
-  # Set operator image registry
-  new_operator="$REGISTRY_IN_FILE\/cp\/cp4a"
+  ${SED_COMMAND} "s/ibm-entitlement-key/$DOCKER_RES_SECRET_NAME/g" ${OPERATOR_FILE_TMP}
 
   if [ "$use_entitlement" = "yes" ]; then
-    ${SED_COMMAND} "s/$REGISTRY_IN_FILE/$DOCKER_REG_SERVER/g" ${OPERATOR_FILE_TMP}
+    if [[ "$RUNTIME_MODE" == "dev" || $RUNTIME_MODE == "baw-dev" ]]; then
+      ${SED_COMMAND} "s/$REGISTRY_IN_FILE\/cpopen/$DOCKER_REG_SERVER\/cp/g" ${OPERATOR_FILE_TMP}
+    fi
   else
-    ${SED_COMMAND} "s/$new_operator/$CONVERT_LOCAL_REGISTRY_SERVER/g" ${OPERATOR_FILE_TMP}
+    ${SED_COMMAND} "s/$REGISTRY_IN_FILE/$CONVERT_LOCAL_REGISTRY_SERVER/g" ${OPERATOR_FILE_TMP}
   fi
   INSTALL_OPERATOR_CMD="${CLI_CMD} apply -f ${OPERATOR_FILE_TMP} -n $project_name"
   sleep 5
@@ -276,7 +306,6 @@ function apply_cp4a_operator() {
   done
   if $ROLLOUT_STATUS_CMD; then
     echo -e "\x1B[1mDone\x1B[0m"
-    copy_jdbc_driver
   else
     echo -e "\x1B[1;31mFailed\x1B[0m"
   fi
@@ -291,21 +320,23 @@ function check_existing_sc() {
   if [[ $sc_result == *"$sc_substring"* ]]; then
     clear
     echo -e "\x1B[1;31mAt least one dynamic storage class must be available in order to proceed.\n\x1B[0m"
-    echo -e "\x1B[1;31mPlease refer to the README for the requirements and instructions.  The script will now exit!.\n\x1B[0m"
+    echo -e "\x1B[1;31mRefer to Knowledge Center documentation for details.  The script will now exit!.\n\x1B[0m"
     exit 1
   fi
 }
 
-# Write a function to check if docker or podman is installed
-function validate_docker_podman_cli {
-    if command -v podman >/dev/null 2>&1; then
-        echo "Podman is installed."
-    elif command -v docker >/dev/null 2>&1; then
-        echo "Docker is installed."
-    else
-        echo "Unable to locate podman or docker, please install it first."
-        exit 1
-    fi
+function validate_docker_podman_cli() {
+  if [[ $PLATFORM_VERSION == "3.11" || "$machine" == "Mac" || $PLATFORM_SELECTED == "other" ]]; then
+    which docker &>/dev/null
+    [[ $? -ne 0 ]] &&
+      echo -e "\x1B[1;31mUnable to locate docker, please install it first.\x1B[0m" &&
+      exit 1
+  elif [[ $PLATFORM_VERSION == "4.4OrLater" ]]; then
+    which podman &>/dev/null
+    [[ $? -ne 0 ]] &&
+      echo -e "\x1B[1;31mUnable to locate podman, please install it first.\x1B[0m" &&
+      exit 1
+  fi
 }
 
 function get_entitlement_registry() {
@@ -373,7 +404,8 @@ function get_entitlement_registry() {
             printf "\n"
             printf "\x1B[1mVerifying the Entitlement Registry key...\n\x1B[0m"
 
-            if command -v podman >/dev/null 2>&1; then
+            which podman &>/dev/null
+            if [[ $? -eq 0 ]]; then
               cli_command="podman"
             else
               cli_command="docker"
@@ -418,109 +450,6 @@ function create_secret_entitlement_registry() {
   fi
 }
 
-function get_storage_class_name() {
-  if [[ $PLATFORM_SELECTED == "other" || $PLATFORM_SELECTED == "OCP" ]]; then
-    check_existing_sc
-  fi
-  check_storage_class
-  # For dynamic storage classname
-  storage_class_name=""
-  sc_slow_file_storage_classname=""
-  sc_medium_file_storage_classname=""
-  sc_fast_file_storage_classname=""
-  printf "\n"
-  if [[ $PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "other" ]]; then
-    while [[ $storage_class_name == "" ]]; do
-      if [ -z "$FNCM_STORAGE_CLASS" ]; then
-        printf "\x1B[1mPlease enter the dynamic storage classname: \x1B[0m"
-        read -rp "" storage_class_name
-      else
-        printf "\x1B[1mPlease enter the dynamic storage classname: \x1B[0m$FNCM_STORAGE_CLASS\n"
-        storage_class_name=$FNCM_STORAGE_CLASS
-      fi
-      if [ -z "$storage_class_name" ]; then
-        echo -e "\x1B[1;31mEnter a valid dynamic storage classname\x1B[0m"
-      fi
-    done
-  elif [[ $PLATFORM_SELECTED == "ROKS" ]]; then
-    printf "\x1B[1mTo provision the persistent volumes and volume claims\n\x1B[0m"
-
-    while [[ $sc_fast_file_storage_classname == "" ]]; do # While get fast storage clase name
-      if [ -z "$FNCM_STORAGE_CLASS_FAST_ROKS" ]; then
-        printf "\x1B[1mPlease enter the dynamic storage classname for fast storage: \x1B[0m"
-        read -rp "" sc_fast_file_storage_classname
-      else
-        printf "\x1B[1mPlease enter the dynamic storage classname for fast storage: \x1B[0m$FNCM_STORAGE_CLASS_FAST_ROKS\n"
-        sc_fast_file_storage_classname=$FNCM_STORAGE_CLASS_FAST_ROKS
-      fi
-      if [ -z "$sc_fast_file_storage_classname" ]; then
-        echo -e "\x1B[1;31mEnter a valid dynamic storage classname\x1B[0m"
-      fi
-    done
-  fi
-  STORAGE_CLASS_NAME=${storage_class_name}
-  SLOW_STORAGE_CLASS_NAME=${sc_fast_file_storage_classname}
-  MEDIUM_STORAGE_CLASS_NAME=${sc_fast_file_storage_classname}
-  FAST_STORAGE_CLASS_NAME=${sc_fast_file_storage_classname}
-}
-
-function copy_jdbc_driver() {
-  # Get pod name
-  echo -e "\x1B[1mCopying the JDBC driver for the operator...\x1B[0m"
-  operator_podname=$(${CLI_CMD} get pod -n $project_name | grep ibm-fncm-operator | grep Running | awk '{print $1}')
-
-  COPY_JDBC_CMD="${CLI_CMD} cp -n ${project_name} ${JDBC_DRIVER_DIR} ${operator_podname}:/opt/ansible/share/"
-
-  if $COPY_JDBC_CMD; then
-    echo -e "\x1B[1mDone\x1B[0m"
-  else
-    echo -e "\x1B[1;31mFailed\x1B[0m"
-  fi
-}
-
-function allocate_operator_pvc_olm_or_cncf() {
-  # For dynamic storage classname
-  printf "\n"
-  if [[ $PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "other" ]]; then
-    echo -e "\x1B[1mApplying the persistent volumes for the FNCM operator by using the storage classname: ${STORAGE_CLASS_NAME}...\x1B[0m"
-    ${COPY_CMD} -rf "${OPERATOR_PVC_FILE}" "${OPERATOR_PVC_FILE_BAK}"
-    printf "\n"
-    sed "s/<StorageClassName>/$STORAGE_CLASS_NAME/g" ${OPERATOR_PVC_FILE_BAK} >${OPERATOR_PVC_FILE_TMP1}
-    sed "s/<Fast_StorageClassName>/$STORAGE_CLASS_NAME/g" ${OPERATOR_PVC_FILE_TMP1} >${OPERATOR_PVC_FILE_TMP} # &> /dev/null
-  else
-    echo -e "\x1B[1mApplying the persistent volumes for the FNCM operator by using the storage classname: ${FAST_STORAGE_CLASS_NAME}...\x1B[0m"
-    ${COPY_CMD} -rf "${OPERATOR_PVC_FILE}" "${OPERATOR_PVC_FILE_BAK}"
-    printf "\n"
-    sed "s/<StorageClassName>/$FAST_STORAGE_CLASS_NAME/g" ${OPERATOR_PVC_FILE_BAK} >${OPERATOR_PVC_FILE_TMP1}
-    sed "s/<Fast_StorageClassName>/$FAST_STORAGE_CLASS_NAME/g" ${OPERATOR_PVC_FILE_TMP1} >${OPERATOR_PVC_FILE_TMP} # &> /dev/null
-  fi
-  # Create Operator Persistent Volume.
-  CREATE_PVC_CMD="${CLI_CMD} apply -f ${OPERATOR_PVC_FILE_TMP} -n $project_name"
-  if $CREATE_PVC_CMD; then
-    echo -e "\x1B[1mDone\x1B[0m"
-  else
-    echo -e "\x1B[1;31mFailed\x1B[0m"
-  fi
-  # Check Operator Persistent Volume status every 5 seconds (max 10 minutes) until allocate.
-  ATTEMPTS=0
-  TIMEOUT=60
-  printf "\n"
-  echo -e "\x1B[1mWaiting for the persistent volumes to be ready...\x1B[0m"
-  until ${CLI_CMD} get pvc -n $project_name | grep cp4a-shared-log-pvc | grep -q -m 1 "Bound" || [ $ATTEMPTS -eq $TIMEOUT ]; do
-    ATTEMPTS=$((ATTEMPTS + 1))
-    echo -e "......"
-    sleep 10
-    if [ $ATTEMPTS -eq $TIMEOUT ]; then
-      echo -e "\x1B[1;31mFailed to allocate the persistent volumes!\x1B[0m"
-      echo -e "\x1B[1;31mRun the following command to check the claim '${CLI_CMD} describe pvc operator-shared-pvc'\x1B[0m"
-      exit 1
-    fi
-  done
-  if [ $ATTEMPTS -lt $TIMEOUT ]; then
-    echo -e "\x1B[1mDone\x1B[0m"
-  fi
-}
-
 function display_storage_classes() {
   echo
   echo "Storage classes are needed by the CR file when deploying FNCM Standalone.   You will be asked for three (3) storage classes to meet the "slow", "medium", and "fast" storage for the configuration of FNCM components.  If you don't have three (3) storage classes, you can use the same one for "slow", "medium", or fast.  Note that you can get the existing storage class(es) in the environment by running the following command: oc get storageclass. Take note of the storage classes that you want to use for deployment. "
@@ -546,7 +475,7 @@ function select_platform() {
   if [ -z "$FNCM_PLATFORM" ]; then
     COLUMNS=12
     echo -e "\x1B[1mSelect the cloud platform to deploy: \x1B[0m"
-    options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud" "Other ( Certified Kubernetes Cloud Platform / CNCF)")
+    options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud" "Other (Certified Kubernetes Cloud Platform / CNCF)")
     PS3='Enter a valid option [1 to 3]: '
     select opt in "${options[@]}"; do
       case $opt in
@@ -558,7 +487,7 @@ function select_platform() {
         PLATFORM_SELECTED="OCP"
         break
         ;;
-      "Other ( Certified Kubernetes Cloud Platform / CNCF)")
+      "Other (Certified Kubernetes Cloud Platform / CNCF)")
         PLATFORM_SELECTED="other"
         break
         ;;
@@ -570,6 +499,7 @@ function select_platform() {
     echo -e "\x1B[1mWhat type of cloud platform is selected?\x1B[0m $FNCM_PLATFORM"
   fi
   if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
+    SCRIPT_MODE="OLM"
     CLI_CMD=oc
   elif [[ "$PLATFORM_SELECTED" == "other" ]]; then
     CLI_CMD=kubectl
@@ -615,36 +545,100 @@ function select_user() {
   user_substring="No resources found"
   if [[ $user_result == *"$user_substring"* ]]; then
     clear
-    echo -e "\x1B[1;31mAt least one user must be available in order to proceed.\n\x1B[0m"
-    echo -e "\x1B[1;31mPlease refer to the README for the requirements and instructions.  The script will now exit.!\n\x1B[0m"
+    echo -e "\x1B[1;No additional users found on the cluster.\n\x1B[0m"
+    echo -e "\x1B[1;31mIf you wish to add a non-administrator user to manage the namespace, create one user before proceeding.\n\x1B[0m"
+    echo -e "\x1B[1;31mRefer to Knowledge Center documentation for details.\n\x1B[0m"
+    echo -e "\x1B[1;This script will now exit...\n\x1B[0m"
     exit 1
   fi
+
   echo
-  if [ -z "$FNCM_CLUSTER_USER" ]; then
-    userlist=$(${CLI_CMD} get user | awk '{if(NR>1){if(NR==2){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
-    COLUMNS=12
-    echo -e "\x1B[1mHere are the existing users on this cluster: \x1B[0m"
-    options=($userlist)
-    usernum=${#options[*]}
-    PS3='Enter an existing username in your cluster, valid option [1 to '${usernum}'], non-admin is suggested: '
-    select opt in "${options[@]}"; do
-      if [[ -n "$opt" && "${options[@]}" =~ $opt ]]; then
-        user_name=$opt
-        break
+  # Silent install
+  if [[ ! -z "${FNCM_ADD_CLUSTER_USER}" ]]; then
+    case "$FNCM_ADD_CLUSTER_USER" in
+    "y" | "Y" | "yes" | "Yes" | "YES")
+      printf "\x1B[1mDo you want to add a non-administrator user to manage the namespace (Yes/No): \x1B[0m$FNCM_ADD_CLUSTER_USER\n"
+      if [[ ! -z "${FNCM_CLUSTER_USER}" ]]; then
+        userlist=$(${CLI_CMD} get user | awk '{if(NR>1){if(NR==2){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
+
+        ${CLI_CMD} get user ${FNCM_CLUSTER_USER} >/dev/null 2>&1
+        returnValue=$?
+        if [ "$returnValue" == 1 ]; then
+          echo -e "\x1B[1;31mThe user \"${FNCM_CLUSTER_USER}\" was not found, please set a valid user.\x1B[0m"
+          echo -e "\x1B[1;31mHere are the existing users on this cluster:\x1B[0m"
+          for user in $userlist; do
+            echo $user
+          done
+          echo -e "\x1B[1;31mThe script will now exit...\x1B[0m"
+          exit 1
+        else
+          user_name=$FNCM_CLUSTER_USER
+          echo -e "\x1B[1mSelected the existing user: \x1B[0m${user_name}"
+        fi
       else
-        echo "invalid option $REPLY"
+        echo -e "\x1B[1;31mNo user input found for [FNCM_CLUSTER_USER], please set a valid user.\x1B[0m"
+        echo -e "\x1B[1;31mHere are the existing users on this cluster:\x1B[0m"
+        userlist=$(${CLI_CMD} get user | awk '{if(NR>1){if(NR==2){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
+        for user in $userlist; do
+          echo $user
+        done
+        echo -e "\x1B[1;31mThe script will now exit...\x1B[0m"
+        exit 1
+      fi
+      ;;
+    "n" | "N" | "no" | "No" | "NO")
+      printf "\x1B[1mDo you want to add a non-administrator user to manage the namespace (Yes/No): \x1B[0m$FNCM_ADD_CLUSTER_USER\n"
+      FNCM_CLUSTER_USER=""
+      user_name=""
+      ;;
+    *)
+      printf "\x1B[1mDo you want to add a non-administrator user to manage the namespace (Yes/No): \x1B[0m$FNCM_ADD_CLUSTER_USER\n"
+      echo -e "\x1B[1;31m\"Yes\" or \"No\" are valid values for the environment variable [FNCM_ADD_CLUSTER_USER].\x1B[0m"
+      echo -e "\x1B[1;31mThe script will now exit...\x1B[0m"
+      exit 1
+      ;;
+    esac
+  # Interactive install
+  else
+    while true; do
+      if [ -z "$FNCM_CLUSTER_USER" ]; then
+        printf "\x1B[1mDo you want to add a non-administrator user to manage the namespace (Yes/No, default: No): \x1B[0m"
+        read -rp "" selectuserans
+        case "$selectuserans" in
+        "n" | "N" | "no" | "No" | "NO" | "")
+          user_name=""
+          break
+          ;;
+        "y" | "Y" | "yes" | "Yes" | "YES")
+          if [[ $user_result == *"$user_substring"* ]]; then
+            echo -e "\x1B[1;No additional users found on the cluster. At least one is required to proceed.\n\x1B[0m"
+            echo -e "\x1B[1;This script will now exit...\n\x1B[0m"
+            exit 1
+          fi
+
+          printf "\n"
+          userlist=$(${CLI_CMD} get user | awk '{if(NR>1){if(NR==2){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
+          COLUMNS=12
+          echo -e "\x1B[1mHere are the existing users on this cluster: \x1B[0m"
+          options=($userlist)
+          usernum=${#options[*]}
+          PS3='Select an existing user in your cluster, valid options are [1 to '${usernum}']: '
+          select opt in "${options[@]}"; do
+            if [[ -n "$opt" && "${options[@]}" =~ $opt ]]; then
+              user_name=$opt
+              break
+            else
+              echo "Invalid input: $REPLY"
+            fi
+          done
+          break
+          ;;
+        *)
+          echo -e "Answer must be \"Yes\" or \"No\"\n"
+          ;;
+        esac
       fi
     done
-  else
-    ${CLI_CMD} get user ${FNCM_CLUSTER_USER} >/dev/null 2>&1
-    returnValue=$?
-    if [ "$returnValue" == 1 ]; then
-      echo -e "\x1B[1;31mNo found user \"${FNCM_CLUSTER_USER}\", please set a valid user. The script will exit...!\n\x1B[0m"
-      exit 1
-    else
-      user_name=$FNCM_CLUSTER_USER
-      echo -e "\x1B[1mSelected the existing users: \x1B[0m${FNCM_CLUSTER_USER}"
-    fi
   fi
 }
 
@@ -912,7 +906,32 @@ function verify_local_registry_password() {
     get_local_registry_password
 
     if [[ $LOCAL_REGISTRY_SERVER == docker-registry* || $LOCAL_REGISTRY_SERVER == image-registry* || $LOCAL_REGISTRY_SERVER == default-route-openshift-image-registry* ]]; then
-        if command -v podman >/dev/null 2>&1; then
+      if [[ $PLATFORM_VERSION == "3.11" ]]; then
+        if docker login -u "$LOCAL_REGISTRY_USER" -p $(${CLI_CMD} whoami -t) "$LOCAL_REGISTRY_SERVER"; then
+          printf 'Verifying Local Registry passed...\n'
+          verify_passed="passed"
+        else
+          printf '\x1B[1;31mLogin failed...\n\x1B[0m'
+          verify_passed=""
+          local_registry_user=""
+          local_registry_server=""
+          echo -e "\x1B[1;31mCheck the local docker registry information and try again.\x1B[0m"
+        fi
+      elif [[ "$machine" == "Mac" ]]; then
+        if docker login "$local_public_registry_server" -u "$LOCAL_REGISTRY_USER" -p $(${CLI_CMD} whoami -t); then
+          printf 'Verifying Local Registry passed...\n'
+          verify_passed="passed"
+        else
+          printf '\x1B[1;31mLogin failed...\n\x1B[0m'
+          verify_passed=""
+          local_registry_user=""
+          local_registry_server=""
+          local_public_registry_server=""
+          echo -e "\x1B[1;31mCheck the local docker registry information and try again.\x1B[0m"
+        fi
+      elif [[ $PLATFORM_VERSION == "4.4OrLater" ]]; then
+        which podman &>/dev/null
+        if [[ $? -eq 0 ]]; then
           if podman login "$local_public_registry_server" -u "$LOCAL_REGISTRY_USER" -p $(${CLI_CMD} whoami -t) --tls-verify=false; then
             printf 'Verifying Local Registry passed...\n'
             verify_passed="passed"
@@ -943,9 +962,11 @@ function verify_local_registry_password() {
               exit 1
             fi
           fi
-          fi
+        fi
+      fi
     else
-      if command -v podman >/dev/null 2>&1; then
+      which podman &>/dev/null
+      if [[ $? -eq 0 ]]; then
         if podman login -u "$LOCAL_REGISTRY_USER" -p "$LOCAL_REGISTRY_PWD" "$LOCAL_REGISTRY_SERVER" --tls-verify=false; then
           printf 'Verifying the information for the local docker registry...\n'
           verify_passed="passed"
@@ -996,8 +1017,8 @@ function create_secret_local_registry() {
 function prompt_license() {
   echo -e "\x1B[1;31mYou need to read the International Program License Agreement before start\n\x1B[0m"
   echo -e "\x1B[1;31mIMPORTANT: Review the license information for the product bundle you are deploying. \n\x1B[0m"
-  echo -e "\x1B[1;31mIBM FileNet Content Manager license information here: https://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-LSWS-C6KPMK \n\x1B[0m"
-  echo -e "\x1B[1;31mIBM Content Foundation license information here: https://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-LSWS-C6KQ34 \n\x1B[0m"
+  echo -e "\x1B[1;31mIBM FileNet Content Manager license information here: https://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-LSWS-CBU4W7 \n\x1B[0m"
+  echo -e "\x1B[1;31mIBM Content Foundation license information here: https://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-LSWS-CBU5AQ \n\x1B[0m"
 
   if [[ ! -z "${FNCM_LICENSE_ACCEPT}" ]]; then
     local accept_array=("accept" "ACCEPT" "Accept")
@@ -1008,7 +1029,6 @@ function prompt_license() {
       echo -e "\x1B[1mInternational Program License accepted through silent install\x1B[0m"
       echo
     fi
-
   else
     read -rsn1 -p"Press any key to continue"
     echo
@@ -1047,12 +1067,126 @@ function verify_silence_install() {
     fi
   fi
 
-  #  if [[ ! -z "$FNCM_LOCAL_REGISTRY" && ! -z "$FNCMLOCAL_REGISTRY_USER" && ! -z "$FNCM_LOCAL_REGISTRY_PASSWORD" ]]; then
-  #    echo ""
-  #  else
-  #    echo -e "\x1B[1;31mPlease set all environment variable [FNCM_LOCAL_REGISTRY] [FNCM_LOCAL_REGISTRY_USER] [FNCM_LOCAL_REGISTRY_PASSWORD].\n\x1B[0m"
-  #    exit 1
-  #  fi
+}
+
+function apply_operator_olm() {
+  local maxRetry=20
+  local temp_project_name=""
+
+  if [[ $ALL_NAMESPACE == "Yes" ]]; then
+    temp_project_name=$PROJ_NAME_ALL_NAMESPACE
+  else
+    temp_project_name=$project_name
+  fi
+
+  if ${CLI_CMD} get catalogsource -n openshift-marketplace | grep $online_source; then
+    echo "Found existing ibm operator catalog source, updating it"
+    ${CLI_CMD} apply -f $OLM_CATALOG
+    if [ $? -eq 0 ]; then
+      echo "IBM FileNet Content Manager Operator Catalog source updated!"
+    else
+      echo "IBM FileNet Content Manager Operator catalog source update failed"
+      exit 1
+    fi
+  else
+    ${CLI_CMD} apply -f $OLM_CATALOG
+    if [ $? -eq 0 ]; then
+      echo "IBM FileNet Content Manager Operator Catalog source created!"
+    else
+      echo "IBM FileNet Content Manager Operator catalog source creation failed"
+      exit 1
+    fi
+  fi
+
+  for ((retry = 0; retry <= ${maxRetry}; retry++)); do
+    echo "Waiting for IBM FileNet Content Manager Operator Catalog pod initialization"
+
+    isReady=$(${CLI_CMD} get pod -n openshift-marketplace --no-headers | grep $online_source | grep "Running")
+    if [[ -z $isReady ]]; then
+      if [[ $retry -eq ${maxRetry} ]]; then
+        echo "Timeout Waiting for IBM FileNet Content Manager Operator Catalog pod to start"
+        echo -e "\x1B[1mPlease check the status of Pod by issue cmd: \x1B[0m"
+        echo "oc describe pod $(oc get pod -n openshift-marketplace | grep $online_source | awk '{print $1}') -n openshift-marketplace"
+        exit 1
+      else
+        sleep 30
+        continue
+      fi
+    else
+      echo "IBM FileNet Content Manager Operator Catalog is running $isReady"
+      break
+    fi
+  done
+
+  if [[ $(${CLI_CMD} get og -n "${temp_project_name}" -o=go-template --template='{{len .items}}') -gt 0 ]]; then
+    echo "Found operator group"
+    ${CLI_CMD} get og -n "${temp_project_name}"
+  else
+    sed "s/REPLACE_NAMESPACE/$temp_project_name/g" ${OLM_OPT_GROUP} >${OLM_OPT_GROUP_TMP}
+    ${CLI_CMD} apply -f ${OLM_OPT_GROUP_TMP}
+    if [ $? -eq 0 ]; then
+      echo "IBM FileNet Content Manager Operator Group Created!"
+    else
+      echo "IBM FileNet Content Manager Operator Group creation failed"
+    fi
+  fi
+
+  sed "s/REPLACE_NAMESPACE/$temp_project_name/g" ${OLM_SUBSCRIPTION} >${OLM_SUBSCRIPTION_TMP}
+
+  ${CLI_CMD} apply -f ${OLM_SUBSCRIPTION_TMP}
+
+  if [ $? -eq 0 ]; then
+    echo "IBM FileNet Content Manager Operator Subscription Created!"
+  else
+    echo "IBM FileNet Content Manager Operator Subscription creation failed"
+    exit 1
+  fi
+
+  printf "\n"
+  for ((retry = 0; retry <= ${maxRetry}; retry++)); do
+    echo "Waiting for IBM FileNet Content Manager Operator pod initialization"
+
+    isReady=$(${CLI_CMD} get pod -n "$temp_project_name" --no-headers | grep ibm-fncm-operator | grep "Running")
+    if [[ -z $isReady ]]; then
+      if [[ $retry -eq ${maxRetry} ]]; then
+        echo "Timeout Waiting for IBM FileNet Content Manager Operator to start"
+        echo -e "\x1B[1mPlease check the status of Pod by issue cmd:\x1B[0m"
+        echo "oc describe pod $(oc get pod -n $temp_project_name | grep ibm-fncm-operator | awk '{print $1}') -n $temp_project_name"
+        printf "\n"
+        echo -e "\x1B[1mPlease check the status of ReplicaSet by issue cmd:\x1B[0m"
+        echo "oc describe rs $(oc get rs -n $temp_project_name | grep ibm-fncm-operator | awk '{print $1}') -n $temp_project_name"
+        exit 1
+      else
+        sleep 30
+        continue
+      fi
+    else
+      echo "IBM FileNet Content Manager Operator is running $isReady"
+      break
+    fi
+  done
+
+  echo
+  # Add user to role if chosen from prompt
+  if [[ -n "$user_name" ]]; then
+    echo -ne Adding the user ${user_name} to the ibm-fncm-operator role...
+    role_name_olm=$(${CLI_CMD} get role -n "$temp_project_name" --no-headers | grep ibm-fncm-operator.v | awk '{print $1}')
+    if [[ -z $role_name_olm ]]; then
+      echo "No role found for IBM FileNet Content Manager Operator"
+      exit 1
+    else
+      ${CLI_CMD} project ${temp_project_name} >>${LOG_FILE}
+      ${CLI_CMD} adm policy add-role-to-user edit ${user_name} >>${LOG_FILE}
+      ${CLI_CMD} adm policy add-role-to-user registry-editor ${user_name} >>${LOG_FILE}
+      ${CLI_CMD} adm policy add-role-to-user $role_name_olm ${user_name} >/dev/null 2>&1
+      ${CLI_CMD} adm policy add-role-to-user $role_name_olm ${user_name} >>${LOG_FILE}
+      echo "Done!"
+    fi
+  fi
+  echo
+  echo -ne Label the default namespace to allow network policies to open traffic to the ingress controller using a namespaceSelector...
+  ${CLI_CMD} label --overwrite namespace default 'network.openshift.io/policy-group=ingress'
+  echo "Done"
 }
 
 clear
@@ -1066,26 +1200,29 @@ if [[ $PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "ROKS" ]]; then
   check_platform_version
 fi
 
+# Ask for Project Name + all Namspaces + Deployment User
 collect_input
-if [[ $PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "ROKS" ]]; then
-  bind_scc
-fi
 
 validate_docker_podman_cli
+# TODO: Remove local image pull option for OCP
 get_entitlement_registry
 if [[ "$use_entitlement" == "no" ]]; then
   verify_local_registry_password
 fi
-get_storage_class_name
+
 if [[ "$use_entitlement" == "yes" ]]; then
   create_secret_entitlement_registry
 fi
 if [[ "$use_entitlement" == "no" ]]; then
   create_secret_local_registry
 fi
-allocate_operator_pvc_olm_or_cncf
+
 prepare_install
-apply_cp4a_operator
+if [[ "$SCRIPT_MODE" == "OLM" ]]; then
+  apply_operator_olm
+else
+  apply_operator_cncf
+fi
 
 check_storage_class
 
