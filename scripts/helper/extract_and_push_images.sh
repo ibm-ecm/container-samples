@@ -1,10 +1,10 @@
 #!/bin/bash
-#set -x
+# set -x
 ###############################################################################
 #
 # Licensed Materials - Property of IBM
 #
-# (C) Copyright IBM Corp. 2023. All Rights Reserved.
+# (C) Copyright IBM Corp. 2022. All Rights Reserved.
 #
 # US Government Users Restricted Rights - Use, duplication or
 # disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
@@ -128,7 +128,7 @@ function add_operator_image(){
   OPERATOR_TAG="${repoAndTag[1]}"
 
   if [[ "${SCRIPT_MODE}" =~ "dev" ]]; then
-    OPERATOR_REPO='cp.stg.icr.io/cp/icp4a-operator'
+    OPERATOR_REPO='cp.stg.icr.io/cp/icp4a-content-operator'
   else
     echo "${OPERATOR_REPO}" >> ${IMAGE_REPOSITORY_LIST_FILE}
   fi
@@ -137,15 +137,13 @@ function add_operator_image(){
   IFS='/'
   read -a repoAndFolder <<< "${OPERATOR_REPO}"
 
-  imageFolder="${repoAndFolder[3]}"
+  imageFolder="${repoAndFolder[2]}"
 
-
-
-  echo "Pushing Operator Image: ${OPERATOR_REPO}:${OPERATOR_TAG} to ${IMAGE_REGISTRY}/${imageFolder}:${OPERATOR_TAG}"
+  echo "Pushing Operator Image: ${OPERATOR_REPO}:${OPERATOR_TAG} to ${IMAGE_REGISTRY}/cpopen/${imageFolder}:${OPERATOR_TAG}"
 
    skopeo copy \
         docker://"${OPERATOR_REPO}:${OPERATOR_TAG}" \
-        docker://"${IMAGE_REGISTRY}/${imageFolder}:${OPERATOR_TAG}" \
+        docker://"${IMAGE_REGISTRY}/cpopen/${imageFolder}:${OPERATOR_TAG}" \
         --all \
         --dest-tls-verify=false \
         --remove-signatures

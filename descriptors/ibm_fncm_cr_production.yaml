@@ -3,7 +3,7 @@
 ##
 ##Licensed Materials - Property of IBM
 ##
-##(C) Copyright IBM Corp. 2021. All Rights Reserved.
+##(C) Copyright IBM Corp. 2022. All Rights Reserved.
 ##
 ##US Government Users Restricted Rights - Use, duplication or
 ##disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
@@ -17,16 +17,25 @@ metadata:
     app.kubernetes.io/instance: ibm-fncm
     app.kubernetes.io/managed-by: ibm-fncm
     app.kubernetes.io/name: ibm-fncm
-    release: 5.5.8
+    release: 5.5.9
 spec:
   ##########################################################################
   ## This section contains the shared configuration for all FNCM components #
   ##########################################################################
-  appVersion: 21.0.3
+  appVersion: 22.0.1
 
-  ## MUST exist, used to accept ibm license, valid value only can be "accept"
-  ibm_license: ""
+  ## MUST exist, used to accept ibm license, valid value only can be "true"
+  license:
+    accept:
 
+  ## The optional components to be installed if listed here.  The user can choose what components to be installed.
+  ## The optional components are: css (Content Search Services), cmis, es (External Share) and tm (Task Manager)
+  content_optional_components:
+    cmis: false
+    css: false
+    es: false
+    tm: false
+    
   shared_configuration:
 
     ## The deployment context as selected.
@@ -34,7 +43,7 @@ spec:
 
     ## All FNCM components must use/share the image_pull_secrets to pull images
     image_pull_secrets: 
-    - admin.registrykey
+    - ibm-entitlement-key
 
     ## All FNCM components must use/share the same docker image repository.  For example, if IBM Entitlement Registry is used, then 
     ## it should be "cp.icr.io".  Otherwise, it will be a local docker registry.
@@ -47,16 +56,12 @@ spec:
     ## mandatory components: cpe, icn (Navigator), graphql and optional components: css, cmis, es (External Share) and tm (Task Manager)
     sc_deployment_patterns: content
 
-    ## The optional components to be installed if listed here.  The user can choose what components to be installed.
-    ## The optional components are: css (Content Search Services), cmis, es (External Share) and tm (Task Manager)
-    sc_optional_components:
-
     ## The deployment type as selected.
     sc_deployment_type: production
     
     ## Specify the license model for FNCM.
     ## Choose the licensing model. Required. The expected values are ICF.PVUNonProd, ICF.PVUProd, ICF.UVU, ICF.CU, FNCM.PVUNonProd, FNCM.PVUProd, FNCM.UVU, or FNCM.CU
-    ## Choose one of these licensing model if you traded up to Cloud Pak for Business Automation from Standalone FileNet Content Manager. The expected values are CP4BA.NonProd, CP4BA.Prod, CP4BA.User
+    ## Choose one of these licensing model if you traded up to Cloud Pak for Business Automation from Standalone FileNet Content Manager. The expected values are CP4BA.NonProd, CP4BA.Prod, CP4BA.User 
     sc_fncm_license_model: <Required>
 
     ## Optional: You can specify a profile size for CloudPak - valid values are small,medium,large - default is small.
@@ -79,6 +84,20 @@ spec:
     ## the external service to the component's truststore.
     trusted_certificate_list: []
 
+    ## This is necessary if you want to use your own JDBC drivers and/or need to provide ICCSAP drivers.  If you are providing multiple JDBC drivers and ICCSAP drivers, 
+    ## all the files must be compressed in a single file.
+    ## First you need to package your drivers into a compressed package in the format of "saplibs/drivers_files" and/or 
+    ## "jdbc/db2|oracle|postgresql|sqlserver/driver_files". For example, if you are providing your own DB2 and Oracle JDBC drivers and ICCSAP drivers, then the compressed
+    ## file should have the following structure and content:
+    ##   /jdbc/db2/db2jcc4.jar
+    ##   /jdbc/db2/db2jcc_license_cu.jar
+    ##   /jdbc/oracle/ojdbc8.jar
+    ##   /saplibs/libicudata.so.50
+    ##   /saplibs/...
+    ## Then you need to put the compressed package on an anonymously accessible web server and provide the link here.
+    ## The CR can handle .zip files using unzip as well as .tar, .tar.gz, .tar.bz2, .tar.xz. Does not handle .gz files, .bz2 files, .xz, or .zst files that do not contain a .tar archive.    
+    #sc_drivers_url:
+    
     ## Enable/disable ECM (FNCM) / BAN initialization (e.g., creation of P8 domain, creation/configuration of object stores,
     ## creation/configuration of CSS servers, and initialization of Navigator (ICN)).  If the "initialize_configuration" section
     ## is defined with the required parameters in the CR (below) and sc_content_initialization is set to "true" (or the parameter doesn't exist), then the initialization will occur.
@@ -125,8 +144,6 @@ spec:
       #client_oidc_secret:
          #nav: "" # Points to a secret with client_id and client_secret in that format.
          #cpe: "" # Points to a secret with client_id and client_secret in that format.
-         #es: "" # Points to a secret with client_id and client_secret in that format.
-         #graphql: "" # Points to a secret with client_id and client_secret in that format.
       #issuer_identifier: ""
       ## COMMON REQUIRED PROPERTIES AND VALUES
       ## If no value is set, the default value is taken. Uncomment or add new parameters as applicable for your provider.
@@ -267,13 +284,6 @@ spec:
     ## The port of the LDAP server to connect.  Some possible values are: 389, 636, etc.
     #lc_ldap_port: "<Required>"
 
-    ## The LDAP bind secret for LDAP authentication.
-    ## The secret is expected to have ldapUsername and ldapPassword keys if lc_ldap_id is not defined
-    ## If lc_ldap_id is defined they the expected values in the secret would be
-    ## ldap<lc_ldap_id>Username ldap<lc_ldap_id>Password.
-    ## Refer to Knowledge Center for more info.
-    #lc_bind_secret: ldap-bind-secret
-
     ## The LDAP base DN.  For example, "dc=example,dc=com", "dc=abc,dc=com", etc
     #lc_ldap_base_dn: "<Required>"
 
@@ -410,16 +420,18 @@ spec:
       dc_common_gcd_datasource_name: "FNGCDDS"
       ## The GCD XA datasource name. The default value is "FNGCDDSXA".
       dc_common_gcd_xa_datasource_name: "FNGCDDSXA"
-      ## Provide the database server name or IP address of the database server, not applicable to Oracle which requires a JDBC URL.
+      ## Provide the database server name or IP address of the database server.
       database_servername: "<Required>"
       ## Provide the name of the database for the GCD for CPE.  For example: "GCDDB"
       database_name: "<Required>"
-      ## Provide the database server port.  For Db2, the default is "50000". Not applicable to Oracle which requires a JDBC URL.
+      ## Provide the database server port.  For Db2, the default is "50000".  For Oracle, the default is "1521"
       database_port: "<Required>"
       ## The name of the secret that contains the DB2/Oracle/PostgreSQL/SQLServer SSL certificate.
       database_ssl_secret_name: "<Required>"
       ## If the database type is Oracle, provide the Oracle DB connection string.  For example, "jdbc:oracle:thin:@//<oracle_server>:1521/orcl"
       dc_oracle_gcd_jdbc_url: "<Required>"
+      ## Provide the validation timeout.  If not preference, keep the default value.
+      dc_hadr_validation_timeout: 15
       ######################################################################################
       ## If the database type is "Db2HADR", then complete the rest of the parameters below.
       ## Otherwise, remove or comment out the rest of the parameters below.
@@ -427,8 +439,6 @@ spec:
       dc_hadr_standby_servername: "<Required>"
       ## Provide the standby database server port.  For Db2, the default is "50000".
       dc_hadr_standby_port: "<Required>"
-      ## Provide the validation timeout.  If not preference, keep the default value.
-      dc_hadr_validation_timeout: 15
       ## Provide the retry internal.  If not preference, keep the default value.
       dc_hadr_retry_interval_for_client_reroute: 15
       ## Provide the max # of retries.  If not preference, keep the default value.
@@ -453,17 +463,19 @@ spec:
       dc_common_os_datasource_name: "FNOS1DS"
       ## The OS1 XA datasource name.  The default value is "FNOS1DSXA".
       dc_common_os_xa_datasource_name: "FNOS1DSXA"
-      ## Provide the database server name or IP address of the database server, not applicable to Oracle which requires a JDBC URL.  This should be the same as the
+      ## Provide the database server name or IP address of the database server.  This should be the same as the
       ## GCD configuration above.
       database_servername: "<Required>"
       ## Provide the name of the database for the object store 1 for CPE.  For example: "OS1DB"
       database_name: "<Required>"
-      ## Provide the database server port.  For Db2, the default is "50000". Not applicable to Oracle which requires a JDBC URL.
+      ## Provide the database server port.  For Db2, the default is "50000".  For Oracle, the default is "1521"
       database_port: "<Required>"
       ## The name of the secret that contains the DB2/Oracle/PostgreSQL/SQLServer SSL certificate.
       database_ssl_secret_name: "<Required>"
       ## If the database type is Oracle, provide the Oracle DB connection string.  For example, "jdbc:oracle:thin:@//<oracle_server>:1521/orcl"
       dc_oracle_os_jdbc_url: "<Required>"
+      ## Provide the validation timeout.  If not preference, keep the default value.
+      dc_hadr_validation_timeout: 15
       ######################################################################################
       ## If the database type is "Db2HADR", then complete the rest of the parameters below.
       ## Otherwise, remove or comment out the rest of the parameters below.
@@ -471,8 +483,6 @@ spec:
       dc_hadr_standby_servername: "<Required>"
       ## Provide the standby database server port.  For Db2, the default is "50000".
       dc_hadr_standby_port: "<Required>"
-      ## Provide the validation timeout.  If not preference, keep the default value.
-      dc_hadr_validation_timeout: 15
       ## Provide the retry internal.  If not preference, keep the default value.
       dc_hadr_retry_interval_for_client_reroute: 15
       ## Provide the max # of retries.  If not preference, keep the default value.
@@ -484,9 +494,8 @@ spec:
       dc_database_type: "<Required>"
       ## Provide the ICN datasource name.  The default value is "ECMClientDS".
       dc_common_icn_datasource_name: "ECMClientDS"
-      #  Provide the database server name or IP address of the database server, not applicable to Oracle which requires a JDBC URL.
       database_servername: "<Required>"
-      ## Provide the database server port.  For Db2, the default is "50000". Not applicable to Oracle which requires a JDBC URL.
+      ## Provide the database server port.  For Db2, the default is "50000".  For Oracle, the default is "1521"
       database_port: "<Required>"
       ## Provide the name of the database for ICN (Navigator).  For example: "ICNDB"
       database_name: "<Required>"
@@ -494,6 +503,8 @@ spec:
       database_ssl_secret_name: "<Required>"
       ## If the database type is Oracle, provide the Oracle DB connection string.  For example, "jdbc:oracle:thin:@//<oracle_server>:1521/orcl"
       dc_oracle_icn_jdbc_url: "<Required>"
+      ## Provide the validation timeout.  If not preference, keep the default value.
+      dc_hadr_validation_timeout: 15
       ######################################################################################
       ## If the database type is "Db2HADR", then complete the rest of the parameters below.
       ## Otherwise, remove or comment out the rest of the parameters below.
@@ -501,8 +512,6 @@ spec:
       dc_hadr_standby_servername: "<Required>"
       ## Provide the standby database server port.  For Db2, the default is "50000".
       dc_hadr_standby_port: "<Required>"
-      ## Provide the validation timeout.  If not preference, keep the default value.
-      dc_hadr_validation_timeout: 15
       ## Provide the retry internal.  If not preference, keep the default value.
       dc_hadr_retry_interval_for_client_reroute: 15
       ## Provide the max # of retries.  If not preference, keep the default value.

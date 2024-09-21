@@ -2,7 +2,7 @@
 #
 # Licensed Materials - Property of IBM
 #
-# (C) Copyright IBM Corp. 2021. All Rights Reserved.
+# (C) Copyright IBM Corp. 2022. All Rights Reserved.
 #
 # US Government Users Restricted Rights - Use, duplication or
 # disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
@@ -16,7 +16,7 @@ metadata:
     app.kubernetes.io/instance: ibm-fncm
     app.kubernetes.io/managed-by: ibm-fncm
     app.kubernetes.io/name: ibm-fncm
-    release: 5.5.8
+    release: 5.5.9
 spec:
   replicas: 1
   selector:
@@ -29,11 +29,11 @@ spec:
         app.kubernetes.io/instance: ibm-fncm
         app.kubernetes.io/managed-by: ibm-fncm
         app.kubernetes.io/name: ibm-fncm
-        release: 5.5.8
+        release: 5.5.9
       annotations:
         productID: "5724-R81 | 5725-L50"
         productName: "IBM FileNet Content Manager | IBM Content Foundation"
-        productVersion: "5.5.8"
+        productVersion: "5.5.9"
         productChargedContainers: ""
         productMetric: "VIRTUAL_PROCESSOR_CORE"
     spec:
@@ -53,6 +53,7 @@ spec:
                 values:
                 - amd64
                 - s390x
+                - ppc64le
           preferredDuringSchedulingIgnoredDuringExecution:
           - weight: 3
             preference:
@@ -62,10 +63,11 @@ spec:
                 values:
                 - amd64
                 - s390x
+                - ppc64le
       containers:
         - name: operator
           # Replace this with the built image name
-          image: "cp.icr.io/cp/cp4a/icp4a-operator:5.5.8-LA734"
+          image: "icr.io/cpopen/icp4a-content-operator:22.0.1-IF004"
           imagePullPolicy: "IfNotPresent"
           securityContext:
             allowPrivilegeEscalation: false
@@ -87,13 +89,6 @@ spec:
             requests:
               cpu: 500m
               memory: 256Mi
-          volumeMounts:
-          - mountPath: /logs
-            name: logs-backup
-          - mountPath: /opt/ansible/share
-            name: operator-shared-folder
-          - mountPath: /tmp/ansible-operator/runner
-            name: runner
           args:
           - '--zap-encoder=console'
           env:
@@ -107,7 +102,7 @@ spec:
                   fieldPath: metadata.name
             - name: OPERATOR_NAME
               value: "ibm-fncm-operator"
-            - name: WORKER_FNCMCLUSTER_FNCM_IBM_COM
+            - name: MAX_CONCURRENT_RECONCILES_ICP4ACLUSTER_ICP4A_IBM_COM
               value: "10"
             - name: ANSIBLE_GATHERING
               value: smart
@@ -115,13 +110,5 @@ spec:
             - name: fncm_license
               value: "accept"
       imagePullSecrets:
+      - name: "ibm-entitlement-key"
       - name: "admin.registrykey"
-      volumes:
-        - name: logs-backup
-          persistentVolumeClaim:
-            claimName: "cp4a-shared-log-pvc"
-        - name: "operator-shared-folder"
-          persistentVolumeClaim:
-            claimName: "operator-shared-pvc"
-        - name: runner
-          emptyDir: {}

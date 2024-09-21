@@ -1,4 +1,4 @@
-###############################################################################
+################################################################################
 #
 # Licensed Materials - Property of IBM
 #
@@ -8,12 +8,11 @@
 # disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
 #
 ###############################################################################
-apiVersion: v1
-kind: ServiceAccount
+apiVersion: operators.coreos.com/v1alpha2
+kind: OperatorGroup
 metadata:
-  name: ibm-fncm-operator
-  labels:
-    app.kubernetes.io/instance: ibm-fncm
-    app.kubernetes.io/managed-by: ibm-fncm
-    app.kubernetes.io/name: ibm-fncm
-    release: 5.5.9
+  name: ibm-fncm-operator-catalog-group
+  namespace: REPLACE_NAMESPACE
+spec:
+  targetNamespaces:
+  - REPLACE_NAMESPACE
