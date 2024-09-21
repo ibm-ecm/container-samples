@@ -16,7 +16,7 @@ metadata:
     app.kubernetes.io/instance: ibm-fncm
     app.kubernetes.io/managed-by: ibm-fncm
     app.kubernetes.io/name: ibm-fncm
-    release: 5.5.9
+    release: 5.5.10
 spec:
   group: fncm.ibm.com
   names:
@@ -182,6 +182,17 @@ spec:
                     oracle:
                       type: object
                       description: Provide below info if you use Oracle (oracle) - OID, OUD and ODSEE
+                      x-kubernetes-preserve-unknown-fields: true
+                      properties:
+                        lc_user_filter:
+                          type: string
+                          nullable: true
+                        lc_group_filter:
+                          type: string
+                          nullable: true
+                    custom:
+                      type: object
+                      description: Provide below info if you use Custom (custom)
                       x-kubernetes-preserve-unknown-fields: true
                       properties:
                         lc_user_filter:

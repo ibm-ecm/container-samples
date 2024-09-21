@@ -10,6 +10,7 @@
 #
 ###############################################################################
 # CUR_DIR set to full path to scripts folder
+#set -x
 CUR_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PARENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEMP_FOLDER=${CUR_DIR}/.tmp
@@ -32,9 +33,10 @@ OLM_SUBSCRIPTION=${PARENT_DIR}/descriptors/op-olm/subscription.yaml
 # the source is different for stage of development and final public
 online_source="ibm-fncm-operator-catalog"
 
+
 OLM_OPT_GROUP_TMP=${TEMP_FOLDER}/.operator_group.yaml
 OLM_SUBSCRIPTION_TMP=${TEMP_FOLDER}/.subscription.yaml
-
+OLM_SUBSCRIPTION_NAME="ibm-fncm-operator-catalog-subscription"
 PROJ_NAME_ALL_NAMESPACE="openshift-operators"
 
 echo '' >$LOG_FILE
@@ -50,7 +52,7 @@ function show_help {
   echo "  -h  Display help"
   echo "  -n  The namespace to deploy Operator"
   echo "  -a  accept"
-  echo "  -i  Optional: Operator image name, by default it is icr.io/cpopen/icp4a-content-operator:22.0.1"
+  echo "  -i  Optional: Operator image name, by default it is icr.io/cpopen/icp4a-content-operator:22.0.2"
   echo -e "  -p  Optional: Pull secret to use to connect to the registry, by default it is ibm-entitlement-key\n"
 
 }
@@ -96,7 +98,7 @@ function upgrade_prereq_check() {
   printf "\n"
   while true; do
     # TODO Add prereq link
-    echo -e "\x1B[1mPlease see FileNet Content Manager Knowledge Center for 559 upgrade prerequisites: https://www.ibm.com/docs/en/filenet-p8-platform/5.5.x?topic=uvlo-checking-deployment-type-license \x1B[0m"
+    echo -e "\x1B[1mPlease see FileNet Content Manager Knowledge Center for important upgrade prerequisites: https://www.ibm.com/docs/en/filenet-p8-platform/5.5.x?topic=uvlo-checking-deployment-type-license \x1B[0m"
     echo -e "\x1B[1mHave you completed FileNet Content Manager Operator upgrade prerequisites (Yes/No)? \x1B[0m"
     # printf "\x1B[1mand 'loadPrereqImages.sh' (Db2 and OpenLDAP for demo) scripts (Yes/No)? \x1B[0m"
     read -rp "" ans
@@ -137,8 +139,8 @@ fi
 function readLicense() {
   echo -e "\x1B[1;31mYou need to read the International Program License Agreement before start\n\x1B[0m"
   echo -e "\x1B[1;31mIMPORTANT: Review the license information for the product bundle you are deploying. \n\x1B[0m"
-  echo -e "\x1B[1;31mIBM FileNet Content Manager license information here: https://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-LSWS-CBU4W7 \n\x1B[0m"
-  echo -e "\x1B[1;31mIBM Content Foundation license information here: https://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-LSWS-CBU5AQ \n\x1B[0m"
+  echo -e "\x1B[1;31mIBM FileNet Content Manager license information here: https://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-LSWS-CHZ6NL \n\x1B[0m"
+  echo -e "\x1B[1;31mIBM Content Foundation license information here: https://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-LSWS-CHZ6V7 \n\x1B[0m"
   sleep 3
 }
 
@@ -153,6 +155,7 @@ function apply_operator_olm() {
   fi
 
   OLM_CATALOG=${PARENT_DIR}/descriptors/op-olm/catalogsource.yaml
+
   if ${CLI_CMD} get catalogsource -n openshift-marketplace | grep $online_source; then
     echo "Found existing ibm operator catalog source, updating it"
     ${CLI_CMD} apply -f $OLM_CATALOG
@@ -205,7 +208,11 @@ function apply_operator_olm() {
     fi
   fi
 
-  sed "s/REPLACE_NAMESPACE/$temp_project_name/g" ${OLM_SUBSCRIPTION} >${OLM_SUBSCRIPTION_TMP}
+  if ${CLI_CMD} get subscription -n "${temp_project_name}" | grep ibm-fncm-operator; then
+    echo "Found IBM FileNet Content Manager Operator Subscription, updating it"
+    OLM_SUBSCRIPTION_NAME=$(${CLI_CMD} get subscription -n "${temp_project_name}" | grep ibm-fncm-operator | awk '{print $1}')
+  fi
+  sed  -e "s/REPLACE_NAMESPACE/$temp_project_name/g" -e "s/ibm-fncm-operator-catalog-subscription/$OLM_SUBSCRIPTION_NAME/g" ${OLM_SUBSCRIPTION} >${OLM_SUBSCRIPTION_TMP}
 
   ${CLI_CMD} apply -f ${OLM_SUBSCRIPTION_TMP}
 

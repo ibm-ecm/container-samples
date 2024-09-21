@@ -43,6 +43,7 @@ mkdir -p $TEMP_FOLDER >/dev/null 2>&1
 
 # During the development cycle we will need to apply cp4a_catalogsource.yaml
 # catalog_source.yaml is the final deliver yaml.
+
 OLM_CATALOG=${PARENT_DIR}/descriptors/op-olm/catalogsource.yaml
 OLM_OPT_GROUP=${PARENT_DIR}/descriptors/op-olm/operator_group.yaml
 OLM_SUBSCRIPTION=${PARENT_DIR}/descriptors/op-olm/subscription.yaml
@@ -56,7 +57,7 @@ echo '' >$LOG_FILE
 
 function validate_cli() {
   clear
-  echo -e "\x1B[1mThis script prepares the environment for the deployment of some FileNet Content Management capabilities \x1B[0m"
+  echo -e "\x1b[1mThis script prepares the environment for the deployment of some FileNet Content Management capabilities \x1b[0m"
   echo
   if [[ $PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "ROKS" ]]; then
     which oc &>/dev/null
@@ -76,7 +77,7 @@ function select_all_namespace() {
   printf "\n"
   while true; do
     if [ -z "$FNCM_AUTO_ALL_NAMESPACES" ]; then
-      printf "\x1B[1mDo you want IBM FileNet Content Manager Operator support 'All Namespaces'? (Yes/No, default: No) \x1B[0m"
+      printf "\x1b[1mDo you want IBM FileNet Content Manager Operator support 'All Namespaces'? (Yes/No, default: No) \x1b[0m"
 
       read -rp "" ans
       case "$ans" in
@@ -94,7 +95,7 @@ function select_all_namespace() {
         ;;
       esac
     else
-      printf "\x1B[1mDo you want IBM FileNet Content Manager Operator support 'All Namespaces'? (Yes/No, default: No)  \x1B[0m$FNCM_AUTO_ALL_NAMESPACES\n"
+      printf "\x1b[1mDo you want IBM FileNet Content Manager Operator support 'All Namespaces'? (Yes/No, default: No)  \x1b[0m$FNCM_AUTO_ALL_NAMESPACES\n"
       case "$FNCM_AUTO_ALL_NAMESPACES" in
       "y" | "Y" | "yes" | "Yes" | "YES")
         ALL_NAMESPACE="Yes"
@@ -128,21 +129,21 @@ function collect_input() {
       read -p "Enter the name for a new project or an existing project (namespace): " project_name
     else
       if [[ "$FNCM_NAMESPACE" == openshift* ]]; then
-        echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
+        echo -e "\x1b[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1b[0m"
         exit 1
       elif [[ "$FNCM_NAMESPACE" == kube* ]]; then
-        echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
+        echo -e "\x1b[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1b[0m"
         exit 1
       fi
       project_name=$FNCM_NAMESPACE
     fi
     if [ -z "$project_name" ]; then
-      echo -e "\x1B[1;31mEnter a valid project name, project name can not be blank\x1B[0m"
+      echo -e "\x1b[1;31mEnter a valid project name, project name can not be blank\x1b[0m"
     elif [[ "$project_name" == openshift* ]]; then
-      echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
+      echo -e "\x1b[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1b[0m"
       project_name=""
     elif [[ "$project_name" == kube* ]]; then
-      echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
+      echo -e "\x1b[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1b[0m"
       project_name=""
     else
       create_project
@@ -160,17 +161,17 @@ function create_project() {
       returnValue=$?
       if [ "$returnValue" == 1 ]; then
         if [ -z "$FNCM_NAMESPACE" ]; then
-          echo -e "\x1B[1;31mInvalid project name, please enter a valid name...\x1B[0m"
+          echo -e "\x1b[1;31mInvalid project name, please enter a valid name...\x1b[0m"
           project_name=""
         else
-          echo -e "\x1B[1;31mInvalid project name \"$FNCM_NAMESPACE\", please set a valid name...\x1B[0m"
+          echo -e "\x1b[1;31mInvalid project name \"$FNCM_NAMESPACE\", please set a valid name...\x1b[0m"
           exit 1
         fi
       else
-        echo -e "\x1B[1mUsing project ${project_name}...\x1B[0m"
+        echo -e "\x1b[1mUsing project ${project_name}...\x1b[0m"
       fi
     else
-      echo -e "\x1B[1mProject \"${project_name}\" already exists! Continue...\x1B[0m"
+      echo -e "\x1b[1mProject \"${project_name}\" already exists! Continue...\x1b[0m"
     fi
   elif [[ "$PLATFORM_SELECTED" == "other" ]]; then
     isProjExists=$(kubectl get namespace $project_name --ignore-not-found | wc -l) >/dev/null 2>&1
@@ -180,17 +181,17 @@ function create_project() {
       returnValue=$?
       if [ "$returnValue" == 1 ]; then
         if [ -z "$FNCM_NAMESPACE" ]; then
-          echo -e "\x1B[1;31mInvalid namespace name, please enter a valid name...\x1B[0m"
+          echo -e "\x1b[1;31mInvalid namespace name, please enter a valid name...\x1b[0m"
           project_name=""
         else
-          echo -e "\x1B[1;31mInvalid namespace name \"$FNCM_NAMESPACE\", please set a valid name...\x1B[0m"
+          echo -e "\x1b[1;31mInvalid namespace name \"$FNCM_NAMESPACE\", please set a valid name...\x1b[0m"
           exit 1
         fi
       else
-        echo -e "\x1B[1mUsing namespace ${project_name}...\x1B[0m"
+        echo -e "\x1b[1mUsing namespace ${project_name}...\x1b[0m"
       fi
     else
-      echo -e "\x1B[1mName space \"${project_name}\" already exists! Continue...\x1B[0m"
+      echo -e "\x1b[1mName space \"${project_name}\" already exists! Continue...\x1b[0m"
     fi
   fi
   PROJ_NAME=${project_name}
@@ -200,10 +201,10 @@ function check_user_exist() {
   ${CLI_CMD} get user | grep "${user_name}" >/dev/null 2>&1
   returnValue=$?
   if [ "$returnValue" == 1 ]; then
-    echo -e "\x1B[1mUser \"${user_name}\" NOT exists! Please enter an existing username in your cluster...\x1B[0m"
+    echo -e "\x1b[1mUser \"${user_name}\" NOT exists! Please enter an existing username in your cluster...\x1b[0m"
     user_name=""
   else
-    echo -e "\x1B[1mUser \"${user_name}\" exists! Continue...\x1B[0m"
+    echo -e "\x1b[1mUser \"${user_name}\" exists! Continue...\x1b[0m"
   fi
 }
 
@@ -272,7 +273,7 @@ function apply_operator_cncf() {
   ${COPY_CMD} -rf ${OPERATOR_FILE} ${OPERATOR_FILE_TMP}
 
   printf "\n"
-  echo -e "\x1B[1mInstalling the FileNet Content Management operator...\x1B[0m"
+  echo -e "\x1b[1mInstalling the FileNet Content Management operator...\x1b[0m"
   # set db2_license
   ${SED_COMMAND} '/fncm_license/{n;s/value:.*/value: accept/;}' ${OPERATOR_FILE_TMP}
   # Set operator image pull secret
@@ -288,15 +289,15 @@ function apply_operator_cncf() {
   INSTALL_OPERATOR_CMD="${CLI_CMD} apply -f ${OPERATOR_FILE_TMP} -n $project_name"
   sleep 5
   if $INSTALL_OPERATOR_CMD; then
-    echo -e "\x1B[1mDone\x1B[0m"
+    echo -e "\x1b[1mDone\x1b[0m"
   else
-    echo -e "\x1B[1;31mFailed\x1B[0m"
+    echo -e "\x1b[1;31mFailed\x1b[0m"
   fi
 
   # ${COPY_CMD} -rf ${OPERATOR_FILE_TMP} ${OPERATOR_FILE_BAK}
   printf "\n"
   # Check deployment rollout status every 5 seconds (max 10 minutes) until complete.
-  echo -e "\x1B[1mWaiting for the FileNet Content Management operator to be ready. This might take a few minutes... \x1B[0m"
+  echo -e "\x1b[1mWaiting for the FileNet Content Management operator to be ready. This might take a few minutes... \x1b[0m"
   ATTEMPTS=0
   ROLLOUT_STATUS_CMD="${CLI_CMD} rollout status deployment/ibm-fncm-operator -n $project_name"
   until $ROLLOUT_STATUS_CMD || [ $ATTEMPTS -eq 120 ]; do
@@ -305,9 +306,9 @@ function apply_operator_cncf() {
     sleep 5
   done
   if $ROLLOUT_STATUS_CMD; then
-    echo -e "\x1B[1mDone\x1B[0m"
+    echo -e "\x1b[1mDone\x1b[0m"
   else
-    echo -e "\x1B[1;31mFailed\x1B[0m"
+    echo -e "\x1b[1;31mFailed\x1b[0m"
   fi
   printf "\n"
 }
@@ -319,8 +320,8 @@ function check_existing_sc() {
   sc_substring="No resources found"
   if [[ $sc_result == *"$sc_substring"* ]]; then
     clear
-    echo -e "\x1B[1;31mAt least one dynamic storage class must be available in order to proceed.\n\x1B[0m"
-    echo -e "\x1B[1;31mRefer to Knowledge Center documentation for details.  The script will now exit!.\n\x1B[0m"
+    echo -e "\x1b[1;31mAt least one dynamic storage class must be available in order to proceed.\n\x1b[0m"
+    echo -e "\x1b[1;31mRefer to Knowledge Center documentation for details.  The script will now exit!.\n\x1b[0m"
     exit 1
   fi
 }
@@ -329,12 +330,12 @@ function validate_docker_podman_cli() {
   if [[ $PLATFORM_VERSION == "3.11" || "$machine" == "Mac" || $PLATFORM_SELECTED == "other" ]]; then
     which docker &>/dev/null
     [[ $? -ne 0 ]] &&
-      echo -e "\x1B[1;31mUnable to locate docker, please install it first.\x1B[0m" &&
+      echo -e "\x1b[1;31mUnable to locate docker, please install it first.\x1b[0m" &&
       exit 1
   elif [[ $PLATFORM_VERSION == "4.4OrLater" ]]; then
     which podman &>/dev/null
     [[ $? -ne 0 ]] &&
-      echo -e "\x1B[1;31mUnable to locate podman, please install it first.\x1B[0m" &&
+      echo -e "\x1b[1;31mUnable to locate podman, please install it first.\x1b[0m" &&
       exit 1
   fi
 }
@@ -345,27 +346,27 @@ function get_entitlement_registry() {
   entitlement_key=""
   printf "\n"
   printf "\n"
-  printf "\x1B[1;31mFollow the instructions on how to get your Entitlement Key: \n\x1B[0m"
-  printf "\x1B[1;31mhttps://www.ibm.com/docs/en/filenet-p8-platform/5.5.x?topic=images-getting-access-container\n\x1B[0m"
+  printf "\x1b[1;31mFollow the instructions on how to get your Entitlement Key: \n\x1b[0m"
+  printf "\x1b[1;31mhttps://www.ibm.com/docs/en/filenet-p8-platform/5.5.x?topic=images-getting-access-container\n\x1b[0m"
   printf "\n"
   while true; do
     if [[ ! -z "$FNCM_ENTITLEMENT_KEY" && ! -z "$FNCM_LOCAL_PUBLIC_REGISTRY" ]]; then
-      echo -e "\x1B[1;31mPlease set either one of environment variables [FNCM_ENTITLEMENT_KEY] or [FNCM_LOCAL_REGISTRY]\x1B[0m"
+      echo -e "\x1b[1;31mPlease set either one of environment variables [FNCM_ENTITLEMENT_KEY] or [FNCM_LOCAL_REGISTRY]\x1b[0m"
       echo -e "Exiting..."
       exit 1
     fi
 
     if [[ -z "$FNCM_ENTITLEMENT_KEY" && ! -z "$FNCM_LOCAL_PUBLIC_REGISTRY" ]]; then
-      printf "\x1B[1mDo you have an IBM Entitlement Registry key (Yes/No, default: No):\x1B[0m No"
+      printf "\x1b[1mDo you have an IBM Entitlement Registry key (Yes/No, default: No):\x1b[0m No"
       ans="No"
     fi
     if [[ -z "$FNCM_LOCAL_PUBLIC_REGISTRY" && ! -z "$FNCM_ENTITLEMENT_KEY" ]]; then
-      printf "\x1B[1mDo you have an IBM Entitlement Registry key (Yes/No, default: No):\x1B[0m Yes"
+      printf "\x1b[1mDo you have an IBM Entitlement Registry key (Yes/No, default: No):\x1b[0m Yes"
       ans="Yes"
     fi
 
     if [[ -z "$FNCM_ENTITLEMENT_KEY" && -z "$FNCM_LOCAL_PUBLIC_REGISTRY" ]]; then
-      printf "\x1B[1mDo you have an IBM Entitlement Registry key (Yes/No, default: No): \x1B[0m"
+      printf "\x1b[1mDo you have an IBM Entitlement Registry key (Yes/No, default: No): \x1b[0m"
       read -rp "" ans
     fi
 
@@ -373,7 +374,7 @@ function get_entitlement_registry() {
     "y" | "Y" | "yes" | "Yes" | "YES")
       use_entitlement="yes"
       printf "\n"
-      printf "\x1B[1mEnter your Entitlement Registry key: \x1B[0m"
+      printf "\x1b[1mEnter your Entitlement Registry key: \x1b[0m"
       # During dev, OLM uses stage image repo
       if [[ "$RUNTIME_MODE" == "dev" || $RUNTIME_MODE == "baw-dev" ]]; then
         DOCKER_REG_SERVER="cp.stg.icr.io"
@@ -389,7 +390,7 @@ function get_entitlement_registry() {
         fi
         if [ -z "$entitlement_key" ]; then
           printf "\n"
-          echo -e "\x1B[1;31mEnter a valid Entitlement Registry key\x1B[0m"
+          echo -e "\x1b[1;31mEnter a valid Entitlement Registry key\x1b[0m"
         else
           if [[ $entitlement_key == iamapikey:* ]]; then
             DOCKER_REG_USER="iamapikey"
@@ -402,7 +403,7 @@ function get_entitlement_registry() {
           entitlement_verify_passed=""
           while [[ $entitlement_verify_passed == '' ]]; do
             printf "\n"
-            printf "\x1B[1mVerifying the Entitlement Registry key...\n\x1B[0m"
+            printf "\x1b[1mVerifying the Entitlement Registry key...\n\x1b[0m"
 
             which podman &>/dev/null
             if [[ $? -eq 0 ]]; then
@@ -415,8 +416,8 @@ function get_entitlement_registry() {
               printf 'Entitlement Registry key is valid.\n'
               entitlement_verify_passed="passed"
             else
-              printf '\x1B[1;31mThe Entitlement Registry key failed.\n\x1B[0m'
-              printf '\x1B[1mEnter a valid Entitlement Registry key.\n\x1B[0m'
+              printf '\x1b[1;31mThe Entitlement Registry key failed.\n\x1b[0m'
+              printf '\x1b[1mEnter a valid Entitlement Registry key.\n\x1b[0m'
               entitlement_key=''
               entitlement_verify_passed="failed"
             fi
@@ -439,14 +440,14 @@ function get_entitlement_registry() {
 
 function create_secret_entitlement_registry() {
   # Create docker-registry secret for Entitlement Registry Key in target project
-  printf "\x1B[1mCreating docker-registry secret for Entitlement Registry key in project $project_name...\n\x1B[0m"
+  printf "\x1b[1mCreating docker-registry secret for Entitlement Registry key in project $project_name...\n\x1b[0m"
 
   ${CLI_CMD} delete secret "$DOCKER_RES_SECRET_NAME" -n "${project_name}" >/dev/null 2>&1
   CREATE_SECRET_CMD="${CLI_CMD} create secret docker-registry $DOCKER_RES_SECRET_NAME --docker-server=$DOCKER_REG_SERVER --docker-username=$DOCKER_REG_USER --docker-password=$DOCKER_REG_KEY --docker-email=ecmtest@ibm.com -n $project_name"
   if $CREATE_SECRET_CMD; then
-    echo -e "\x1B[1mDone\x1B[0m"
+    echo -e "\x1b[1mDone\x1b[0m"
   else
-    echo -e "\x1B[1mFailed\x1B[0m"
+    echo -e "\x1b[1mFailed\x1b[0m"
   fi
 }
 
@@ -474,7 +475,7 @@ function clean_up() {
 function select_platform() {
   if [ -z "$FNCM_PLATFORM" ]; then
     COLUMNS=12
-    echo -e "\x1B[1mSelect the cloud platform to deploy: \x1B[0m"
+    echo -e "\x1b[1mSelect the cloud platform to deploy: \x1b[0m"
     options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud" "Other (Certified Kubernetes Cloud Platform / CNCF)")
     PS3='Enter a valid option [1 to 3]: '
     select opt in "${options[@]}"; do
@@ -496,7 +497,7 @@ function select_platform() {
     done
   else
     PLATFORM_SELECTED=$FNCM_PLATFORM
-    echo -e "\x1B[1mWhat type of cloud platform is selected?\x1B[0m $FNCM_PLATFORM"
+    echo -e "\x1b[1mWhat type of cloud platform is selected?\x1b[0m $FNCM_PLATFORM"
   fi
   if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
     SCRIPT_MODE="OLM"
@@ -508,7 +509,7 @@ function select_platform() {
 
 function select_deployment_type() {
   COLUMNS=12
-  echo -e "\x1B[1mWhat type of deployment is being performed?\x1B[0m"
+  echo -e "\x1b[1mWhat type of deployment is being performed?\x1b[0m"
   if [[ $PLATFORM_SELECTED == "other" ]]; then
     options=("Enterprise")
     PS3='Enter a valid option [1 to 1]: '
@@ -541,60 +542,43 @@ function select_deployment_type() {
 }
 
 function select_user() {
-  user_result=$(${CLI_CMD} get user 2>&1)
-  user_substring="No resources found"
-  if [[ $user_result == *"$user_substring"* ]]; then
-    clear
-    echo -e "\x1B[1;No additional users found on the cluster.\n\x1B[0m"
-    echo -e "\x1B[1;31mIf you wish to add a non-administrator user to manage the namespace, create one user before proceeding.\n\x1B[0m"
-    echo -e "\x1B[1;31mRefer to Knowledge Center documentation for details.\n\x1B[0m"
-    echo -e "\x1B[1;This script will now exit...\n\x1B[0m"
-    exit 1
-  fi
-
   echo
   # Silent install
   if [[ ! -z "${FNCM_ADD_CLUSTER_USER}" ]]; then
     case "$FNCM_ADD_CLUSTER_USER" in
     "y" | "Y" | "yes" | "Yes" | "YES")
-      printf "\x1B[1mDo you want to add a non-administrator user to manage the namespace (Yes/No): \x1B[0m$FNCM_ADD_CLUSTER_USER\n"
+      printf "\x1b[1mDo you want to add a non-administrator user to manage the namespace (Yes/No): \x1b[0m$FNCM_ADD_CLUSTER_USER\n"
       if [[ ! -z "${FNCM_CLUSTER_USER}" ]]; then
-        userlist=$(${CLI_CMD} get user | awk '{if(NR>1){if(NR==2){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
-
         ${CLI_CMD} get user ${FNCM_CLUSTER_USER} >/dev/null 2>&1
         returnValue=$?
         if [ "$returnValue" == 1 ]; then
-          echo -e "\x1B[1;31mThe user \"${FNCM_CLUSTER_USER}\" was not found, please set a valid user.\x1B[0m"
-          echo -e "\x1B[1;31mHere are the existing users on this cluster:\x1B[0m"
-          for user in $userlist; do
-            echo $user
-          done
-          echo -e "\x1B[1;31mThe script will now exit...\x1B[0m"
+          echo -e "\x1b[31mThe user \"${FNCM_CLUSTER_USER}\" was not found, please set a valid user.\x1b[0m"
+          echo -e "\x1b[31mThe script will now exit...\x1b[0m"
           exit 1
         else
           user_name=$FNCM_CLUSTER_USER
-          echo -e "\x1B[1mSelected the existing user: \x1B[0m${user_name}"
+          echo -e "\x1b[1mSelected the existing user: \x1b[0m${user_name}"
         fi
       else
-        echo -e "\x1B[1;31mNo user input found for [FNCM_CLUSTER_USER], please set a valid user.\x1B[0m"
-        echo -e "\x1B[1;31mHere are the existing users on this cluster:\x1B[0m"
+        echo -e "\x1b[31mNo user input found for [FNCM_CLUSTER_USER], please set a valid user.\x1b[0m"
+        echo -e "\x1b[31mHere are the existing users on this cluster:\x1b[0m"
         userlist=$(${CLI_CMD} get user | awk '{if(NR>1){if(NR==2){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
         for user in $userlist; do
           echo $user
         done
-        echo -e "\x1B[1;31mThe script will now exit...\x1B[0m"
+        echo -e "\x1b[31mThe script will now exit...\x1b[0m"
         exit 1
       fi
       ;;
     "n" | "N" | "no" | "No" | "NO")
-      printf "\x1B[1mDo you want to add a non-administrator user to manage the namespace (Yes/No): \x1B[0m$FNCM_ADD_CLUSTER_USER\n"
+      printf "\x1b[1mDo you want to add a non-administrator user to manage the namespace (Yes/No): \x1b[0m$FNCM_ADD_CLUSTER_USER\n"
       FNCM_CLUSTER_USER=""
       user_name=""
       ;;
     *)
-      printf "\x1B[1mDo you want to add a non-administrator user to manage the namespace (Yes/No): \x1B[0m$FNCM_ADD_CLUSTER_USER\n"
-      echo -e "\x1B[1;31m\"Yes\" or \"No\" are valid values for the environment variable [FNCM_ADD_CLUSTER_USER].\x1B[0m"
-      echo -e "\x1B[1;31mThe script will now exit...\x1B[0m"
+      printf "\x1b[1mDo you want to add a non-administrator user to manage the namespace (Yes/No): \x1b[0m$FNCM_ADD_CLUSTER_USER\n"
+      echo -e "\x1b[31m\"Yes\" or \"No\" are valid values for the environment variable [FNCM_ADD_CLUSTER_USER].\x1b[0m"
+      echo -e "\x1b[31mThe script will now exit...\x1b[0m"
       exit 1
       ;;
     esac
@@ -602,7 +586,7 @@ function select_user() {
   else
     while true; do
       if [ -z "$FNCM_CLUSTER_USER" ]; then
-        printf "\x1B[1mDo you want to add a non-administrator user to manage the namespace (Yes/No, default: No): \x1B[0m"
+        printf "\x1b[1mDo you want to add a non-administrator user to manage the namespace (Yes/No, default: No): \x1b[0m"
         read -rp "" selectuserans
         case "$selectuserans" in
         "n" | "N" | "no" | "No" | "NO" | "")
@@ -610,16 +594,18 @@ function select_user() {
           break
           ;;
         "y" | "Y" | "yes" | "Yes" | "YES")
-          if [[ $user_result == *"$user_substring"* ]]; then
-            echo -e "\x1B[1;No additional users found on the cluster. At least one is required to proceed.\n\x1B[0m"
-            echo -e "\x1B[1;This script will now exit...\n\x1B[0m"
+          user_substring="No resources found"
+          user_result=$(${CLI_CMD} get user 2>&1)
+          if [[ ${user_result} == *"$user_substring"* ]]; then
+            echo -e "\x1b[31mNo additional users found on the cluster. At least one is required to proceed.\n\x1b[0m"
+            echo -e "\x1b[31mThis script will now exit...\n\x1b[0m"
             exit 1
           fi
 
           printf "\n"
           userlist=$(${CLI_CMD} get user | awk '{if(NR>1){if(NR==2){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
           COLUMNS=12
-          echo -e "\x1B[1mHere are the existing users on this cluster: \x1B[0m"
+          echo -e "\x1b[1mHere are the existing users on this cluster: \x1b[0m"
           options=($userlist)
           usernum=${#options[*]}
           PS3='Select an existing user in your cluster, valid options are [1 to '${usernum}']: '
@@ -651,11 +637,11 @@ function check_storage_class() {
 
 function create_storage_classes_roks() {
   echo
-  echo -ne "\x1B[1mCreate storage classes for deployment: \x1B[0m"
+  echo -ne "\x1b[1mCreate storage classes for deployment: \x1b[0m"
   ${CLI_CMD} apply -f ${BRONZE_STORAGE_CLASS} --validate=false >/dev/null 2>&1
   ${CLI_CMD} apply -f ${SILVER_STORAGE_CLASS} --validate=false >/dev/null 2>&1
   ${CLI_CMD} apply -f ${GOLD_STORAGE_CLASS} --validate=false >/dev/null 2>&1
-  echo -e "\x1B[1mDone \x1B[0m"
+  echo -e "\x1b[1mDone \x1b[0m"
 
 }
 
@@ -663,9 +649,9 @@ function display_storage_classes_roks() {
   sc_bronze_name=fncm-file-retain-bronze-gid
   sc_silver_name=fncm-file-retain-silver-gid
   sc_gold_name=fncm-file-retain-gold-gid
-  echo -e "\x1B[1;31m    $sc_bronze_name \x1B[0m"
-  echo -e "\x1B[1;31m    $sc_silver_name \x1B[0m"
-  echo -e "\x1B[1;31m    $sc_gold_name \x1B[0m"
+  echo -e "\x1b[1;31m    $sc_bronze_name \x1b[0m"
+  echo -e "\x1b[1;31m    $sc_silver_name \x1b[0m"
+  echo -e "\x1b[1;31m    $sc_gold_name \x1b[0m"
 }
 
 function check_platform_version() {
@@ -675,7 +661,7 @@ function check_platform_version() {
     PLATFORM_VERSION="4.4OrLater"
   else
     PLATFORM_VERSION="4.4OrLater"
-    echo -e "\x1B[1;31mIMPORTANT: Only support OCp4.4 or Later, exit...\n\x1B[0m"
+    echo -e "\x1b[1;31mIMPORTANT: Only support OCp4.4 or Later, exit...\n\x1b[0m"
     read -rsn1 -p"Press any key to continue"
     echo
     exit 1
@@ -685,7 +671,7 @@ function check_platform_version() {
 function prepare_common_service() {
 
   echo
-  echo -e "\x1B[1mThe script is preparing the custom resources (CR) files for OCP Common Services.  You are required to update (fill out) the necessary values in the CRs and deploy Common Services prior to the deployment. \x1B[0m"
+  echo -e "\x1b[1mThe script is preparing the custom resources (CR) files for OCP Common Services.  You are required to update (fill out) the necessary values in the CRs and deploy Common Services prior to the deployment. \x1b[0m"
   echo -e "The prepared CRs for IBM common Services are located here: "${COMMON_SERVICES_CRD_DIRECTORY}
   echo -e "After making changes to the CRs, execute the 'deploy_CS.sh' script to install Common Services."
   echo -e "Done"
@@ -694,23 +680,23 @@ function prepare_common_service() {
 function show_summary() {
 
   printf "\n"
-  echo -e "\x1B[1m*******************************************************\x1B[0m"
-  echo -e "\x1B[1m                    Summary of input                   \x1B[0m"
-  echo -e "\x1B[1m*******************************************************\x1B[0m"
+  echo -e "\x1b[1m*******************************************************\x1b[0m"
+  echo -e "\x1b[1m                    Summary of input                   \x1b[0m"
+  echo -e "\x1b[1m*******************************************************\x1b[0m"
   if [[ ${PLATFORM_VERSION} == "4.4OrLater" ]]; then
-    echo -e "\x1B[1;31m1. Cloud platform to deploy: ${PLATFORM_SELECTED} 4.X\x1B[0m"
+    echo -e "\x1b[1;31m1. Cloud platform to deploy: ${PLATFORM_SELECTED} 4.X\x1b[0m"
   else
-    echo -e "\x1B[1;31m1. Cloud platform to deploy: ${PLATFORM_SELECTED} ${PLATFORM_VERSION}\x1B[0m"
+    echo -e "\x1b[1;31m1. Cloud platform to deploy: ${PLATFORM_SELECTED} ${PLATFORM_VERSION}\x1b[0m"
   fi
-  echo -e "\x1B[1;31m2. Project to deploy: ${project_name}\x1B[0m"
+  echo -e "\x1b[1;31m2. Project to deploy: ${project_name}\x1b[0m"
   if [[ $PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "ROKS" ]]; then
-    echo -e "\x1B[1;31m3. User selected: ${user_name}\x1B[0m"
+    echo -e "\x1b[1;31m3. User selected: ${user_name}\x1b[0m"
   fi
   if [[ $PLATFORM_SELECTED == "ROKS" ]]; then
-    echo -e "\x1B[1;31m5. Storage Class created: \x1B[0m"
+    echo -e "\x1b[1;31m5. Storage Class created: \x1b[0m"
     display_storage_classes_roks
   fi
-  echo -e "\x1B[1m*******************************************************\x1B[0m"
+  echo -e "\x1b[1m*******************************************************\x1b[0m"
 }
 
 function get_local_registry_server() {
@@ -720,17 +706,17 @@ function get_local_registry_server() {
     if [[ "${PLATFORM_VERSION}" == "4.4OrLater" ]]; then
       #This is required for docker/podman login validation.
       if [ ! -z "$FNCM_LOCAL_PUBLIC_REGISTRY" ]; then
-        printf "\x1B[1mEnter the public image registry or route: \x1B[0m$FNCM_LOCAL_PUBLIC_REGISTRY"
-        #printf "\x1B[1mThis is required for docker/podman login validation: \x1B[0m"
+        printf "\x1b[1mEnter the public image registry or route: \x1b[0m$FNCM_LOCAL_PUBLIC_REGISTRY"
+        #printf "\x1b[1mThis is required for docker/podman login validation: \x1b[0m"
         local_public_registry_server=$FNCM_LOCAL_PUBLIC_REGISTRY
       else
-        printf "\x1B[1mEnter the public image registry or route (e.g., default-route-openshift-image-registry.apps.<hostname>). \n\x1B[0m"
-        printf "\x1B[1mThis is required for docker/podman login validation: \x1B[0m"
+        printf "\x1b[1mEnter the public image registry or route (e.g., default-route-openshift-image-registry.apps.<hostname>). \n\x1b[0m"
+        printf "\x1b[1mThis is required for docker/podman login validation: \x1b[0m"
         local_public_registry_server=""
         while [[ $local_public_registry_server == "" ]]; do
           read -rp "" local_public_registry_server
           if [ -z "$local_public_registry_server" ]; then
-            echo -e "\x1B[1;31mEnter a valid service name or the URL for the docker registry.\x1B[0m"
+            echo -e "\x1b[1;31mEnter a valid service name or the URL for the docker registry.\x1b[0m"
           fi
         done
       fi
@@ -738,18 +724,18 @@ function get_local_registry_server() {
       if [[ -z "$FNCM_LOCAL_PRIVATE_REGISTRY" ]]; then
         local_registry_server=""
         if [[ "${REGISTRY_TYPE}" == "internal" && "${PLATFORM_VERSION}" == "4.4OrLater" ]]; then
-          printf "\x1B[1mEnter the local image registry (e.g., image-registry.openshift-image-registry.svc:5000/<project>)\n\x1B[0m"
-          printf "\x1B[1mThis is required to pull container images and Kubernetes secret creation: \x1B[0m"
+          printf "\x1b[1mEnter the local image registry (e.g., image-registry.openshift-image-registry.svc:5000/<project>)\n\x1b[0m"
+          printf "\x1b[1mThis is required to pull container images and Kubernetes secret creation: \x1b[0m"
 
           while [[ $local_registry_server == "" ]]; do
             read -rp "" local_registry_server
             if [ -z "$local_registry_server" ]; then
-              echo -e "\x1B[1;31mEnter a valid service name or the URL for the docker registry.\x1B[0m"
+              echo -e "\x1b[1;31mEnter a valid service name or the URL for the docker registry.\x1b[0m"
             fi
           done
         elif [[ "${PLATFORM_VERSION}" != "4.4OrLater" ]]; then
           printf "\n"
-          printf "\x1B[1mEnter the local image registry: \x1B[0m$FNCM_LOCAL_PRIVATE_REGISTRY"
+          printf "\x1b[1mEnter the local image registry: \x1b[0m$FNCM_LOCAL_PRIVATE_REGISTRY"
           local_registry_server=$FNCM_LOCAL_PRIVATE_REGISTRY
         fi
       fi
@@ -757,17 +743,17 @@ function get_local_registry_server() {
 
   else
     if [ ! -z "$FNCM_LOCAL_PUBLIC_REGISTRY" ]; then
-      printf "\x1B[1mEnter the docker image registry or route: \x1B[0m$FNCM_LOCAL_PUBLIC_REGISTRY"
-      #printf "\x1B[1mThis is required for docker/podman login validation: \x1B[0m"
+      printf "\x1b[1mEnter the docker image registry or route: \x1b[0m$FNCM_LOCAL_PUBLIC_REGISTRY"
+      #printf "\x1b[1mThis is required for docker/podman login validation: \x1b[0m"
       local_public_registry_server=$FNCM_LOCAL_PUBLIC_REGISTRY
     else
-      printf "\x1B[1mEnter the URL to the docker registry, for example: abc.xyz.com: \n\x1B[0m"
-      printf "\x1B[1mThis is required for docker/podman login validation: \x1B[0m"
+      printf "\x1b[1mEnter the URL to the docker registry, for example: abc.xyz.com: \n\x1b[0m"
+      printf "\x1b[1mThis is required for docker/podman login validation: \x1b[0m"
       local_public_registry_server=""
       while [[ $local_public_registry_server == "" ]]; do
         read -rp "" local_public_registry_server
         if [ -z "$local_public_registry_server" ]; then
-          echo -e "\x1B[1;31mEnter a valid service name or the URL for the docker registry.\x1B[0m"
+          echo -e "\x1b[1;31mEnter a valid service name or the URL for the docker registry.\x1b[0m"
         fi
       done
     fi
@@ -792,16 +778,16 @@ function get_local_registry_user() {
   # For Local Registry User
   printf "\n"
   if [ -z "$FNCM_LOCAL_REGISTRY_USER" ]; then
-    printf "\x1B[1mEnter the user name for your docker registry: \x1B[0m"
+    printf "\x1b[1mEnter the user name for your docker registry: \x1b[0m"
     local_registry_user=""
     while [[ $local_registry_user == "" ]]; do
       read -rp "" local_registry_user
       if [ -z "$local_registry_user" ]; then
-        echo -e "\x1B[1;31mEnter a valid user name.\x1B[0m"
+        echo -e "\x1b[1;31mEnter a valid user name.\x1b[0m"
       fi
     done
   else
-    echo -e "\x1B[1mEnter the user name for your docker registry: \x1B[0m$FNCM_LOCAL_REGISTRY_USER"
+    echo -e "\x1b[1mEnter the user name for your docker registry: \x1b[0m$FNCM_LOCAL_REGISTRY_USER"
     local_registry_user=$FNCM_LOCAL_REGISTRY_USER
   fi
   LOCAL_REGISTRY_USER=${local_registry_user}
@@ -810,16 +796,16 @@ function get_local_registry_user() {
 function get_local_registry_password() {
   printf "\n"
   if [ -z "$FNCM_LOCAL_REGISTRY_PASSWORD" ]; then
-    printf "\x1B[1mEnter the password for your docker registry: \x1B[0m"
+    printf "\x1b[1mEnter the password for your docker registry: \x1b[0m"
     local_registry_password=""
     while [[ $local_registry_password == "" ]]; do
       read -rsp "" local_registry_password
       if [ -z "$local_registry_password" ]; then
-        echo -e "\x1B[1;31mEnter a valid password\x1B[0m"
+        echo -e "\x1b[1;31mEnter a valid password\x1b[0m"
       fi
     done
   else
-    printf "\x1B[1mEnter the password for your docker registry: \x1B[0m\n"
+    printf "\x1b[1mEnter the password for your docker registry: \x1b[0m\n"
     local_registry_password=$FNCM_LOCAL_REGISTRY_PASSWORD
   fi
   LOCAL_REGISTRY_PWD=${local_registry_password}
@@ -831,17 +817,17 @@ function verify_local_registry_password() {
   printf "\n"
   while true; do
     if [ -z "$FNCM_PUSH_IMAGE_LOCAL_REGISTRY" ]; then
-      printf "\x1B[1mHave you pushed the operator image to docker registry using 'loadimages.sh' (FNCM Operator image) (Yes/No)? \x1B[0m"
+      printf "\x1b[1mHave you pushed the operator image to docker registry using 'loadimages.sh' (FNCM Operator image) (Yes/No)? \x1b[0m"
       read -rp "" ans
     else
       case "$FNCM_PUSH_IMAGE_LOCAL_REGISTRY" in
       "y" | "Y" | "yes" | "Yes" | "YES" | "True" | "TRUE" | "true")
-        echo -e "\x1B[1mHave you pushed the operator image to the docker registry using 'loadimages.sh' (FNCM Operator image) (Yes/No)? \x1B[0m$FNCM_PUSH_IMAGE_LOCAL_REGISTRY"
+        echo -e "\x1b[1mHave you pushed the operator image to the docker registry using 'loadimages.sh' (FNCM Operator image) (Yes/No)? \x1b[0m$FNCM_PUSH_IMAGE_LOCAL_REGISTRY"
         ans="Yes"
         ;;
       "n" | "N" | "no" | "No" | "NO" | "false" | "False" | "FALSE")
-        echo -e "\x1B[1mHave you pushed the operator image to the docker registry using 'loadimages.sh' (FNCM Operator image) (Yes/No)? \x1B[0m$FNCM_PUSH_IMAGE_LOCAL_REGISTRY"
-        echo -e "\x1B[1;31mPlease push the image to a docker registry to proceed.\n\x1B[0m"
+        echo -e "\x1b[1mHave you pushed the operator image to the docker registry using 'loadimages.sh' (FNCM Operator image) (Yes/No)? \x1b[0m$FNCM_PUSH_IMAGE_LOCAL_REGISTRY"
+        echo -e "\x1b[1;31mPlease push the image to a docker registry to proceed.\n\x1b[0m"
         ans="No"
         exit 1
         ;;
@@ -856,7 +842,7 @@ function verify_local_registry_password() {
       break
       ;;
     "n" | "N" | "no" | "No" | "NO")
-      echo -e "\x1B[1;31mPlease push the image to a docker registry to proceed.\n\x1B[0m"
+      echo -e "\x1b[1;31mPlease push the image to a docker registry to proceed.\n\x1b[0m"
       exit 1
       ;;
     *)
@@ -869,7 +855,7 @@ function verify_local_registry_password() {
     # Select which type of image registry to use.
     if [[ "${PLATFORM_SELECTED}" == "OCP" ]]; then
       printf "\n"
-      echo -e "\x1B[1mSelect the type of image registry to use: \x1B[0m"
+      echo -e "\x1b[1mSelect the type of image registry to use: \x1b[0m"
       COLUMNS=12
       options=("Other ( External image registry: abc.xyz.com )" "Openshift Container Platform (OCP) - Internal image registry")
 
@@ -893,10 +879,10 @@ function verify_local_registry_password() {
   else
     local reg_type_array=("internal" "external")
     if [[ ! " ${reg_type_array[@]} " =~ " ${FNCM_REGISTRY_TYPE} " ]]; then
-      echo -e "\x1B[1;31mOnly \"internal\" or \"external\" is valid value for environment variable [FNCM_REGISTRY_TYPE].\n\x1B[0m"
+      echo -e "\x1b[1;31mOnly \"internal\" or \"external\" is valid value for environment variable [FNCM_REGISTRY_TYPE].\n\x1b[0m"
       exit 1
     fi
-    echo -e "\x1B[1mSelect the type of image registry to use: \x1B[0m$FNCM_REGISTRY_TYPE"
+    echo -e "\x1b[1mSelect the type of image registry to use: \x1b[0m$FNCM_REGISTRY_TYPE"
     REGISTRY_TYPE=$FNCM_REGISTRY_TYPE
   fi
 
@@ -911,23 +897,23 @@ function verify_local_registry_password() {
           printf 'Verifying Local Registry passed...\n'
           verify_passed="passed"
         else
-          printf '\x1B[1;31mLogin failed...\n\x1B[0m'
+          printf '\x1b[1;31mLogin failed...\n\x1b[0m'
           verify_passed=""
           local_registry_user=""
           local_registry_server=""
-          echo -e "\x1B[1;31mCheck the local docker registry information and try again.\x1B[0m"
+          echo -e "\x1b[1;31mCheck the local docker registry information and try again.\x1b[0m"
         fi
       elif [[ "$machine" == "Mac" ]]; then
         if docker login "$local_public_registry_server" -u "$LOCAL_REGISTRY_USER" -p $(${CLI_CMD} whoami -t); then
           printf 'Verifying Local Registry passed...\n'
           verify_passed="passed"
         else
-          printf '\x1B[1;31mLogin failed...\n\x1B[0m'
+          printf '\x1b[1;31mLogin failed...\n\x1b[0m'
           verify_passed=""
           local_registry_user=""
           local_registry_server=""
           local_public_registry_server=""
-          echo -e "\x1B[1;31mCheck the local docker registry information and try again.\x1B[0m"
+          echo -e "\x1b[1;31mCheck the local docker registry information and try again.\x1b[0m"
         fi
       elif [[ $PLATFORM_VERSION == "4.4OrLater" ]]; then
         which podman &>/dev/null
@@ -936,24 +922,24 @@ function verify_local_registry_password() {
             printf 'Verifying Local Registry passed...\n'
             verify_passed="passed"
           else
-            printf '\x1B[1;31mLogin failed...\n\x1B[0m'
+            printf '\x1b[1;31mLogin failed...\n\x1b[0m'
             verify_passed=""
             local_registry_user=""
             local_registry_server=""
             local_public_registry_server=""
-            echo -e "\x1B[1;31mCheck the local docker registry information and try again.\x1B[0m"
+            echo -e "\x1b[1;31mCheck the local docker registry information and try again.\x1b[0m"
           fi
         else
           if docker login "$local_public_registry_server" -u "$LOCAL_REGISTRY_USER" -p $(${CLI_CMD} whoami -t); then
             printf 'Verifying Local Registry passed...\n'
             verify_passed="passed"
           else
-            printf '\x1B[1;31mLogin failed...\n\x1B[0m'
+            printf '\x1b[1;31mLogin failed...\n\x1b[0m'
             verify_passed=""
             local_registry_user=""
             local_registry_server=""
             local_public_registry_server=""
-            echo -e "\x1B[1;31mCheck the local docker registry information and try again.\x1B[0m"
+            echo -e "\x1b[1;31mCheck the local docker registry information and try again.\x1b[0m"
             if [ -z "$FNCM_LOCAL_PUBLIC_REGISTRY" ]; then
               verify_passed=""
               local_registry_user=""
@@ -971,8 +957,8 @@ function verify_local_registry_password() {
           printf 'Verifying the information for the local docker registry...\n'
           verify_passed="passed"
         else
-          printf '\x1B[1;31mLogin failed...\n\x1B[0m'
-          echo -e "\x1B[1;31mCheck the local docker registry information and try again.\x1B[0m"
+          printf '\x1b[1;31mLogin failed...\n\x1b[0m'
+          echo -e "\x1b[1;31mCheck the local docker registry information and try again.\x1b[0m"
           if [ -z "$FNCM_LOCAL_PUBLIC_REGISTRY" ]; then
             verify_passed=""
             local_registry_user=""
@@ -986,8 +972,8 @@ function verify_local_registry_password() {
           printf 'Verifying the information for the local docker registry...\n'
           verify_passed="passed"
         else
-          printf '\x1B[1;31mLogin failed...\n\x1B[0m'
-          echo -e "\x1B[1;31mCheck the local docker registry information and try again.\x1B[0m"
+          printf '\x1b[1;31mLogin failed...\n\x1b[0m'
+          echo -e "\x1b[1;31mCheck the local docker registry information and try again.\x1b[0m"
           if [ -z "$FNCM_LOCAL_PUBLIC_REGISTRY" ]; then
             verify_passed=""
             local_registry_user=""
@@ -1003,30 +989,30 @@ function verify_local_registry_password() {
 }
 
 function create_secret_local_registry() {
-  echo -e "\x1B[1mCreating the secret based on the local docker registry information...\x1B[0m"
+  echo -e "\x1b[1mCreating the secret based on the local docker registry information...\x1b[0m"
 
   ${CLI_CMD} delete secret "$DOCKER_RES_SECRET_NAME" -n $project_name >/dev/null 2>&1
   CREATE_SECRET_CMD="${CLI_CMD} create secret docker-registry $DOCKER_RES_SECRET_NAME --docker-server=$LOCAL_REGISTRY_SERVER --docker-username=$LOCAL_REGISTRY_USER --docker-password=$LOCAL_REGISTRY_PWD --docker-email=ecmtest@ibm.com -n $project_name"
   if $CREATE_SECRET_CMD; then
-    echo -e "\x1B[1mDone\x1B[0m"
+    echo -e "\x1b[1mDone\x1b[0m"
   else
-    echo -e "\x1B[1;31mFailed\x1B[0m"
+    echo -e "\x1b[1;31mFailed\x1b[0m"
   fi
 }
 
 function prompt_license() {
-  echo -e "\x1B[1;31mYou need to read the International Program License Agreement before start\n\x1B[0m"
-  echo -e "\x1B[1;31mIMPORTANT: Review the license information for the product bundle you are deploying. \n\x1B[0m"
-  echo -e "\x1B[1;31mIBM FileNet Content Manager license information here: https://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-LSWS-CBU4W7 \n\x1B[0m"
-  echo -e "\x1B[1;31mIBM Content Foundation license information here: https://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-LSWS-CBU5AQ \n\x1B[0m"
+  echo -e "\x1b[1;31mYou need to read the International Program License Agreement before start\n\x1b[0m"
+  echo -e "\x1b[1;31mIMPORTANT: Review the license information for the product bundle you are deploying. \n\x1b[0m"
+  echo -e "\x1b[1;31mIBM FileNet Content Manager license information here: https://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-LSWS-CHZ6NL \n\x1b[0m"
+  echo -e "\x1b[1;31mIBM Content Foundation license information here: https://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-LSWS-CHZ6V7 \n\x1b[0m"
 
   if [[ ! -z "${FNCM_LICENSE_ACCEPT}" ]]; then
     local accept_array=("accept" "ACCEPT" "Accept")
     if [[ ! " ${accept_array[@]} " =~ " ${FNCM_LICENSE_ACCEPT}" ]]; then
-      echo -e "\x1B[1;31mOnly \"Accept\" is valid value for environment variable [FNCM_LICENSE_ACCEPT].\n\x1B[0m"
+      echo -e "\x1b[1;31mOnly \"Accept\" is valid value for environment variable [FNCM_LICENSE_ACCEPT].\n\x1b[0m"
       exit 1
     else
-      echo -e "\x1B[1mInternational Program License accepted through silent install\x1B[0m"
+      echo -e "\x1b[1mInternational Program License accepted through silent install\x1b[0m"
       echo
     fi
   else
@@ -1035,7 +1021,7 @@ function prompt_license() {
 
     printf "\n"
     while true; do
-      printf "\x1B[1mDo you accept the International Program License (Yes/No, default: No): \x1B[0m"
+      printf "\x1b[1mDo you accept the International Program License (Yes/No, default: No): \x1b[0m"
       read -rp "" ans
       case "$ans" in
       "y" | "Y" | "yes" | "Yes" | "YES")
@@ -1059,10 +1045,10 @@ function verify_silence_install() {
   if [[ ! -z "${FNCM_PLATFORM}" ]]; then
     local platform_array=("OCP" "ROKS" "other")
     echo "==========================================================================="
-    echo -e "\x1B[1mStarting silent installation for FileNet Standalone Operator\x1B[0m"
+    echo -e "\x1b[1mStarting silent installation for FileNet Standalone Operator\x1b[0m"
     echo "==========================================================================="
     if [[ ! " ${platform_array[@]} " =~ " ${FNCM_PLATFORM} " ]]; then
-      echo -e "\x1B[1;31mOnly \"OCP\" or \"ROKS\" or \"other\" is valid value for environment variable [FNCM_PLATFORM].\n\x1B[0m"
+      echo -e "\x1b[1;31mOnly \"OCP\" or \"ROKS\" or \"other\" is valid value for environment variable [FNCM_PLATFORM].\n\x1b[0m"
       exit 1
     fi
   fi
@@ -1105,7 +1091,7 @@ function apply_operator_olm() {
     if [[ -z $isReady ]]; then
       if [[ $retry -eq ${maxRetry} ]]; then
         echo "Timeout Waiting for IBM FileNet Content Manager Operator Catalog pod to start"
-        echo -e "\x1B[1mPlease check the status of Pod by issue cmd: \x1B[0m"
+        echo -e "\x1b[1mPlease check the status of Pod by issue cmd: \x1b[0m"
         echo "oc describe pod $(oc get pod -n openshift-marketplace | grep $online_source | awk '{print $1}') -n openshift-marketplace"
         exit 1
       else
@@ -1150,10 +1136,10 @@ function apply_operator_olm() {
     if [[ -z $isReady ]]; then
       if [[ $retry -eq ${maxRetry} ]]; then
         echo "Timeout Waiting for IBM FileNet Content Manager Operator to start"
-        echo -e "\x1B[1mPlease check the status of Pod by issue cmd:\x1B[0m"
+        echo -e "\x1b[1mPlease check the status of Pod by issue cmd:\x1b[0m"
         echo "oc describe pod $(oc get pod -n $temp_project_name | grep ibm-fncm-operator | awk '{print $1}') -n $temp_project_name"
         printf "\n"
-        echo -e "\x1B[1mPlease check the status of ReplicaSet by issue cmd:\x1B[0m"
+        echo -e "\x1b[1mPlease check the status of ReplicaSet by issue cmd:\x1b[0m"
         echo "oc describe rs $(oc get rs -n $temp_project_name | grep ibm-fncm-operator | awk '{print $1}') -n $temp_project_name"
         exit 1
       else

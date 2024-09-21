@@ -16,7 +16,7 @@ metadata:
     app.kubernetes.io/instance: ibm-fncm
     app.kubernetes.io/managed-by: ibm-fncm
     app.kubernetes.io/name: ibm-fncm
-    release: 5.5.9
+    release: 5.5.10
 spec:
   replicas: 1
   selector:
@@ -29,11 +29,11 @@ spec:
         app.kubernetes.io/instance: ibm-fncm
         app.kubernetes.io/managed-by: ibm-fncm
         app.kubernetes.io/name: ibm-fncm
-        release: 5.5.9
+        release: 5.5.10
       annotations:
-        productID: "5724-R81 | 5725-L50"
+        productID: "5a55ee68b1e74ddaa9965b1a2d60cb10"
         productName: "IBM FileNet Content Manager | IBM Content Foundation"
-        productVersion: "5.5.9"
+        productVersion: "5.5.10"
         productChargedContainers: ""
         productMetric: "VIRTUAL_PROCESSOR_CORE"
     spec:
@@ -47,41 +47,63 @@ spec:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
-            - matchExpressions:
-              - key: kubernetes.io/arch
-                operator: In
-                values:
-                - amd64
-                - s390x
-                - ppc64le
+              - matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - amd64
+                      - s390x
+                      - ppc64le
           preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 3
-            preference:
-              matchExpressions:
-              - key: kubernetes.io/arch
-                operator: In
-                values:
-                - amd64
-                - s390x
-                - ppc64le
+            - weight: 3
+              preference:
+                matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - amd64
+                      - s390x
+                      - ppc64le
+      initContainers:
+        - name: folder-prepare-container
+          image: "icr.io/cpopen/icp4a-content-operator:22.0.2-LA601"
+          securityContext:
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: license-folder-pvc
+              mountPath: /license-folder
+            - name: ansible-folder-pvc
+              mountPath: /ansible-folder
+            - name: tmp-folder-pvc
+              mountPath: /tmp-folder
+            - name: log-folder-pvc
+              mountPath: /log-folder
+            - name: ibm-folder-pvc
+              mountPath: /ibm-folder
+          command:
+            - "/bin/sh"
+            - "-ecx"
+            - >
+              rm -rf /license-folder/* && rm -rf /tmp-folder/* && rm -rf /ansible-folder/* && rm -rf /log-folder/* && rm -rf /ibm-folder/* &&
+              cp -rp /licenses/* /license-folder && 
+              mkdir -p /ansible-folder/.ansible &&
+              cp -rp /opt/ansible/* /ansible-folder &&
+              cp -rp /opt/ansible/.ansible/* /ansible-folder/.ansible &&
+              cp -rp /opt/ibm/* /ibm-folder
       containers:
         - name: operator
           # Replace this with the built image name
-          image: "icr.io/cpopen/icp4a-content-operator:22.0.1-IF004"
+          image: "icr.io/cpopen/icp4a-content-operator:22.0.2-LA601"
           imagePullPolicy: "IfNotPresent"
           securityContext:
             allowPrivilegeEscalation: false
             privileged: false
-            readOnlyRootFilesystem: false
+            readOnlyRootFilesystem: true
+            # Uncomment below for OCP 3.11
+            # runAsUser: 1001
             capabilities:
               drop:
               - ALL
-          ## Uncomment to specify the RunAsUser for the security context of the pod.
-          ## This is usually a numeric value that corresponds to a user ID.
-          #  runAsUser: 1001
-          ## Uncomment this to enable seccomp profile on OCP 4.12+
-          #  seccompProfile:
-          #    type: RuntimeDefault
           resources:
             limits:
               cpu: '1'
@@ -109,6 +131,28 @@ spec:
             # MUST exist, used to accept dba license, valid value only can be "accept"
             - name: fncm_license
               value: "accept"
+          volumeMounts:
+            - name: license-folder-pvc
+              mountPath: /licenses
+            - name: ansible-folder-pvc
+              mountPath: /opt/ansible
+            - name: tmp-folder-pvc
+              mountPath: /tmp
+            - name: log-folder-pvc
+              mountPath: /logs
+            - name: ibm-folder-pvc
+              mountPath: /opt/ibm
       imagePullSecrets:
       - name: "ibm-entitlement-key"
       - name: "admin.registrykey"
+      volumes:
+        - name: license-folder-pvc
+          emptyDir: {}
+        - name: tmp-folder-pvc
+          emptyDir: {}
+        - name: ansible-folder-pvc
+          emptyDir: {}
+        - name: log-folder-pvc
+          emptyDir: {}
+        - name: ibm-folder-pvc
+          emptyDir: {}
