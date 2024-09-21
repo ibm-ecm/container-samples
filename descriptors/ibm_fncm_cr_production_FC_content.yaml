@@ -16,12 +16,12 @@ metadata:
     app.kubernetes.io/instance: ibm-fncm
     app.kubernetes.io/managed-by: ibm-fncm
     app.kubernetes.io/name: ibm-fncm
-    release: 5.5.10
+    release: 5.5.11
 spec:
   ##########################################################################
   ## This section contains the shared configuration for all FNCM components #
   ##########################################################################
-  appVersion: 22.0.2
+  appVersion: 23.0.1
 
   ## MUST exist, used to accept ibm license, valid value only can be "true"
   license:
@@ -30,17 +30,17 @@ spec:
   ## Operator used to have a required PVC before 5.5.9 release, named operator-shared-pvc by default.
   ## If your deployment set a different name, you need to uncomment this and set your PVC name here in order to reuse the ICCSAP and JDBC drivers in it.
   ## var_operator_pvc: operator-shared-pvc
-
+  
   ## The optional components to be installed if listed here.  The user can choose what components to be installed.
   ## The optional components are: css (Content Search Services), cmis, es (External Share) and tm (Task Manager)
   content_optional_components:
-    cpe: false
-    graphql: false
+    cpe: false 
+    graphql: false 
     cmis: false
     css: false
     es: false
     tm: false
-    ban: false
+    ban: false 
 
   shared_configuration:
     ## This is the deployment context is FNCM. No update it required.
@@ -68,6 +68,13 @@ spec:
 
     ## The deployment type as selected.
     sc_deployment_type: production
+
+    ## Optional setting for secure computing mode (seccomp) profile for FNCM containers.  The default seccomp profile is RuntimeDefault on OCP 4.11 (k8s v1.24) or higher. seccomp profile won't be created on OCP 4.10 (k8s v1.23) or lower.
+    ## For more information on seccomp please refer to https://kubernetes.io/docs/tutorials/security/seccomp/ and https://docs.openshift.com/container-platform/4.12/security/seccomp-profiles.html
+    ## NOTE: Defining a custom, localhost seccomp profile that is stricter than the default RuntimeDefault profile may cause our pods fail to start.  This custom profile should be created at the worker nodes.
+    sc_seccomp_profile:
+    #  type: # RuntimeDefault, Localhost, Unconfined
+    #  localhost_profile: # Local path of custom seccomp profile when type `Localhost` is used. The custom profile must be accessible by the pod and must exist locally on all worker nodes.  For example: `/profiles/fine-grained.json`.
 
     ## Choose the licensing model for the Product you are installing.
     ## IBM Content Foundation:
@@ -185,7 +192,7 @@ spec:
       #inbound_propagation: "supported"
       #https_required: "true"
       #validation_method: "introspect"
-      #disable_ltpa_cookie: "true"
+      #disable_ltpa_cookie: "false"
       #signature_algorithm: "RS256"
       #user_identifier: "sub"
       #unique_user_identifier: "sub"
@@ -692,7 +699,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cpe
-        tag: ga-5510-p8cpe-if002
+        tag: ga-5511-p8cpe-if001
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -713,7 +720,7 @@ spec:
         # Defines behavior for changing ownership and permission of the volume before being exposed inside a Pod. This field has two possible values (Always,OnRootMismatch)
         # For example fs_groupchangepolicy: "OnRootMismatch"
         fs_groupchangepolicy:
-
+      
       ## The initial resources (CPU, memory) requests and limits.  If more resources are needed,
       ## make the changes here to meet your requirement.
       resources:
@@ -839,6 +846,12 @@ spec:
       ## Only use this parameter if you want to override the image_pull_secrets setting in the shared_configuration above.
       image_pull_secrets:
         name: "ibm-entitlement-key"
+      
+      ## This is only used to deploy CPE in AWS EKS Cluster, and it will create and mount aws-iam-token.
+      #aws_iam:
+      #  aws_iam_enable: true
+      #  audience: "sts.amazonaws.com"
+      #  expirationSeconds: 7200 
     ####################################
     ## Start of configuration for CSS ##
     ####################################
@@ -855,7 +868,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/css
-        tag: ga-5510-p8css-if002
+        tag: ga-5511-p8css-if001
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -953,7 +966,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cmis
-        tag: ga-307-cmis-la203
+        tag: ga-307-cmis-if003
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1112,7 +1125,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/graphql
-        tag: ga-5510-p8cgql-if002
+        tag: ga-5511-p8cgql-if001
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1231,7 +1244,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/extshare
-        tag: ga-3013-es-la301
+        tag: ga-3014-es-if002
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1339,7 +1352,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/taskmgr
-        tag: ga-3013-tm-la301
+        tag: ga-3014-tm-if002
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1484,7 +1497,7 @@ spec:
     image:
       ## The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/ban/navigator
-      tag: ga-3013-icn-la301
+      tag: ga-3014-icn-if002
 
       ## This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
@@ -1671,6 +1684,9 @@ spec:
 ##
 ##        ## Enable SSL/TLS for SCIM communication.
 ##        ssl_enabled: true
+##
+##        ## Enable users to sign in with their email address or user principle name (UPN).
+##        allow_email_or_upn_short_names: false
 ##
 ##        ## The SCIM group base DN (Optional).
 ##        group_base_dn:

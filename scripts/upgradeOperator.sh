@@ -52,7 +52,7 @@ function show_help {
   echo "  -h  Display help"
   echo "  -n  The namespace to deploy Operator"
   echo "  -a  accept"
-  echo "  -i  Optional: Operator image name, by default it is icr.io/cpopen/icp4a-content-operator:22.0.2"
+  echo "  -i  Optional: Operator image name, by default it is icr.io/cpopen/icp4a-content-operator:23.0.1-IF003"
   echo -e "  -p  Optional: Pull secret to use to connect to the registry, by default it is ibm-entitlement-key\n"
 
 }
@@ -98,7 +98,7 @@ function upgrade_prereq_check() {
   printf "\n"
   while true; do
     # TODO Add prereq link
-    echo -e "\x1B[1mPlease see FileNet Content Manager Knowledge Center for important upgrade prerequisites: https://www.ibm.com/docs/en/filenet-p8-platform/5.5.x?topic=uvlo-checking-deployment-type-license \x1B[0m"
+    echo -e "\x1B[1mPlease see FileNet Content Manager Documentation for important upgrade prerequisites: https://www.ibm.com/docs/SSNW2F_5.5.11/com.ibm.p8.containers.doc/containers_upgrading_licenseV559.htm \x1B[0m"
     echo -e "\x1B[1mHave you completed FileNet Content Manager Operator upgrade prerequisites (Yes/No)? \x1B[0m"
     # printf "\x1B[1mand 'loadPrereqImages.sh' (Db2 and OpenLDAP for demo) scripts (Yes/No)? \x1B[0m"
     read -rp "" ans
@@ -139,8 +139,9 @@ fi
 function readLicense() {
   echo -e "\x1B[1;31mYou need to read the International Program License Agreement before start\n\x1B[0m"
   echo -e "\x1B[1;31mIMPORTANT: Review the license information for the product bundle you are deploying. \n\x1B[0m"
-  echo -e "\x1B[1;31mIBM FileNet Content Manager license information here: https://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-LSWS-CHZ6NL \n\x1B[0m"
-  echo -e "\x1B[1;31mIBM Content Foundation license information here: https://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-LSWS-CHZ6V7 \n\x1B[0m"
+  echo -e "\x1B[1;31mIBM FileNet Content Manager license information here: https://ibm.biz/CPE_FNCM_License_5_5_11 \n\x1B[0m"
+  echo -e "\x1B[1;31mIBM Content Foundation license information here: https://ibm.biz/CPE_ICF_License_5_5_11 \n\x1B[0m"
+  echo -e "\x1B[1;31mIBM Content Platform Engine Software Notices here: https://ibm.biz/CPE_FNCM_ICF_Notices_5_5_11 \n\x1B[0m"
   sleep 3
 }
 
@@ -288,7 +289,7 @@ function select_user() {
   if [[ $user_result == *"$user_substring"* ]]; then
     clear
     echo -e "\x1B[1;31mAt least one user must be available in order to proceed.\n\x1B[0m"
-    echo -e "\x1B[1;31mRefer to Knowledge Center documentation for details.  The script will now exit.!\n\x1B[0m"
+    echo -e "\x1B[1;31mRefer to IBM Documentation for details.  The script will now exit.!\n\x1B[0m"
     exit 1
   fi
   echo

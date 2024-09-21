@@ -16,7 +16,7 @@ metadata:
     app.kubernetes.io/instance: ibm-fncm
     app.kubernetes.io/managed-by: ibm-fncm
     app.kubernetes.io/name: ibm-fncm
-    release: 5.5.10
+    release: 5.5.11
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole

@@ -321,23 +321,21 @@ function check_existing_sc() {
   if [[ $sc_result == *"$sc_substring"* ]]; then
     clear
     echo -e "\x1b[1;31mAt least one dynamic storage class must be available in order to proceed.\n\x1b[0m"
-    echo -e "\x1b[1;31mRefer to Knowledge Center documentation for details.  The script will now exit!.\n\x1b[0m"
+    echo -e "\x1b[1;31mRefer to IBM Documentation for details.  The script will now exit!.\n\x1b[0m"
     exit 1
   fi
 }
 
-function validate_docker_podman_cli() {
-  if [[ $PLATFORM_VERSION == "3.11" || "$machine" == "Mac" || $PLATFORM_SELECTED == "other" ]]; then
-    which docker &>/dev/null
-    [[ $? -ne 0 ]] &&
-      echo -e "\x1b[1;31mUnable to locate docker, please install it first.\x1b[0m" &&
-      exit 1
-  elif [[ $PLATFORM_VERSION == "4.4OrLater" ]]; then
-    which podman &>/dev/null
-    [[ $? -ne 0 ]] &&
-      echo -e "\x1b[1;31mUnable to locate podman, please install it first.\x1b[0m" &&
-      exit 1
-  fi
+# Write a function to check if docker or podman is installed
+function validate_docker_podman_cli {
+    if command -v podman >/dev/null 2>&1; then
+        echo "Podman is installed."
+    elif command -v docker >/dev/null 2>&1; then
+        echo "Docker is installed."
+    else
+        echo "Unable to locate podman or docker, please install it first."
+        exit 1
+    fi
 }
 
 function get_entitlement_registry() {
@@ -347,7 +345,7 @@ function get_entitlement_registry() {
   printf "\n"
   printf "\n"
   printf "\x1b[1;31mFollow the instructions on how to get your Entitlement Key: \n\x1b[0m"
-  printf "\x1b[1;31mhttps://www.ibm.com/docs/en/filenet-p8-platform/5.5.x?topic=images-getting-access-container\n\x1b[0m"
+  printf "\x1b[1;31mhttps://www.ibm.com/docs/SSNW2F_5.5.11/com.ibm.p8.containers.doc/containers_tsk_get_images_er.htm \n\x1b[0m"
   printf "\n"
   while true; do
     if [[ ! -z "$FNCM_ENTITLEMENT_KEY" && ! -z "$FNCM_LOCAL_PUBLIC_REGISTRY" ]]; then
@@ -405,8 +403,7 @@ function get_entitlement_registry() {
             printf "\n"
             printf "\x1b[1mVerifying the Entitlement Registry key...\n\x1b[0m"
 
-            which podman &>/dev/null
-            if [[ $? -eq 0 ]]; then
+            if command -v podman >/dev/null 2>&1; then
               cli_command="podman"
             else
               cli_command="docker"
@@ -892,32 +889,7 @@ function verify_local_registry_password() {
     get_local_registry_password
 
     if [[ $LOCAL_REGISTRY_SERVER == docker-registry* || $LOCAL_REGISTRY_SERVER == image-registry* || $LOCAL_REGISTRY_SERVER == default-route-openshift-image-registry* ]]; then
-      if [[ $PLATFORM_VERSION == "3.11" ]]; then
-        if docker login -u "$LOCAL_REGISTRY_USER" -p $(${CLI_CMD} whoami -t) "$LOCAL_REGISTRY_SERVER"; then
-          printf 'Verifying Local Registry passed...\n'
-          verify_passed="passed"
-        else
-          printf '\x1b[1;31mLogin failed...\n\x1b[0m'
-          verify_passed=""
-          local_registry_user=""
-          local_registry_server=""
-          echo -e "\x1b[1;31mCheck the local docker registry information and try again.\x1b[0m"
-        fi
-      elif [[ "$machine" == "Mac" ]]; then
-        if docker login "$local_public_registry_server" -u "$LOCAL_REGISTRY_USER" -p $(${CLI_CMD} whoami -t); then
-          printf 'Verifying Local Registry passed...\n'
-          verify_passed="passed"
-        else
-          printf '\x1b[1;31mLogin failed...\n\x1b[0m'
-          verify_passed=""
-          local_registry_user=""
-          local_registry_server=""
-          local_public_registry_server=""
-          echo -e "\x1b[1;31mCheck the local docker registry information and try again.\x1b[0m"
-        fi
-      elif [[ $PLATFORM_VERSION == "4.4OrLater" ]]; then
-        which podman &>/dev/null
-        if [[ $? -eq 0 ]]; then
+        if command -v podman >/dev/null 2>&1; then
           if podman login "$local_public_registry_server" -u "$LOCAL_REGISTRY_USER" -p $(${CLI_CMD} whoami -t) --tls-verify=false; then
             printf 'Verifying Local Registry passed...\n'
             verify_passed="passed"
@@ -948,11 +920,9 @@ function verify_local_registry_password() {
               exit 1
             fi
           fi
-        fi
-      fi
+          fi
     else
-      which podman &>/dev/null
-      if [[ $? -eq 0 ]]; then
+      if command -v podman >/dev/null 2>&1; then
         if podman login -u "$LOCAL_REGISTRY_USER" -p "$LOCAL_REGISTRY_PWD" "$LOCAL_REGISTRY_SERVER" --tls-verify=false; then
           printf 'Verifying the information for the local docker registry...\n'
           verify_passed="passed"
@@ -1003,8 +973,9 @@ function create_secret_local_registry() {
 function prompt_license() {
   echo -e "\x1b[1;31mYou need to read the International Program License Agreement before start\n\x1b[0m"
   echo -e "\x1b[1;31mIMPORTANT: Review the license information for the product bundle you are deploying. \n\x1b[0m"
-  echo -e "\x1b[1;31mIBM FileNet Content Manager license information here: https://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-LSWS-CHZ6NL \n\x1b[0m"
-  echo -e "\x1b[1;31mIBM Content Foundation license information here: https://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-LSWS-CHZ6V7 \n\x1b[0m"
+  echo -e "\x1b[1;31mIBM FileNet Content Manager license information here: https://ibm.biz/CPE_FNCM_License_5_5_11 \n\x1b[0m"
+  echo -e "\x1b[1;31mIBM Content Foundation license information here: https://ibm.biz/CPE_ICF_License_5_5_11 \n\x1b[0m"
+  echo -e "\x1B[1;31mIBM Content Platform Engine Software Notices here: https://ibm.biz/CPE_FNCM_ICF_Notices_5_5_11 \n\x1B[0m"
 
   if [[ ! -z "${FNCM_LICENSE_ACCEPT}" ]]; then
     local accept_array=("accept" "ACCEPT" "Accept")

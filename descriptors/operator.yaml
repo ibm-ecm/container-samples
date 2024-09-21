@@ -16,7 +16,7 @@ metadata:
     app.kubernetes.io/instance: ibm-fncm
     app.kubernetes.io/managed-by: ibm-fncm
     app.kubernetes.io/name: ibm-fncm
-    release: 5.5.10
+    release: 5.5.11
 spec:
   replicas: 1
   selector:
@@ -29,11 +29,11 @@ spec:
         app.kubernetes.io/instance: ibm-fncm
         app.kubernetes.io/managed-by: ibm-fncm
         app.kubernetes.io/name: ibm-fncm
-        release: 5.5.10
+        release: 5.5.11
       annotations:
         productID: "5a55ee68b1e74ddaa9965b1a2d60cb10"
         productName: "IBM FileNet Content Manager | IBM Content Foundation"
-        productVersion: "5.5.10"
+        productVersion: "5.5.11"
         productChargedContainers: ""
         productMetric: "VIRTUAL_PROCESSOR_CORE"
     spec:
@@ -66,9 +66,17 @@ spec:
                       - ppc64le
       initContainers:
         - name: folder-prepare-container
-          image: "icr.io/cpopen/icp4a-content-operator:22.0.2-LA601"
+          image: "icr.io/cpopen/icp4a-content-operator:23.0.1-IF003"
           securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
             readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+              - ALL
+          ## Uncomment this to enable seccomp profile on OCP 4.12+
+          #  seccompProfile:
+          #    type: RuntimeDefault
           volumeMounts:
             - name: license-folder-pvc
               mountPath: /license-folder
@@ -93,17 +101,18 @@ spec:
       containers:
         - name: operator
           # Replace this with the built image name
-          image: "icr.io/cpopen/icp4a-content-operator:22.0.2-LA601"
+          image: "icr.io/cpopen/icp4a-content-operator:23.0.1-IF003"
           imagePullPolicy: "IfNotPresent"
           securityContext:
             allowPrivilegeEscalation: false
             privileged: false
             readOnlyRootFilesystem: true
-            # Uncomment below for OCP 3.11
-            # runAsUser: 1001
             capabilities:
               drop:
               - ALL
+          ## Uncomment this to enable seccomp profile on OCP 4.12+
+          #  seccompProfile:
+          #    type: RuntimeDefault
           resources:
             limits:
               cpu: '1'

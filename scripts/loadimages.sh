@@ -41,7 +41,7 @@ PLATFORM_SELECTED="other" # This is the default value and will be reset by selec
 
 unset CR_FILES
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
-LOG_FILE="${CUR_DIR}/lodimages.log" # Keep image upload logs
+LOG_FILE="${CUR_DIR}/loadimages.log" # Keep image upload logs
 touch $LOG_FILE && echo '' > $LOG_FILE # Reset log content
 
 if [[ $1 == "" ]]
