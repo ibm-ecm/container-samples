@@ -10,9 +10,9 @@
 ###############################################################################
 
 # Release Details
-DATE = "2024-09-08"
-RELEASE = "IBM FileNet Content Manager 5.5.8-LA734"
+DATE = "2024-10-29"
+RELEASE = "IBM FileNet Content Manager 5.5.8-IF008"
 
 # Repository Details
-VERSION = "5.5.8-LA734"
+VERSION = "5.5.8-IF008"
 APP_VERSION = "21.0.3"

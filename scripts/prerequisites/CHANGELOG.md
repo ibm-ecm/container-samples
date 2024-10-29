@@ -1,9 +1,19 @@
+## 2.8.2 (2024-10-10)
+
+### Fix
+
+- fixed process engine duplicate region name for generated custom resource
+- fixed mustgather to allow select component to have zero pods available
+- added unique name and timestamp to mustgather tar file
+- fixed mustgather for unparseable custom resource
+
 ## 2.8.0 (2024-09-12)
 
 ### Feat
 
 - added support for running MustGather with only the operator deployed
 - added support for inProgress Operator Ansible log in MustGather
+- adding support for object store table lob index storage location
 
 ### Fix
 

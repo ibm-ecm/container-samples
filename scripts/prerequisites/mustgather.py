@@ -12,6 +12,7 @@
 import datetime
 import logging
 import os
+import re
 import shutil
 import tarfile
 from datetime import datetime
@@ -35,10 +36,10 @@ from helper_scripts.utilities.interface import (
     clear,
     display_issues,
     display_prereq_passed, mustgather_details)
-from helper_scripts.utilities.prerequisites_utilites import  zip_folder
+
 from helper_scripts.utilities.utilities import prereq_checks
 
-__version__ = "2.8.0"
+__version__ = "2.8.2"
 
 # app = typer.Typer()
 
@@ -101,6 +102,7 @@ def display_mode_version(mode: str, description: str):
     print(Panel.fit(msg, title="FileNet Content Manager MustGather CLI", border_style="green"))
     print()
 
+
 # Function to filter deployments based on component
 def filter_deployments(deployment, component):
     if component in deployment:
@@ -108,16 +110,11 @@ def filter_deployments(deployment, component):
     return False
 
 
-def create_mustgather_folder(progress, platform, components, collect_sensitive_data, cr_present=True, operator_present=True):
+def create_mustgather_folder(progress, platform, components, collect_sensitive_data, cr_present=True,
+                             operator_present=True):
     progress.log()
     progress.log("Creating MustGather folder")
     if os.path.exists(os.path.join(os.getcwd(), "MustGather")):
-        if not os.path.exists(os.path.join(os.getcwd(), "backups")):
-            os.mkdir(os.path.join(os.getcwd(), "backups"))
-        now = datetime.now()
-        dt_string = now.strftime("%Y-%m-%d_%H-%M")
-        zip_folder(os.path.join(os.getcwd(), "backups", "MustGather_" + dt_string),
-                   os.path.join(os.getcwd(), "MustGather"))
         shutil.rmtree(os.path.join(os.getcwd(), "MustGather"))
 
     mustgather_folder = os.path.join(os.getcwd(), "MustGather")
@@ -164,10 +161,24 @@ def create_mustgather_folder(progress, platform, components, collect_sensitive_d
 
 
 # Function to tar the mustgather folder
-def tar_mustgather_folder(mustgather_folder, progress):
+def tar_mustgather_folder(mustgather_folder, progress, namespace):
     try:
+        namespace_no_spaces = re.sub(r"\s+", "", namespace)
         progress.log(Panel.fit("Generating MustGather tarfile", style="bold green"))
-        with tarfile.open(mustgather_folder + ".tar.gz", "w:gz") as tar:
+        now = datetime.now()
+        dt_string = now.strftime("%Y-%m-%d_%H-%M")
+        tar_file_name = mustgather_folder + "_" + namespace_no_spaces + "_" + dt_string + ".tar.gz"
+
+        # Check if tar file exists move it to a backup folder
+        if os.path.exists(tar_file_name):
+            if not os.path.exists(os.path.join(os.getcwd(), "backups")):
+                os.mkdir(os.path.join(os.getcwd(), "backups"))
+            now = datetime.now()
+            dt_string = now.strftime("%Y-%m-%d_%H-%M")
+            shutil.move(tar_file_name, os.path.join(os.getcwd(), "backups",
+                                                    "MustGather_" + namespace_no_spaces + "_" + dt_string + ".tar.gz"))
+
+        with tarfile.open(tar_file_name, "w:gz") as tar:
             tar.add(mustgather_folder, arcname=os.path.basename(mustgather_folder))
         shutil.rmtree(mustgather_folder)
     except Exception as e:
@@ -185,8 +196,8 @@ def main(
             help="Enable Silent Install (no prompts).",
             rich_help_panel="Customization and Utils")] = False,
         dryrun: Annotated[bool, typer.Option(
-             help="Perform Dry Run of the mustgather script",
-             rich_help_panel="Customization and Utils")] = False):
+            help="Perform Dry Run of the mustgather script",
+            rich_help_panel="Customization and Utils")] = False):
     """
     FileNet Content Manager MustGather
     """
@@ -315,9 +326,11 @@ def main(
 
                     # Get deployments for each component
                     if component == "ban":
-                        deployment_dict[component] = filter(lambda x: filter_deployments(x, "navigator"), resource_type_dict["deployment"])
+                        deployment_dict[component] = filter(lambda x: filter_deployments(x, "navigator"),
+                                                            resource_type_dict["deployment"])
                     else:
-                        deployment_dict[component] = filter(lambda x: filter_deployments(x, component), resource_type_dict["deployment"])
+                        deployment_dict[component] = filter(lambda x: filter_deployments(x, component),
+                                                            resource_type_dict["deployment"])
 
                 pod_count_dict = {}
                 for component in components:
@@ -336,19 +349,22 @@ def main(
 
             task4 = None
 
-
             task3 = progress.add_task("[magenta]Collecting Deployment Artifacts", total=None)
 
         if len(components) > 0:
-            task4 = progress.add_task(f"[yellow]Collecting Component Logs", total=num_collections)
+            if num_collections > 0:
+                task4 = progress.add_task(f"[yellow]Collecting Component Logs", total=num_collections)
+            else:
+                task4 = progress.add_task(f"[yellow]Collecting Component Logs", total=1)
 
         task5 = progress.add_task("[blue]Creating MustGather Tar File", total=1)
 
-
         while not progress.finished:
-            mustgather_folder = create_mustgather_folder(progress, platform, components, collect_sensitive_data, cr_present, operator_present)
+            mustgather_folder = create_mustgather_folder(progress, platform, components, collect_sensitive_data,
+                                                         cr_present, operator_present)
 
-            must_gather = mg.MustGather(console, namespace, state["logger"], mustgather_folder, deployment_details, operator_details, kube)
+            must_gather = mg.MustGather(console, namespace, state["logger"], mustgather_folder, deployment_details,
+                                        operator_details, kube)
             must_gather.collect_cluster_info(progress)
 
             progress.update(task1, total=2, completed=2)
@@ -363,110 +379,169 @@ def main(
                 must_gather.write_cr_file(progress, deployment_details["name"])
 
                 # Collect all Deployments
-                deployments = resource_type_dict["deployment"]
-                must_gather.collect_deployment_info(progress, deployments)
+                if len(resource_type_dict["deployment"]) > 0:
+                    deployments = resource_type_dict["deployment"]
+                    must_gather.collect_deployment_info(progress, deployments)
 
                 # Collect all StorageClass Info
-                must_gather.collect_storage_class_info(progress, storage_class)
+                if len(storage_class) > 0:
+                    must_gather.collect_storage_class_info(progress, storage_class)
 
                 # Collect all PersistentVolume Info
-                pvcs = resource_type_dict["persistent_volume_claim"]
-                must_gather.collect_pvc_info(progress, pvcs)
+                if len(resource_type_dict["persistent_volume_claim"]) > 0:
+                    pvcs = resource_type_dict["persistent_volume_claim"]
+                    must_gather.collect_pvc_info(progress, pvcs)
 
                 # Collect all Service Info
-                services = resource_type_dict["service"]
-                must_gather.collect_service_info(progress, services)
+                if len(resource_type_dict["service"]) > 0:
+                    services = resource_type_dict["service"]
+                    must_gather.collect_service_info(progress, services)
 
                 # Collect all NetworkPolicy Info
-                network_policies = resource_type_dict["network_policy"]
-                must_gather.collect_network_policy_info(progress, network_policies)
+                if len(resource_type_dict["network_policy"]) > 0:
+                    network_policies = resource_type_dict["network_policy"]
+                    must_gather.collect_network_policy_info(progress, network_policies)
 
                 if platform == "other":
-                    ingress = resource_type_dict["ingress"]
-                    must_gather.collect_ingress_info(progress, ingress)
+                    if len(resource_type_dict["ingress"]) > 0:
+                        ingress = resource_type_dict["ingress"]
+                        must_gather.collect_ingress_info(progress, ingress)
                 else:
-                    routes = resource_type_dict["routes"]
-                    must_gather.collect_route_info(progress, routes)
+                    if len(resource_type_dict["routes"]) > 0:
+                        routes = resource_type_dict["routes"]
+                        must_gather.collect_route_info(progress, routes)
 
                 if collect_sensitive_data:
                     secrets = resource_type_dict["secret"]
                     secrets.extend(user_secrets)
-                    must_gather.collect_secret_info(progress, secrets)
+                    if len(secrets) > 0:
+                        must_gather.collect_secret_info(progress, secrets)
 
                     configmaps = resource_type_dict["config_map"]
                     configmaps.extend(user_configmaps)
-                    must_gather.collect_configmap_info(progress, configmaps)
+                    if len(configmaps) > 0:
+                        must_gather.collect_configmap_info(progress, configmaps)
 
                 progress.update(task3, total=1, completed=1)
 
-                for component in components:
-                    if component == "ban":
-                        for deploy in pod_count_dict[component]:
-                            must_gather.collect_ban_info(progress, collect_sensitive_data,
-                                                         deploy["pods"],
-                                                         deploy["init_containers"])
-                            progress.advance(task4)
-                    if component == "cpe":
-                        for deploy in pod_count_dict[component]:
-                            must_gather.collect_cpe_info(progress,
-                                                         collect_sensitive_data,
-                                                         deploy["pods"],
-                                                         deploy["init_containers"])
-                            progress.advance(task4)
+                if num_collections > 0:
+                    for component in components:
+                        if component == "ban":
+                            if len(pod_count_dict[component]) == 0:
+                                progress.log()
+                                progress.log(Panel.fit("No Pods Found for Navigator", style="bold red"))
+                            else:
+                                for deploy in pod_count_dict[component]:
+                                    must_gather.collect_ban_info(progress, collect_sensitive_data,
+                                                                 deploy["pods"],
+                                                                 deploy["init_containers"])
+                                    progress.advance(task4)
+                        if component == "cpe":
+                            if len(pod_count_dict[component]) == 0:
+                                progress.log()
+                                progress.log(Panel.fit("No Pods Found for CPE", style="bold red"))
+                                progress.log()
+                            else:
+                                for deploy in pod_count_dict[component]:
+                                    must_gather.collect_cpe_info(progress,
+                                                                 collect_sensitive_data,
+                                                                 deploy["pods"],
+                                                                 deploy["init_containers"])
+                                    progress.advance(task4)
 
-                    if component == "css":
-                        for i in range(len(pod_count_dict[component])):
-                            must_gather.collect_css_info(progress,
-                                                         collect_sensitive_data,
-                                                         pod_count_dict[component][i]["pods"],
-                                                         pod_count_dict[component][i]["init_containers"], i+1)
-                            progress.advance(task4)
-                    if component == "graphql":
-                        for deploy in pod_count_dict[component]:
-                            must_gather.collect_graphql_info(progress,
-                                                         collect_sensitive_data,
-                                                         deploy["pods"],
-                                                         deploy["init_containers"])
-                            progress.advance(task4)
-                    if component == "cmis":
-                        for deploy in pod_count_dict[component]:
-                            must_gather.collect_cmis_info(progress,
-                                                         collect_sensitive_data,
-                                                         deploy["pods"],
-                                                         deploy["init_containers"])
-                            progress.advance(task4)
-                    if component == "es":
-                        for deploy in pod_count_dict[component]:
-                            must_gather.collect_es_info(progress,
-                                                       collect_sensitive_data,
-                                                       deploy["pods"],
-                                                       deploy["init_containers"])
-                            progress.advance(task4)
-                    if component == "tm":
-                        for deploy in pod_count_dict[component]:
-                            must_gather.collect_tm_info(progress,
-                                                       collect_sensitive_data,
-                                                       deploy["pods"],
-                                                       deploy["init_containers"])
-                            progress.advance(task4)
+                        if component == "css":
+                            if len(pod_count_dict[component]) == 0:
+                                progress.log()
+                                progress.log(Panel.fit("No Pods Found for CSS", style="bold red"))
+                                progress.log()
+                            else:
+                                for i in range(len(pod_count_dict[component])):
+                                    must_gather.collect_css_info(progress,
+                                                                 collect_sensitive_data,
+                                                                 pod_count_dict[component][i]["pods"],
+                                                                 pod_count_dict[component][i]["init_containers"], i + 1)
+                                    progress.advance(task4)
+                        if component == "graphql":
+                            if len(pod_count_dict[component]) == 0:
+                                progress.log()
+                                progress.log(Panel.fit("No Pods Found for GraphQL", style="bold red"))
+                                progress.log()
+                            else:
+                                for deploy in pod_count_dict[component]:
+                                    must_gather.collect_graphql_info(progress,
+                                                                     collect_sensitive_data,
+                                                                     deploy["pods"],
+                                                                     deploy["init_containers"])
+                                    progress.advance(task4)
+                        if component == "cmis":
+                            if len(pod_count_dict[component]) == 0:
+                                progress.log()
+                                progress.log(Panel.fit("No Pods Found for CMIS", style="bold red"))
+                                progress.log()
+                            else:
+                                for deploy in pod_count_dict[component]:
+                                    must_gather.collect_cmis_info(progress,
+                                                                  collect_sensitive_data,
+                                                                  deploy["pods"],
+                                                                  deploy["init_containers"])
+                                    progress.advance(task4)
+                        if component == "es":
+                            if len(pod_count_dict[component]) == 0:
+                                progress.log()
+                                progress.log(Panel.fit("No Pods Found for External Share", style="bold red"))
+                                progress.log()
+                            else:
+                                for deploy in pod_count_dict[component]:
+                                    must_gather.collect_es_info(progress,
+                                                                collect_sensitive_data,
+                                                                deploy["pods"],
+                                                                deploy["init_containers"])
+                                    progress.advance(task4)
+                        if component == "tm":
+                            if len(pod_count_dict[component]) == 0:
+                                progress.log()
+                                progress.log(Panel.fit("No Pods Found for Task Manager", style="bold red"))
+                                progress.log()
+                            else:
+                                for deploy in pod_count_dict[component]:
+                                    must_gather.collect_tm_info(progress,
+                                                                collect_sensitive_data,
+                                                                deploy["pods"],
+                                                                deploy["init_containers"])
+                                    progress.advance(task4)
 
-                    if component == "iccsap":
-                        for deploy in pod_count_dict[component]:
-                            must_gather.collect_iccsap_info(progress,
-                                                        collect_sensitive_data,
-                                                        deploy["pods"],
-                                                        deploy["init_containers"])
-                            progress.advance(task4)
+                        if component == "iccsap":
+                            if len(pod_count_dict[component]) == 0:
+                                progress.log()
+                                progress.log(Panel.fit("No Pods Found for ICCSAP", style="bold red"))
+                                progress.log()
+                            else:
+                                for deploy in pod_count_dict[component]:
+                                    must_gather.collect_iccsap_info(progress,
+                                                                    collect_sensitive_data,
+                                                                    deploy["pods"],
+                                                                    deploy["init_containers"])
+                                    progress.advance(task4)
 
-                    if component == "ier":
-                        for deploy in pod_count_dict[component]:
-                            must_gather.collect_ier_info(progress,
-                                                        collect_sensitive_data,
-                                                        deploy["pods"],
-                                                        deploy["init_containers"])
-                            progress.advance(task4)
+                        if component == "ier":
+                            if len(pod_count_dict[component]) == 0:
+                                progress.log()
+                                progress.log(Panel.fit("No Pods Found for IER", style="bold red"))
+                                progress.log()
+                            else:
+                                for deploy in pod_count_dict[component]:
+                                    must_gather.collect_ier_info(progress,
+                                                                 collect_sensitive_data,
+                                                                 deploy["pods"],
+                                                                 deploy["init_containers"])
+                                    progress.advance(task4)
+                else:
+                    progress.log()
+                    progress.log(Panel.fit("No Pods Found for Selected Components", style="bold red"))
+                    progress.log()
+                    progress.advance(task4)
 
-            tar_mustgather_folder(mustgather_folder, progress)
+            tar_mustgather_folder(mustgather_folder, progress, namespace)
             progress.advance(task5)
             progress.stop()
 

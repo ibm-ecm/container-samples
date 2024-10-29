@@ -92,21 +92,28 @@ class ReadPropDb(ReadProp):
         # Generate tablespace names for each OS
         if self._toml_dict["DATABASE_TYPE"] == "sqlserver":
             for os_id in self._toml_dict["_os_ids"]:
+                os_name = self._toml_dict[os_id]["DATABASE_NAME"]
                 self._toml_dict[os_id]["DATA_TABLESPACE"] = "PRIMARY"
+                self._toml_dict[os_id]["INDEX_TABLESPACE"] = f"{os_name}INDEXTS"
+                self._toml_dict[os_id]["LOB_TABLESPACE"] = f"{os_name}LOBTS"
         elif self._toml_dict["DATABASE_TYPE"] == "oracle":
             for os_id in self._toml_dict["_os_ids"]:
                 os_name = self._toml_dict[os_id]["DATABASE_NAME"]
                 self._toml_dict[os_id]["DATA_TABLESPACE"] = f"{os_name}DATATS"
                 self._toml_dict[os_id]["TMP_TABLESPACE"] = f"{os_name}DATATSTEMP"
+                self._toml_dict[os_id]["INDEX_TABLESPACE"] = f"{os_name}INDEXTS"
+                self._toml_dict[os_id]["LOB_TABLESPACE"] = f"{os_name}LOBTS"
         elif self._toml_dict["DATABASE_TYPE"] == "postgresql":
             for os_id in self._toml_dict["_os_ids"]:
                 os_name = self._toml_dict[os_id]["DATABASE_NAME"]
                 self._toml_dict[os_id]["DATA_TABLESPACE"] = f"{os_name}_tbs"
+                self._toml_dict[os_id]["INDEX_TABLESPACE"] = f"{os_name}indexts"
         elif self._toml_dict["DATABASE_TYPE"] == "db2":
             for os_id in self._toml_dict["_os_ids"]:
                 os_name = self._toml_dict[os_id]["DATABASE_NAME"]
                 self._toml_dict[os_id]["DATA_TABLESPACE"] = f"{os_name}DATA_TS"
-                self._toml_dict[os_id]["VWDATA_TABLESPACE"] = f"{os_name}VWDATA_TS"
+                self._toml_dict[os_id]["INDEX_TABLESPACE"] = f"{os_name}INDEX_TS"
+                self._toml_dict[os_id]["LOB_TABLESPACE"] = f"{os_name}LOB_TS"
                 self._toml_dict[os_id]["TMP_TABLESPACE"] = f"{os_name}_TMP_TBS"
 
 

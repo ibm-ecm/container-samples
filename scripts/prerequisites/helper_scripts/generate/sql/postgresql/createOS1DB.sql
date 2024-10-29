@@ -10,7 +10,11 @@ CREATE ROLE ${youruser1} WITH INHERIT LOGIN ENCRYPTED PASSWORD '${yourpassword}'
 
 -- please modify location follow your requirement
 create tablespace ${datatablespace} owner ${youruser1} location '/pgsqldata/${os_name}';
+create tablespace ${indextablespace} owner ${youruser1} location '/pgsqldata/${os_name}';
+
+
 grant create on tablespace ${datatablespace} to ${youruser1};
+grant create on tablespace ${indextablespace} to ${youruser1};
 
 -- create database ${os_name}
 create database ${os_name} owner ${youruser1} tablespace ${datatablespace} template template0 encoding UTF8 ;

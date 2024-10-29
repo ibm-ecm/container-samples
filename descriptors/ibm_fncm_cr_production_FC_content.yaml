@@ -614,7 +614,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cpe
-        tag: ga-558-p8cpe-la734
+        tag: ga-558-p8cpe-if008
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -746,7 +746,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/css
-        tag: ga-558-p8css-la734
+        tag: ga-558-p8css-if008
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -831,7 +831,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cmis
-        tag: ga-307-cmis-la701
+        tag: ga-307-cmis-la703
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -984,7 +984,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/graphql
-        tag: ga-558-p8cgql-la734
+        tag: ga-558-p8cgql-if008
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1093,7 +1093,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/extshare
-        tag: ga-3011-es-la1701
+        tag: ga-3011-es-la1702
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1191,7 +1191,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/taskmgr
-        tag: ga-3011-tm-la1701
+        tag: ga-3011-tm-la1702
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1325,7 +1325,7 @@ spec:
     image:
       ## The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/ban/navigator
-      tag: ga-3011-icn-la1701
+      tag: ga-3011-icn-la1702
 
       ## This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
