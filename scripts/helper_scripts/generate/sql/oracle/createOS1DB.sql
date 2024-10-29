@@ -17,6 +17,9 @@ ALTER SESSION SET CONTAINER=${os_name};
 -- Change DATAFILE/TEMPFILE as required by your configuration
 CREATE TABLESPACE ${datatablespace} DATAFILE '/home/oracle/orcl/${datatablespace}.dbf' SIZE 200M REUSE AUTOEXTEND ON NEXT 20M EXTENT MANAGEMENT LOCAL SEGMENT SPACE MANAGEMENT AUTO ONLINE PERMANENT;
 CREATE TEMPORARY TABLESPACE ${tmp_tablespace} TEMPFILE '/home/oracle/orcl/${tmp_tablespace}.dbf' SIZE 200M REUSE AUTOEXTEND ON NEXT 20M EXTENT MANAGEMENT LOCAL;
+CREATE TABLESPACE ${indextablespace} DATAFILE '/home/oracle/orcl/{indexdatatablespace}.dbf' SIZE 300M REUSE AUTOEXTEND ON NEXT 20M EXTENT MANAGEMENT LOCAL SEGMENT SPACE MANAGEMENT AUTO ONLINE PERMANENT;
+-- For lob storage location which is not required by default
+-- CREATE TABLESPACE ${lobtablespace} DATAFILE '/home/oracle/orcl/{lobdatatablespace}.dbf' SIZE 300M REUSE AUTOEXTEND ON NEXT 20M EXTENT MANAGEMENT LOCAL SEGMENT SPACE MANAGEMENT AUTO ONLINE PERMANENT;
 
 -- Create a new user for ${youruser1}
 CREATE USER ${youruser1} PROFILE DEFAULT IDENTIFIED BY ${yourpassword} DEFAULT TABLESPACE ${datatablespace} TEMPORARY TABLESPACE ${tmp_tablespace} ACCOUNT UNLOCK;
@@ -25,6 +28,9 @@ CREATE USER ${youruser1} PROFILE DEFAULT IDENTIFIED BY ${yourpassword} DEFAULT T
 ALTER USER ${youruser1} QUOTA UNLIMITED ON ${datatablespace};
 ALTER USER ${youruser1} DEFAULT TABLESPACE ${datatablespace};
 ALTER USER ${youruser1} TEMPORARY TABLESPACE ${tmp_tablespace};
+ALTER USER ${youruser1} QUOTA UNLIMITED ON ${indextablespace};
+-- For lob storage location which is not required by default
+-- ALTER USER ${youruser1} QUOTA UNLIMITED ON ${lobtablespace};
 
 -- Allow the user to connect to the database
 GRANT CONNECT TO ${youruser1};

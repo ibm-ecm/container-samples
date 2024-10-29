@@ -10,9 +10,9 @@
 ###############################################################################
 
 import inspect
-# from helper_scripts.generate.read_prop import ReadPropDb
 import os
 import string
+
 
 
 def parse_yaml_sql(parameter):
@@ -123,14 +123,14 @@ class GenerateSql:
         try:
             for index, os_id in enumerate(self._dbprop["_os_ids"]):
                 path = os.path.join(self._dest_path, f"create{self._dbprop[os_id]['OS_LABEL']}.sql")
-
                 if self._dbprop["DATABASE_TYPE"] == "db2":
                     finished_output = self._os_template.safe_substitute(
                         os_name=self._dbprop[os_id.upper()]['DATABASE_NAME'],
                         youruser1=parse_yaml_sql(self._dbprop[os_id.upper()]['DATABASE_USERNAME']),
                         yourpassword=parse_yaml_sql(self._dbprop[os_id.upper()]['DATABASE_PASSWORD']),
                         datatablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['DATA_TABLESPACE']),
-                        vwdatatablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['VWDATA_TABLESPACE']),
+                        indextablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['INDEX_TABLESPACE']),
+                        lobtablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['LOB_TABLESPACE']),
                         tmp_tablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['TMP_TABLESPACE'])
                     )
                 elif self._dbprop["DATABASE_TYPE"] == "oracle":
@@ -139,14 +139,27 @@ class GenerateSql:
                         youruser1=parse_yaml_sql(self._dbprop[os_id.upper()]['DATABASE_USERNAME']),
                         yourpassword=parse_yaml_sql(self._dbprop[os_id.upper()]['DATABASE_PASSWORD']),
                         datatablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['DATA_TABLESPACE']),
-                        tmp_tablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['TMP_TABLESPACE'])
+                        tmp_tablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['TMP_TABLESPACE']),
+                        indextablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['INDEX_TABLESPACE']),
+                        lobdatatablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['LOB_TABLESPACE'])
                     )
-                else:
+                #no lob for postgresql only for others
+                elif self._dbprop["DATABASE_TYPE"] == "postgresql":
                     finished_output = self._os_template.safe_substitute(
                         os_name=self._dbprop[os_id.upper()]['DATABASE_NAME'],
                         youruser1=parse_yaml_sql(self._dbprop[os_id.upper()]['DATABASE_USERNAME']),
                         yourpassword=parse_yaml_sql(self._dbprop[os_id.upper()]['DATABASE_PASSWORD']),
-                        datatablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['DATA_TABLESPACE'])
+                        datatablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['DATA_TABLESPACE'].tolower()),
+                        indextablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['INDEX_TABLESPACE'].tolower())
+                    )
+                elif self._dbprop["DATABASE_TYPE"] == "sqlserver":
+                    finished_output = self._os_template.safe_substitute(
+                        os_name=self._dbprop[os_id.upper()]['DATABASE_NAME'],
+                        youruser1=parse_yaml_sql(self._dbprop[os_id.upper()]['DATABASE_USERNAME']),
+                        yourpassword=parse_yaml_sql(self._dbprop[os_id.upper()]['DATABASE_PASSWORD']),
+                        datatablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['DATA_TABLESPACE'].toupper()),
+                        indextablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['INDEX_TABLESPACE'].toupper()),
+                        lobtablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['LOB_TABLESPACE'].toupper())
                     )
                 with open(path, "w", encoding='UTF-8') as output:
                     output.write(finished_output)
