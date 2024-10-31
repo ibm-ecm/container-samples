@@ -653,87 +653,84 @@ class GenerateCR:
     # function to generate the init section
     def populate_init_section(self):
         try:
+            os_list = list(self._db_properties["_os_ids"])
             self._logger.info("generating init section")
             init_dict = self.load_cr_template(self._init_template)
+
             init_dict["spec"]["initialize_configuration"]["ic_ldap_creation"][
                 "ic_ldap_admin_user_name"] = self._usergroup_properties["GCD_ADMIN_USER_NAME"]
             init_dict["spec"]["initialize_configuration"]["ic_ldap_creation"][
                 "ic_ldap_admins_groups_name"] = self._usergroup_properties["GCD_ADMIN_GROUPS_NAME"]
-            init_dict["spec"]["initialize_configuration"]["ic_obj_store_creation"]["object_stores"][0][
-                "oc_cpe_obj_store_admin_user_groups"] = []
-            for admin_user_group in self._usergroup_properties["OS"]["CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS"]:
-                init_dict["spec"]["initialize_configuration"]["ic_obj_store_creation"]["object_stores"][
-                    0]["oc_cpe_obj_store_admin_user_groups"].append(admin_user_group)
-            if self._usergroup_properties["FNCM_LOGIN_USER"] not in \
-                    init_dict["spec"]["initialize_configuration"]["ic_obj_store_creation"][
-                        "object_stores"][0]["oc_cpe_obj_store_admin_user_groups"]:
-                init_dict["spec"]["initialize_configuration"]["ic_obj_store_creation"]["object_stores"][
-                    0]["oc_cpe_obj_store_admin_user_groups"].append(self._usergroup_properties["FNCM_LOGIN_USER"])
 
-            # Populating the PE WorkFlow Section if required
-            if "OS" in self._usergroup_properties.keys():
-                if "CPE_OBJ_STORE_OS_PE_WORKFLOW_ENABLE" in self._usergroup_properties["OS"]:
-                    if self._usergroup_properties["OS"]["CPE_OBJ_STORE_OS_PE_WORKFLOW_ENABLE"]:
-                        pe_workflow_dict = {}
-                        pe_workflow_dict["oc_cpe_obj_store_enable_workflow"] = True
-                        pe_workflow_dict["oc_cpe_obj_store_workflow_region_name"] = "os_region"
-                        pe_workflow_dict["oc_cpe_obj_store_workflow_region_number"] = 1
-                        pe_workflow_dict["oc_cpe_obj_store_workflow_data_tbl_space"] = self._db_properties["OS"][
-                            "DATA_TABLESPACE"]
-                        pe_workflow_dict["oc_cpe_obj_store_workflow_admin_group"] = \
-                        self._usergroup_properties["OS"]["CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS"][0]
-                        pe_workflow_dict["oc_cpe_obj_store_workflow_config_group"] = \
-                        self._usergroup_properties["OS"]["CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS"][0]
-                        pe_workflow_dict["oc_cpe_obj_store_workflow_date_time_mask"] = "mm/dd/yy hh:tt am"
-                        pe_workflow_dict["oc_cpe_obj_store_workflow_locale"] = "en"
-                        pe_workflow_dict["oc_cpe_obj_store_workflow_pe_conn_point_name"] = "os_pe_conn_point"
+            # Build the OS list for the init section
+            os_list_section = []
+            os_list_element = CommentedMap()
 
-                        init_dict["spec"]["initialize_configuration"]["ic_obj_store_creation"]["object_stores"][0].update(
-                            pe_workflow_dict)
+            for count, ele in enumerate(os_list):
+                os_id = "OS" + str(count + 1).zfill(1)
+                os_name = "OS" + str(count + 1).zfill(2)
 
-            os_list = list(self._db_properties["_os_ids"])
-            for os_number in range(1, len(os_list)):
-                obj_store = {}
-                obj_store["oc_cpe_obj_store_display_name"] = "OS" + str(os_number + 1).zfill(2)
-                obj_store["oc_cpe_obj_store_symb_name"] = "OS" + str(os_number + 1).zfill(2)
-                obj_store["oc_cpe_obj_store_conn"] = {}
-                obj_store["oc_cpe_obj_store_conn"]["name"] = "OS" + str(os_number + 1).zfill(2) + "_dbconnection"
-                obj_store["oc_cpe_obj_store_conn"]["dc_os_datasource_name"] = "FNOS" + str(os_number + 1) + "DS"
-                obj_store["oc_cpe_obj_store_conn"]["dc_os_xa_datasource_name"] = "FNOS" + str(os_number + 1) + "DSXA"
-                obj_store["oc_cpe_obj_store_admin_user_groups"] = []
-                # incase there is a mismatch in os labels from the user group prop file and the db prop file
-                if os_list[os_number] in list(self._usergroup_properties.keys()):
-                    for admin_user_group in self._usergroup_properties[os_list[os_number]][
-                        "CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS"]:
-                        obj_store["oc_cpe_obj_store_admin_user_groups"].append(admin_user_group)
-                    if self._usergroup_properties["FNCM_LOGIN_USER"] not in obj_store[
-                        "oc_cpe_obj_store_admin_user_groups"]:
-                        obj_store["oc_cpe_obj_store_admin_user_groups"].append(
-                            self._usergroup_properties["FNCM_LOGIN_USER"])
+                os_list_element["oc_cpe_obj_store_display_name"] = os_name
+                os_list_element["oc_cpe_obj_store_symb_name"] = os_name
+                os_list_element["oc_cpe_obj_store_conn"] = {}
+                os_list_element["oc_cpe_obj_store_conn"]["name"] = os_id + "_dbconnection"
+                os_list_element["oc_cpe_obj_store_conn"]["dc_os_datasource_name"] = "FN" + os_id + "DS"
+                os_list_element["oc_cpe_obj_store_conn"]["dc_os_xa_datasource_name"] = "FN" + os_id + "DSXA"
 
-                    if os_list[os_number] in self._usergroup_properties.keys():
-                        if "OS" in self._usergroup_properties.keys():
-                            if "CPE_OBJ_STORE_OS_PE_WORKFLOW_ENABLE" in self._usergroup_properties[os_list[os_number]]:
-                                if self._usergroup_properties[os_list[os_number]]["CPE_OBJ_STORE_OS_PE_WORKFLOW_ENABLE"]:
-                                    pe_workflow_dict = {}
-                                    pe_workflow_dict["oc_cpe_obj_store_enable_workflow"] = True
-                                    pe_workflow_dict["oc_cpe_obj_store_workflow_region_name"] = f"{os_list[os_number].lower()}_region"
-                                    pe_workflow_dict["oc_cpe_obj_store_workflow_region_number"] = 1
-                                    pe_workflow_dict["oc_cpe_obj_store_workflow_data_tbl_space"] = \
-                                        self._db_properties[os_list[os_number]]["DATA_TABLESPACE"]
-                                    pe_workflow_dict["oc_cpe_obj_store_workflow_admin_group"] = \
-                                        self._usergroup_properties[os_list[os_number]]["CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS"][0]
-                                    pe_workflow_dict["oc_cpe_obj_store_workflow_config_group"] = \
-                                        self._usergroup_properties[os_list[os_number]]["CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS"][0]
-                                    pe_workflow_dict["oc_cpe_obj_store_workflow_date_time_mask"] = "mm/dd/yy hh:tt am"
-                                    pe_workflow_dict["oc_cpe_obj_store_workflow_locale"] = "en"
-                                    pe_workflow_dict["oc_cpe_obj_store_workflow_pe_conn_point_name"] = f"{os_list[os_number].lower()}_pe_conn_point"
+                os_list_element["oc_cpe_obj_store_admin_user_groups"] = []
+                for admin_user_group in self._usergroup_properties[ele]["CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS"]:
+                    os_list_element["oc_cpe_obj_store_admin_user_groups"].append(admin_user_group)
+                if self._usergroup_properties["FNCM_LOGIN_USER"] not in \
+                        os_list_element["oc_cpe_obj_store_admin_user_groups"]:
+                    os_list_element["oc_cpe_obj_store_admin_user_groups"].append(
+                        self._usergroup_properties["FNCM_LOGIN_USER"])
 
-                                    obj_store.update(pe_workflow_dict)
+                # Populating the PE WorkFlow Section if required
+                if ele in self._usergroup_properties.keys():
+                    if "CPE_OBJ_STORE_OS_PE_WORKFLOW_ENABLE" in self._usergroup_properties[ele]:
+                        if self._usergroup_properties[ele]["CPE_OBJ_STORE_OS_PE_WORKFLOW_ENABLE"]:
+                            pe_workflow_dict = CommentedMap()
+                            pe_workflow_dict["oc_cpe_obj_store_enable_workflow"] = True
+                            pe_workflow_dict["oc_cpe_obj_store_workflow_region_name"] =  os_id.lower() + "_region"
+                            pe_workflow_dict["oc_cpe_obj_store_workflow_region_number"] = 1
+                            pe_workflow_dict["oc_cpe_obj_store_workflow_data_tbl_space"] = self._db_properties[ele][
+                                "DATA_TABLESPACE"]
+                            pe_workflow_dict["oc_cpe_obj_store_workflow_index_tbl_space"] = self._db_properties[ele][
+                                "INDEX_TABLESPACE"]
+                            pe_workflow_dict["oc_cpe_obj_store_workflow_admin_group"] = \
+                                self._usergroup_properties[ele]["CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS"][0]
+                            pe_workflow_dict["oc_cpe_obj_store_workflow_config_group"] = \
+                                self._usergroup_properties[ele]["CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS"][0]
+                            pe_workflow_dict["oc_cpe_obj_store_workflow_date_time_mask"] = "mm/dd/yy hh:tt am"
+                            pe_workflow_dict["oc_cpe_obj_store_workflow_locale"] = "en"
+                            pe_workflow_dict["oc_cpe_obj_store_workflow_pe_conn_point_name"] = os_id.lower() + "_pe_conn_point"
 
-                init_dict["spec"]["initialize_configuration"]["ic_obj_store_creation"][
-                    "object_stores"].append(obj_store)
+                            os_list_element.update(pe_workflow_dict)
 
+                # Populating the OS Table Storage Location
+                if self._deployment_properties["FNCM_Version"] not in ["5.5.8", "5.5.9", "5.5.11", "5.5.12"]:
+                    if ele in self._usergroup_properties.keys():
+                        os_tablespace_dict = CommentedMap()
+                        if "DATA_TABLESPACE" in self._db_properties[ele].keys():
+                            os_tablespace_dict["oc_cpe_obj_store_table_storage_location"] = self._db_properties[ele][
+                                "DATA_TABLESPACE"]
+                        if "INDEX_TABLESPACE" in self._db_properties[ele].keys():
+                            os_tablespace_dict["oc_cpe_obj_store_index_storage_location"] = self._db_properties[ele][
+                                "INDEX_TABLESPACE"]
+
+                        os_list_element.update(os_tablespace_dict)
+
+                os_list_section.append(os_list_element.copy())
+
+                if ele in self._usergroup_properties.keys():
+                    if "LOB_TABLESPACE" in self._db_properties[ele].keys():
+                        if self._db_properties["DATABASE_TYPE"] != "postgresql":
+                            os_list_section[count].yaml_set_comment_before_after_key(
+                                key="oc_cpe_obj_store_index_storage_location",
+                                before="oc_cpe_obj_store_lob_storage_location: " +
+                                       self._db_properties[ele]["LOB_TABLESPACE"], indent=8)
+
+            init_dict["spec"]["initialize_configuration"]["ic_obj_store_creation"]["object_stores"] = os_list_section
             self._merged_data["spec"].update(init_dict["spec"])
         except Exception as e:
             self._logger.exception(f"Error found in generate_init_section function in generate_cr script --- {str(e)}")

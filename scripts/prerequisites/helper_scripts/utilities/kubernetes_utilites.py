@@ -72,49 +72,51 @@ class KubernetesUtilities:
     def calculate_user_configmaps(self, components=list):
         configmaps = set()
         cr = self._custom_resource
+        cr_keys = cr["spec"].keys()
 
         # Collect configmaps from ecm_configuration
         ecm_components = ["cpe", "css", "cmis", "graphql", "es", "tm"]
 
         if any(e in ecm_components for e in components):
-            if "ecm_configuration" in cr["spec"].keys():
-
+            try:
                 for component in ecm_components:
-                    if component in cr["spec"]["ecm_configuration"].keys():
-                        section_name = f"{component}_production_setting"
-                        if section_name in cr["spec"]["ecm_configuration"][component].keys():
-                            if "custom_configmap" in cr["spec"]["ecm_configuration"][component][section_name].keys():
-                                for item in cr["spec"]["ecm_configuration"][component][section_name][
-                                    "custom_configmap"]:
-                                    if "name" in item.keys():
-                                        configmaps.add(item["name"])
+                    section_name = f"{component}_production_setting"
+                    if cr["spec"]["ecm_configuration"][component][section_name].get("custom_configmap"):
+                        for item in cr["spec"]["ecm_configuration"][component][section_name]["custom_configmap"]:
+                            if "name" in item.keys():
+                                configmaps.add(item["name"])
+            except Exception as e:
+                self._logger.info(f"No ECM Configmaps found")
 
         # Collect configmaps from ban
-        if "ban" in components:
-            if "navigator_configuration" in cr["spec"].keys():
-                if "icn_production_setting" in cr["spec"]["navigator_configuration"].keys():
-                    if "custom_configmap" in cr["spec"]["navigator_configuration"]["icn_production_setting"].keys():
-                        for item in cr["spec"]["navigator_configuration"]["icn_production_setting"]["custom_configmap"]:
-                            if "name" in item.keys():
-                                configmaps.add(item["name"])
+        try:
+            if "ban" in components:
+                if cr["spec"]["navigator_configuration"]["icn_production_setting"].get("custom_configmap"):
+                    for item in cr["spec"]["navigator_configuration"]["icn_production_setting"]["custom_configmap"]:
+                        if "name" in item.keys():
+                            configmaps.add(item["name"])
+        except Exception as e:
+            self._logger.info(f"No BAN Configmaps found")
 
         # Collect configmaps from ier
-        if "ier" in components:
-            if "ier_configuration" in cr["spec"].keys():
-                if "ier_production_setting" in cr["spec"]["ier_configuration"].keys():
-                    if "custom_configmap" in cr["spec"]["ier_configuration"]["ier_production_setting"].keys():
-                        for item in cr["spec"]["ier_configuration"]["ier_production_setting"]["custom_configmap"]:
-                            if "name" in item.keys():
-                                configmaps.add(item["name"])
+        try:
+            if "ier" in components:
+                if cr["spec"]["ier_configuration"]["ier_production_setting"].get("custom_configmap"):
+                    for item in cr["spec"]["ier_configuration"]["ier_production_setting"]["custom_configmap"]:
+                        if "name" in item.keys():
+                            configmaps.add(item["name"])
+        except Exception as e:
+            self._logger.info(f"No IER Configmaps found")
 
         # Collect configmaps from iccsap
-        if "iccsap" in components:
-            if "iccsap_configuration" in cr["spec"].keys():
-                if "iccsap_production_setting" in cr["spec"]["iccsap_configuration"].keys():
-                    if "custom_configmap" in cr["spec"]["iccsap_configuration"]["iccsap_production_setting"].keys():
-                        for item in cr["spec"]["iccsap_configuration"]["iccsap_production_setting"]["custom_configmap"]:
-                            if "name" in item.keys():
-                                configmaps.add(item["name"])
+        try:
+            if "iccsap" in components:
+                if cr["spec"]["iccsap_configuration"]["iccsap_production_setting"].get("custom_configmap"):
+                    for item in cr["spec"]["iccsap_configuration"]["iccsap_production_setting"]["custom_configmap"]:
+                        if "name" in item.keys():
+                            configmaps.add(item["name"])
+        except Exception as e:
+            self._logger.info(f"No ICCSAP Configmaps found")
 
         return list(configmaps)
 
@@ -122,26 +124,26 @@ class KubernetesUtilities:
     def calculate_user_secrets(self, components=list):
         secrets = set()
         cr = self._custom_resource
+        cr_keys = cr["spec"].keys()
 
         # Collect different sections from the CR
         # LDAP Secrets
         # Get all LDAP Sections
-        result = filter(lambda x: str(x).startswith("ldap_configuration"), cr["spec"].keys())
+        result = filter(lambda x: str(x).startswith("ldap_configuration"), cr_keys)
         ldap_sections = list(result)
         for section in ldap_sections:
-            if "lc_bind_secret" in cr["spec"][section].keys():
+            if cr["spec"][section].get("lc_bind_secret"):
                 secrets.add(cr["spec"][section]["lc_bind_secret"])
 
-            if "lc_ldap_ssl_enabled" in cr["spec"][section].keys():
+            if cr["spec"][section].get("lc_ldap_ssl_enabled"):
                 if cr["spec"][section]["lc_ldap_ssl_enabled"]:
                     secrets.add(cr["spec"][section]["lc_ldap_ssl_secret_name"])
 
         # DB Secrets
         db_ssl = False
-        if "datasource_configuration" in cr["spec"].keys():
-            if "dc_ssl_enabled" in cr["spec"]["datasource_configuration"].keys():
-                if cr["spec"]["datasource_configuration"]["dc_ssl_enabled"]:
-                    db_ssl = True
+        if cr["spec"]['datasource_configuration'].get("dc_ssl_enabled"):
+            if cr["spec"]['datasource_configuration']["dc_ssl_enabled"]:
+                db_ssl = True
 
         if db_ssl:
             for section in cr["spec"]["datasource_configuration"].keys():
@@ -156,79 +158,84 @@ class KubernetesUtilities:
         # ECM Secrets
         ecm_components = ["cpe", "css", "cmis", "graphql", "es", "tm"]
         if any(e in ecm_components for e in components):
-            if "ecm_configuration" in cr["spec"].keys():
-                if "fncm_secret_name" in cr["spec"]["ecm_configuration"].keys():
-                    secrets.add(cr["spec"]["ecm_configuration"]["fncm_secret_name"])
+            try:
+                if cr["spec"]["ecm_configuration"].get("fncm_secret_name"):
+                    secrets.add(cr["spec"]["ecm_configuration"].get("fncm_secret_name"))
                 else:
                     secrets.add("ibm-fncm-secret")
-            else:
+            except Exception as e:
+                self._logger.info(f"No ECM Secret found")
                 secrets.add("ibm-fncm-secret")
 
         # CSS Secrets
-        if "css" in components:
-            if "ecm_configuration" in cr["spec"].keys():
-                if "css" in cr["spec"]["ecm_configuration"].keys():
-                    if "css_production_setting" in cr["spec"]["ecm_configuration"]["css"].keys():
-                        if "icc" in cr["spec"]["ecm_configuration"]["css"]["css_production_setting"].keys():
-                            if "icc_enabled" in cr["spec"]["ecm_configuration"]["css"]["css_production_setting"][
-                                "icc"].keys():
-                                if cr["spec"]["ecm_configuration"]["css"]["css_production_setting"]["icc"][
-                                    "icc_enabled"]:
-                                    secrets.add(cr["spec"]["ecm_configuration"]["css"]["css_production_setting"]["icc"][
-                                                    "icc_secret_name"])
-                                    secrets.add(cr["spec"]["ecm_configuration"]["css"]["css_production_setting"]["icc"][
-                                                    "secret_masterkey_name"])
+        try:
+            if "css" in components:
+                if cr["spec"]["ecm_configuration"]["css"]["css_production_setting"].get("icc"):
+                    if cr["spec"]["ecm_configuration"]["css"]["css_production_setting"]["icc"].get("icc_enabled"):
+                        if cr["spec"]["ecm_configuration"]["css"]["css_production_setting"]["icc"]["icc_enabled"]:
+                            secrets.add(cr["spec"]["ecm_configuration"]["css"]["css_production_setting"]["icc"][
+                                            "icc_secret_name"])
+                            secrets.add(cr["spec"]["ecm_configuration"]["css"]["css_production_setting"]["icc"][
+                                            "secret_masterkey_name"])
+        except Exception as e:
+            self._logger.info(f"No ICC Secret found")
 
         # BAN Secrets
-        if "ban" in components:
-            if "navigator_configuration" in cr["spec"].keys():
-                if "ban_secret_name" in cr["spec"]["navigator_configuration"].keys():
-                    secrets.add(cr["spec"]["navigator_configuration"]["ban_secret_name"])
-                else:
-                    secrets.add("ibm-ban-secret")
-            else:
-                secrets.add("ibm-ban-secret")
+        try:
+            if "ban" in components:
+                if cr["spec"]["navigator_configuration"].get("ban_secret_name"):
+                    secrets.add(cr["spec"]["navigator_configuration"].get("ban_secret_name"))
+        except Exception as e:
+            self._logger.info(f"No BAN Secret found")
+            secrets.add("ibm-ban-secret")
 
         # IER Secrets
-        if "ier" in components:
-            if "ier_configuration" in cr["spec"].keys():
-                if "ier_secret_name" in cr["spec"]["ier_configuration"].keys():
-                    secrets.add(cr["spec"]["ier_configuration"]["ier_secret_name"])
+        try:
+            if "ier" in components:
+                if cr["spec"]["ier_configuration"].get("ier_secret_name"):
+                    secrets.add(cr["spec"]["ier_configuration"].get("ier_secret_name"))
                 else:
                     secrets.add("ibm-ier-secret")
-            else:
-                secrets.add("ibm-ier-secret")
+        except Exception as e:
+            self._logger.info(f"No IER Secret found")
+            secrets.add("ibm-ier-secret")
 
         # ICCSAP Secrets
-        if "iccsap" in components:
-            if "iccsap_configuration" in cr["spec"].keys():
-                if "iccsap_secret_name" in cr["spec"]["iccsap_configuration"].keys():
-                    secrets.add(cr["spec"]["iccsap_configuration"]["iccsap_secret_name"])
+        try:
+            if "iccsap" in components:
+                if cr["spec"]["iccsap_configuration"].get("iccsap_secret_name"):
+                    secrets.add(cr["spec"]["iccsap_configuration"].get("iccsap_secret_name"))
                 else:
                     secrets.add("ibm-iccsap-secret")
-            else:
-                secrets.add("ibm-iccsap-secret")
+        except Exception as e:
+            self._logger.info(f"No ICCSAP Secret found")
+            secrets.add("ibm-iccsap-secret")
 
         # Trusted Certificates
-        if "shared_configuration" in cr["spec"].keys():
-            if "trusted_certificate_list" in cr["spec"]["shared_configuration"].keys():
+        try:
+            if cr["spec"]["shared_configuration"].get("trusted_certificate_list"):
                 for cert_secret in cr["spec"]["shared_configuration"]["trusted_certificate_list"]:
                     secrets.add(cert_secret)
+        except Exception as e:
+            self._logger.info(f"No trusted certificates found")
 
         # OIDC Secrets
-        if "shared_configuration" in cr["spec"].keys():
-            if "open_id_connect_providers" in cr["spec"]["shared_configuration"].keys():
+        try:
+            if cr["spec"]["shared_configuration"].get("open_id_connect_providers"):
                 for item in cr["spec"]["shared_configuration"]["open_id_connect_providers"]:
                     if "client_oidc_secret" in item.keys():
                         for secret in item["client_oidc_secret"].values():
                             secrets.add(secret)
+        except Exception as e:
+            self._logger.info(f"No OIDC Secrets found")
 
         # SCIM Secrets
-        if "initialize_configuration" in cr["spec"].keys():
-            if "scim_configuration" in cr["spec"]["initialize_configuration"].keys():
+        try:
+            if cr["spec"]["initialize_configuration"].get("scim_configuration"):
                 for item in cr["spec"]["initialize_configuration"]["scim_configuration"]:
-                    if "scim_secret_name" in item.keys():
-                        secrets.add(item["scim_secret_name"])
+                    secrets.add(item["scim_secret_name"])
+        except Exception as e:
+            self._logger.info(f"No SCIM Secrets found")
 
         return list(secrets)
 
@@ -237,12 +244,13 @@ class KubernetesUtilities:
         try:
             components = set()
             cr = self._custom_resource
+            cr_keys = cr["spec"].keys()
 
             # TODO: Validate component names
 
             # Collect different sections from the CR
 
-            if "content_optional_components" in cr["spec"].keys():
+            if "content_optional_components" in cr_keys:
                 for item, value in cr["spec"]["content_optional_components"].items():
                     if bool(value):
                         components.add(item)
@@ -260,7 +268,7 @@ class KubernetesUtilities:
                     components.add(item)
 
             # Collect individual components from the CR
-            if "ecm_configuration" in cr["spec"].keys():
+            if "ecm_configuration" in cr_keys:
                 if "cpe" in cr["spec"]["ecm_configuration"].keys():
                     components.add("cpe")
 
@@ -279,13 +287,13 @@ class KubernetesUtilities:
                 if "tm" in cr["spec"]["ecm_configuration"].keys():
                     components.add("tm")
 
-            if "navigator_configuration" in cr["spec"].keys():
+            if "navigator_configuration" in cr_keys:
                 components.add("ban")
 
-            if "ier_configuration" in cr["spec"].keys():
+            if "ier_configuration" in cr_keys:
                 components.add("ier")
 
-            if "iccsap_configuration" in cr["spec"].keys():
+            if "iccsap_configuration" in cr_keys:
                 components.add("iccsap")
 
             return list(components)
@@ -365,7 +373,8 @@ class KubernetesUtilities:
             return cr_details
         except Exception as e:
             self._logger.info(f"Error parsing CR: {e}")
-            return {}
+            self._cr_details = cr_details
+            return cr_details
 
     # Function to list the resources deployed by FNCM deployment in a specific namespace
     # Can see to add more resource types
@@ -1101,7 +1110,6 @@ class KubernetesUtilities:
         except ApiException as e:
             if e.status == 404:
                 return False
-
 
     # Function to collect operator details
     def get_operator_details(self, namespace, deployment_name="ibm-fncm-operator"):
