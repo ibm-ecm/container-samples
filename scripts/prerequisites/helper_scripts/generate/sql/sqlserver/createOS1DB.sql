@@ -16,14 +16,6 @@ USE master
 GO
 
 ALTER DATABASE ${os_name}
-ADD FILEGROUP ${os_name}SA_DATA_FG;
-GO
-
-ALTER DATABASE ${os_name}
-ADD FILEGROUP ${os_name}SA_IDX_FG;
-GO
-
-ALTER DATABASE ${os_name}
 ADD FILE
 (
     NAME = ${os_name}_DATA,
@@ -33,27 +25,29 @@ ADD FILE
 )
 GO
 
-ALTER DATABASE ${os_name}
-ADD FILE
-(
-    NAME = ${os_name}SA_DATA,
-    FILENAME = 'C:\MSSQL_DATABASE\${os_name}SA_DATA.ndf',
-    SIZE = 300MB,
-    FILEGROWTH = 128MB
-)
-TO FILEGROUP ${os_name}SA_DATA_FG;
-GO
 
 ALTER DATABASE ${os_name}
 ADD FILE
 (
-    NAME = ${os_name}SA_IDX,
-    FILENAME = 'C:\MSSQL_DATABASE\${os_name}SA_IDX.ndf',
+    NAME = ${indextablespace},
+    FILENAME = 'C:\MSSQL_DATABASE\${indexdatatablespace}.ndf',
     SIZE = 300MB,
     FILEGROWTH = 128MB
 )
-TO FILEGROUP ${os_name}SA_IDX_FG;
+TO FILEGROUP ${indextablespace};
 GO
+-- For lob storage location which is not required by default
+--ALTER DATABASE ${os_name}
+--ADD FILE
+--(
+--    NAME = ${lobtablespace},
+--    FILENAME = 'C:\MSSQL_DATABASE\${lobdatatablespace}.ndf',
+--    SIZE = 300MB,
+--    FILEGROWTH = 128MB
+--)
+--TO FILEGROUP ${lobtablespace};
+--GO
+
 
 ALTER DATABASE ${os_name} SET RECOVERY SIMPLE
 GO
