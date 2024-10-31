@@ -14,16 +14,24 @@ CONNECT TO ${os_name};
 CREATE BUFFERPOOL ${os_name}_1_32K IMMEDIATE SIZE 1024 PAGESIZE 32K;
 CREATE BUFFERPOOL ${os_name}_2_32K IMMEDIATE SIZE 1024 PAGESIZE 32K;
 CREATE BUFFERPOOL ${os_name}_3_32K IMMEDIATE SIZE 1024 PAGESIZE 32K;
+-- For lob storage location which is not required by default
+-- CREATE BUFFERPOOL ${os_name}_4_32K IMMEDIATE SIZE 1024 PAGESIZE 32K;
+
 
 -- Create table spaces
 CREATE LARGE TABLESPACE ${datatablespace} PAGESIZE 32 K MANAGED BY AUTOMATIC STORAGE BUFFERPOOL ${os_name}_1_32K;
-CREATE LARGE TABLESPACE ${vwdatatablespace} PAGESIZE 32 K MANAGED BY AUTOMATIC STORAGE BUFFERPOOL ${os_name}_2_32K;
+CREATE LARGE TABLESPACE ${indextablespace} PAGESIZE 32 K MANAGED BY AUTOMATIC STORAGE BUFFERPOOL ${os_name}_2_32K;
 CREATE USER TEMPORARY TABLESPACE ${tmp_tablespace} PAGESIZE 32 K MANAGED BY AUTOMATIC STORAGE BUFFERPOOL ${os_name}_3_32K;
+-- For lob storage location which is not required by default
+-- CREATE LARGE TABLESPACE ${lobtablespace} PAGESIZE 32 K MANAGED BY AUTOMATIC STORAGE BUFFERPOOL ${os_name}_4_32K;
+
 
 -- Grant permissions to DB user
 GRANT CREATETAB,CONNECT ON DATABASE TO USER ${youruser1};
 GRANT USE OF TABLESPACE ${datatablespace} TO USER ${youruser1};
-GRANT USE OF TABLESPACE ${vwdatatablespace} TO USER ${youruser1};
+GRANT USE OF TABLESPACE ${indextablespace} TO USER ${youruser1};
+-- For lob storage location which is not required by default
+-- GRANT USE OF TABLESPACE ${lobtablespace} TO USER ${youruser1};
 GRANT USE OF TABLESPACE ${tmp_tablespace} TO USER ${youruser1};
 GRANT SELECT ON SYSIBM.SYSVERSIONS TO USER ${youruser1};
 GRANT SELECT ON SYSCAT.DATATYPES TO USER ${youruser1};
