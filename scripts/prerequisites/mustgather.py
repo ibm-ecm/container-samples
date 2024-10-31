@@ -536,10 +536,11 @@ def main(
                                                                  deploy["init_containers"])
                                     progress.advance(task4)
                 else:
-                    progress.log()
-                    progress.log(Panel.fit("No Pods Found for Selected Components", style="bold red"))
-                    progress.log()
-                    progress.advance(task4)
+                    if components:
+                        progress.log()
+                        progress.log(Panel.fit("No Pods Found for Selected Components", style="bold red"))
+                        progress.log()
+                        progress.advance(task4)
 
             tar_mustgather_folder(mustgather_folder, progress, namespace)
             progress.advance(task5)
