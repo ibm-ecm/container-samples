@@ -777,8 +777,7 @@ class GatherPrereqOptions:
     def collect_os_number(self):
         try:
             # only ask in 5.5.8 or in releases above that if cpe graphql is selected
-            if self._fncm_version == "5.5.8" or (
-                    "cpe" in self._optional_components and "graphql" in self._optional_components):
+            if self._fncm_version == "5.5.8" or ("cpe" in self._optional_components):
                 print()
                 if "ier" in self._optional_components:
                     print("Deployments including Content Platform Engine, require at least one object store.\n\n"

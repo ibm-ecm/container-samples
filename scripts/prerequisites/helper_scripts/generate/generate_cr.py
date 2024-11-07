@@ -711,9 +711,10 @@ class GenerateCR:
                 if self._deployment_properties["FNCM_Version"] not in ["5.5.8", "5.5.9", "5.5.11", "5.5.12"]:
                     if ele in self._usergroup_properties.keys():
                         os_tablespace_dict = CommentedMap()
-                        if "DATA_TABLESPACE" in self._db_properties[ele].keys():
-                            os_tablespace_dict["oc_cpe_obj_store_table_storage_location"] = self._db_properties[ele][
-                                "DATA_TABLESPACE"]
+                        # TODO: Issue with MSSQL Primary Tablespace
+                        # if "DATA_TABLESPACE" in self._db_properties[ele].keys():
+                        #     os_tablespace_dict["oc_cpe_obj_store_table_storage_location"] = self._db_properties[ele][
+                        #         "DATA_TABLESPACE"]
                         if "INDEX_TABLESPACE" in self._db_properties[ele].keys():
                             os_tablespace_dict["oc_cpe_obj_store_index_storage_location"] = self._db_properties[ele][
                                 "INDEX_TABLESPACE"]

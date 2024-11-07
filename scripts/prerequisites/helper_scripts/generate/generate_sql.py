@@ -147,17 +147,17 @@ class GenerateSql:
                         os_name=self._dbprop[os_id.upper()]['DATABASE_NAME'],
                         youruser1=parse_yaml_sql(self._dbprop[os_id.upper()]['DATABASE_USERNAME']),
                         yourpassword=parse_yaml_sql(self._dbprop[os_id.upper()]['DATABASE_PASSWORD']),
-                        datatablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['DATA_TABLESPACE'].tolower()),
-                        indextablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['INDEX_TABLESPACE'].tolower())
+                        datatablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['DATA_TABLESPACE'].lower()),
+                        indextablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['INDEX_TABLESPACE'].lower())
                     )
                 elif self._dbprop["DATABASE_TYPE"] == "sqlserver":
                     finished_output = self._os_template.safe_substitute(
                         os_name=self._dbprop[os_id.upper()]['DATABASE_NAME'],
                         youruser1=parse_yaml_sql(self._dbprop[os_id.upper()]['DATABASE_USERNAME']),
                         yourpassword=parse_yaml_sql(self._dbprop[os_id.upper()]['DATABASE_PASSWORD']),
-                        datatablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['DATA_TABLESPACE'].toupper()),
-                        indextablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['INDEX_TABLESPACE'].toupper()),
-                        lobtablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['LOB_TABLESPACE'].toupper())
+                        datatablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['DATA_TABLESPACE'].upper()),
+                        indextablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['INDEX_TABLESPACE'].upper()),
+                        lobtablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['LOB_TABLESPACE'].upper())
                     )
                 with open(path, "w", encoding='UTF-8') as output:
                     output.write(finished_output)

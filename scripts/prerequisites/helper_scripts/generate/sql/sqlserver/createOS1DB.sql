@@ -25,6 +25,9 @@ ADD FILE
 )
 GO
 
+ALTER DATABASE ${os_name}
+ADD FILEGROUP ${indextablespace};
+GO
 
 ALTER DATABASE ${os_name}
 ADD FILE
@@ -36,7 +39,12 @@ ADD FILE
 )
 TO FILEGROUP ${indextablespace};
 GO
+
 -- For lob storage location which is not required by default
+-- ALTER DATABASE ${os_name}
+-- ADD FILEGROUP ${lobtablespace};
+-- GO
+
 --ALTER DATABASE ${os_name}
 --ADD FILE
 --(
