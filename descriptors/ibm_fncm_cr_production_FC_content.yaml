@@ -77,9 +77,9 @@ spec:
     #  localhost_profile: # Local path of custom seccomp profile when type `Localhost` is used. The custom profile must be accessible by the pod and must exist locally on all worker nodes.  For example: `/profiles/fine-grained.json`.
 
     sc_egress_configuration:
-      ## Required. Enable or disable egress access to external systems.  If "sc_restricted_internet_access" is defined and has no value set, then default will be "true".  If
-      ## "sc_restricted_internet_access" is not defined  (e.g., in the case of upgrade, the existing CR will not have sc_restricted_internet_access ), then
-      ## "sc_restricted_internet_access" will be "false"
+      ## Required. Enable or disable egress access to external systems.
+      ## If "sc_restricted_internet_access" is defined and has no value set, then default will be "true".
+      ## If "sc_restricted_internet_access" is not defined (e.g., in the case of upgrade, the existing CR will not have sc_restricted_internet_access), then "sc_restricted_internet_access" will be "false"
       sc_restricted_internet_access: true
       ## Optional.  Kubernetes API server namespace(s) (comma separated) to be used for egress network policy when `sc_restricted_internet_access: true` and `sc_deployment_platform: "other"`.
       ## "{}" can also be used as a value.  It is equivalent to all namespaces (eg: namespaceSelector:{})
@@ -153,7 +153,7 @@ spec:
     images:
       keytool_init_container:
         repository: cp.icr.io/cp/cp4a/common/dba-keytool-initcontainer
-        tag: "23.0.2-IF006"
+        tag: "5.5.12-IF003"
     
     ## This is necessary if you want to use your own JDBC drivers and/or need to provide ICCSAP drivers.  If you are providing multiple JDBC drivers and ICCSAP drivers, 
     ## all the files must be compressed in a single file.
@@ -524,7 +524,7 @@ spec:
       dc_hadr_validation_timeout: 15
       ######################################################################################
       ## If the database type is "Db2HADR", then complete the rest of the parameters below.
-      ## Otherwise, remove or comment out the rest of the parameters below.
+      ## Provide the database server name or IP address of the standby database server.
       ######################################################################################
       dc_hadr_standby_servername: "<Required>"
       ## Provide the standby database server port.  For Db2, the default is "50000".
@@ -678,7 +678,7 @@ spec:
     ## LDAP user and password, CPE username and password, keystore password, and LTPA passs, etc.
     fncm_secret_name: ibm-fncm-secret
 
-    ## By default all the components create ingress and routes with required annotations. In case any custom annotation is needed for the environment provide below.
+    ## By default, all the components create ingress and routes with required annotations. In case any custom annotation is needed for the environment provide below.
     #    route_ingress_annotations:
     #      - haproxy.router.openshift.io/balance: roundrobin
     route_ingress_annotations:
@@ -743,7 +743,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cpe
-        tag: ga-5512-p8cpe-if002
+        tag: ga-5512-p8cpe-if003
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -764,8 +764,8 @@ spec:
         # Defines behavior for changing ownership and permission of the volume before being exposed inside a Pod. This field has two possible values (Always,OnRootMismatch)
         # For example fs_groupchangepolicy: "OnRootMismatch"
         fs_groupchangepolicy:
-      
-      ## The initial resources (CPU, memory) requests and limits.  If more resources are needed,
+
+      ## The initial resources (CPU, memory, and ephemeral storage) requests and limits.  If more resources are needed,
       ## make the changes here to meet your requirement.
       resources:
         requests:
@@ -812,6 +812,9 @@ spec:
         ##  -XX:+SomeJVMSettings
         ##  -XshowSettings:vm"
         ## Then set the following: jvm_customize_options="-Dmy.test.jvm.arg1=123,-Dmy.test.jvm.arg2=abc,-XX:+SomeJVMSettings,-XshowSettings:vm"
+        ## If your JVM option contains comma then you have to include 'DELIM=;' to use a different separator, for example jvm_customize_options="DELIM=;-Dmy.test.jvm.arg1=123;-Dcom.filenet.authentication.wsi.AuthTokenOrder=oauth,oidc,ltpa". Semicolon can be replaced with any other char.
+        ## If your JVM option contains double quotes then you need to escape it like this: jvm_customize_options="-Dsettings.navigator.default=logging.level={\"_value\":\"4\",\"_mergeOption\":\"replace\"}"
+
         jvm_customize_options:
 
         ## Default JNDI name for GCD for non-XA data source
@@ -862,7 +865,7 @@ spec:
           size: 1Gi
         existing_pvc_for_cpe_textextstore: 
           name: "cpe-textextstore"
-          size: 1Gi
+          size: 3Gi
         existing_pvc_for_cpe_bootstrapstore: 
           name: "cpe-bootstrapstore"
           size: 1Gi
@@ -911,7 +914,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/css
-        tag: ga-5512-p8css-if002
+        tag: ga-5512-p8css-if003
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -920,7 +923,7 @@ spec:
       log:
         format: json
 
-      ## The initial resources (CPU, memory) requests and limits.  If more resources are needed,
+      ## The initial resources (CPU, memory, and ephemeral storage) requests and limits.  If more resources are needed,
       ## make the changes here to meet your requirement.
       resources:
         requests:
@@ -1009,7 +1012,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cmis
-        tag: ga-307-cmis-la501
+        tag: ga-307-cmis-if008
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1018,7 +1021,7 @@ spec:
       log:
         format: json
 
-      ## The initial resources (CPU, memory) requests and limits.  If more resources are needed,
+      ## The initial resources (CPU, memory, and ephemeral storage) requests and limits.  If more resources are needed,
       ## make the changes here to meet your requirement.
       resources:
         requests:
@@ -1059,6 +1062,8 @@ spec:
         ##  -XX:+SomeJVMSettings
         ##  -XshowSettings:vm"
         ## Then set the following: jvm_customize_options="-Dmy.test.jvm.arg1=123,-Dmy.test.jvm.arg2=abc,-XX:+SomeJVMSettings,-XshowSettings:vm"
+        ## If your JVM option contains comma then you have to include 'DELIM=;' to use a different separator, for example jvm_customize_options="DELIM=;-Dmy.test.jvm.arg1=123;-Dcom.filenet.authentication.wsi.AuthTokenOrder=oauth,oidc,ltpa". Semicolon can be replaced with any other char.
+        ## If your JVM option contains double quotes then you need to escape it like this: jvm_customize_options="-Dsettings.navigator.default=logging.level={\"_value\":\"4\",\"_mergeOption\":\"replace\"}"
         jvm_customize_options:
 
         ## Enable/disable Web Services Security
@@ -1168,7 +1173,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/graphql
-        tag: ga-5512-p8cgql-if002
+        tag: ga-5512-p8cgql-if003
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1177,7 +1182,7 @@ spec:
       log:
         format: json
 
-      ## The initial resources (CPU, memory) requests and limits.  If more resources are needed,
+      ## The initial resources (CPU, memory, and ephemeral storage) requests and limits.  If more resources are needed,
       ## make the changes here to meet your requirement.
       resources:
         requests:
@@ -1213,6 +1218,8 @@ spec:
         ##  -XX:+SomeJVMSettings
         ##  -XshowSettings:vm"
         ## Then set the following: jvm_customize_options="-Dmy.test.jvm.arg1=123,-Dmy.test.jvm.arg2=abc,-XX:+SomeJVMSettings,-XshowSettings:vm"
+        ## If your JVM option contains comma then you have to include 'DELIM=;' to use a different separator, for example jvm_customize_options="DELIM=;-Dmy.test.jvm.arg1=123;-Dcom.filenet.authentication.wsi.AuthTokenOrder=oauth,oidc,ltpa". Semicolon can be replaced with any other char.
+        ## If your JVM option contains double quotes then you need to escape it like this: jvm_customize_options="-Dsettings.navigator.default=logging.level={\"_value\":\"4\",\"_mergeOption\":\"replace\"}"
         jvm_customize_options:
 
         license_model: FNCM.PVUNonProd
@@ -1287,12 +1294,12 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/extshare
-        tag: ga-3015-es-if003
+        tag: ga-3015-es-if005
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
 
-      ## The initial resources (CPU, memory) requests and limits.  If more resources are needed,
+      ## The initial resources (CPU, memory, and ephemeral storage) requests and limits.  If more resources are needed,
       ## make the changes here to meet your requirement.
       resources:
         requests:
@@ -1395,12 +1402,12 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/taskmgr
-        tag: ga-3015-tm-if003
+        tag: ga-3015-tm-if005
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
 
-      ## The initial resources (CPU, memory) requests and limits.  If more resources are needed,
+      ## The initial resources (CPU, memory, and ephemeral storage) requests and limits.  If more resources are needed,
       ## make the changes here to meet your requirement.
       resources:
         requests:
@@ -1436,6 +1443,8 @@ spec:
         ##  -XX:+SomeJVMSettings
         ##  -XshowSettings:vm"
         ## Then set the following: jvm_customize_options="-Dmy.test.jvm.arg1=123,-Dmy.test.jvm.arg2=abc,-XX:+SomeJVMSettings,-XshowSettings:vm"
+        ## If your JVM option contains comma then you have to include 'DELIM=;' to use a different separator, for example jvm_customize_options="DELIM=;-Dmy.test.jvm.arg1=123;-Dcom.filenet.authentication.wsi.AuthTokenOrder=oauth,oidc,ltpa". Semicolon can be replaced with any other char.
+        ## If your JVM option contains double quotes then you need to escape it like this: jvm_customize_options="-Dsettings.navigator.default=logging.level={\"_value\":\"4\",\"_mergeOption\":\"replace\"}"
         jvm_customize_options: "-Dcom.ibm.ecm.task.StartUpListener.defaultLogLevel=FINE"
         license: accept
 
@@ -1540,7 +1549,7 @@ spec:
     image:
       ## The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/ban/navigator
-      tag: ga-3015-icn-if003
+      tag: ga-3015-icn-if005
 
       ## This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
@@ -1549,7 +1558,7 @@ spec:
     log:
       format: json
 
-    ## The initial resources (CPU, memory) requests and limits.  If more resources are needed,
+    ## The initial resources (CPU, memory, and ephemeral storage) requests and limits.  If more resources are needed,
     ## make the changes here to meet your requirement.
     resources:
       requests:
@@ -1559,7 +1568,7 @@ spec:
       limits:
         cpu: "1"
         memory: "3072Mi"
-        ephemeral_storage: "2.5Gi"
+        ephemeral_storage: "3Gi"
 
       ## By default "Autoscaling" is disabled (i.e., enabled: false).  If you enable auto_scaling (i.e., enabled: true), be sure to 
       ## provide values for max_replicas, min_replicas, and target_cpu_utilization_percentage.
@@ -1603,6 +1612,19 @@ spec:
     # Disable FIPS for the component (default value is "false"), change it to "true" if you enable FIPS mode for the deployment with shared_configuration.enable_fips = true, but want to disable FIPS mode for the component.
     disable_fips: false
 
+    ## Set securityContext for Navigator deployment.
+    security_context:
+      ## Controls which group IDs containers add. For example "supplemental_groups: [1000620001,1000620002]"
+      supplemental_groups:
+      ## This can take an array of key value pairs to assign SELinux labels to a Container, for example
+      ## selinux_options:
+        ## level: "s0:c123,c456"
+        ## type: "spc_t
+      selinux_options:
+      # Defines behavior for changing ownership and permission of the volume before being exposed inside a Pod. This field has two possible values (Always,OnRootMismatch)
+      # For example fs_groupchangepolicy: "OnRootMismatch"
+      fs_groupchangepolicy:
+
     ## Below are the default ICN Production settings.  Make the necessary changes as you see fit.  Refer to IBM Documentation for details.
     icn_production_setting:
       timezone: Etc/UTC
@@ -1622,6 +1644,8 @@ spec:
       ##  -XX:+SomeJVMSettings
       ##  -XshowSettings:vm"
       ## Then set the following: jvm_customize_options="-Dmy.test.jvm.arg1=123,-Dmy.test.jvm.arg2=abc,-XX:+SomeJVMSettings,-XshowSettings:vm"
+      ## If your JVM option contains comma then you have to include 'DELIM=;' to use a different separator, for example jvm_customize_options="DELIM=;-Dmy.test.jvm.arg1=123;-Dcom.filenet.authentication.wsi.AuthTokenOrder=oauth,oidc,ltpa". Semicolon can be replaced with any other char.
+      ## If your JVM option contains double quotes then you need to escape it like this: jvm_customize_options="-Dsettings.navigator.default=logging.level={\"_value\":\"4\",\"_mergeOption\":\"replace\"}"
       jvm_customize_options:
 
       icn_jndids_name: ECMClientDS
@@ -1841,6 +1865,12 @@ spec:
 #            - "{CE521ADD-0000-0000-0000-000000000016}"
 #            # "5.5.1 Social Collaboration Base Extensions"
 #            - "{CE551ADD-0000-0000-0000-000000000011}"
+#          ## Optional, provide lob storage location for object store
+#          oc_cpe_obj_store_lob_storage_location: ""
+#          ## Optional, provide table storage location for object store
+#          oc_cpe_obj_store_table_storage_location: ""
+#          ## Optional, provide index storage location for object store
+#          oc_cpe_obj_store_index_storage_location: ""
 #          oc_cpe_obj_store_enable_compression: false
 #          oc_cpe_obj_store_asa_name: "demo_storage"
 #          oc_cpe_obj_store_asa_file_systems_storage_device_name: "demo_file_system_storage"

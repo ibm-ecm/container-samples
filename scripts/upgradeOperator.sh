@@ -33,8 +33,8 @@ OLM_SUBSCRIPTION=${PARENT_DIR}/descriptors/op-olm/subscription.yaml
 # the source is different for stage of development and final public
 online_source="ibm-fncm-operator-catalog"
 
-
 OLM_OPT_GROUP_TMP=${TEMP_FOLDER}/.operator_group.yaml
+OLM_CATALOG_TMP=${TEMP_FOLDER}/.catalogsource.yaml
 OLM_SUBSCRIPTION_TMP=${TEMP_FOLDER}/.subscription.yaml
 OLM_SUBSCRIPTION_NAME="ibm-fncm-operator-catalog-subscription"
 PROJ_NAME_ALL_NAMESPACE="openshift-operators"
@@ -42,6 +42,8 @@ PROJ_NAME_ALL_NAMESPACE="openshift-operators"
 echo '' >$LOG_FILE
 
 LICENSE_ACCEPTED=""
+CATALOG_FOUND=true
+PRIVATE_CATALOG=true
 
 function show_help {
   echo -e "\nPrerequisite:"
@@ -153,13 +155,17 @@ function apply_operator_olm() {
     temp_project_name=$PROJ_NAME_ALL_NAMESPACE
   else
     temp_project_name=$project_name
+    if [[ $PRIVATE_CATALOG ]]; then
+      CATALOG_NAMESPACE=$project_name
+    else
+      CATALOG_NAMESPACE="openshift-marketplace"
+    fi
+    sed -e "s|namespace: .*|namespace: $CATALOG_NAMESPACE|g" ${OLM_CATALOG} >${OLM_CATALOG_TMP}
   fi
 
-  OLM_CATALOG=${PARENT_DIR}/descriptors/op-olm/catalogsource.yaml
-
-  if ${CLI_CMD} get catalogsource -n openshift-marketplace | grep $online_source; then
+  if ${CLI_CMD} get catalogsource -n ${CATALOG_NAMESPACE} | grep $online_source; then
     echo "Found existing ibm operator catalog source, updating it"
-    ${CLI_CMD} apply -f $OLM_CATALOG
+    ${CLI_CMD} apply -f $OLM_CATALOG_TMP
     if [ $? -eq 0 ]; then
       echo "IBM FileNet Content Manager Operator Catalog source updated!"
     else
@@ -167,7 +173,7 @@ function apply_operator_olm() {
       exit 1
     fi
   else
-    ${CLI_CMD} apply -f $OLM_CATALOG
+    ${CLI_CMD} apply -f $OLM_CATALOG_TMP
     if [ $? -eq 0 ]; then
       echo "IBM FileNet Content Manager Operator Catalog source created!"
     else
@@ -179,12 +185,12 @@ function apply_operator_olm() {
   for ((retry = 0; retry <= ${maxRetry}; retry++)); do
     echo "Waiting for IBM FileNet Content Manager Operator Catalog pod initialization"
 
-    isReady=$(${CLI_CMD} get pod -n openshift-marketplace --no-headers | grep $online_source | grep "Running")
+    isReady=$(${CLI_CMD} get pod -n ${CATALOG_NAMESPACE} --no-headers | grep $online_source | grep "Running")
     if [[ -z $isReady ]]; then
       if [[ $retry -eq ${maxRetry} ]]; then
         echo "Timeout Waiting for IBM FileNet Content Manager Operator Catalog pod to start"
-        echo -e "\x1B[1mPlease check the status of Pod by issue cmd: \x1B[0m"
-        echo "oc describe pod $(oc get pod -n openshift-marketplace | grep $online_source | awk '{print $1}') -n openshift-marketplace"
+        echo -e "\x1b[1mPlease check the status of Pod by issue cmd: \x1b[0m"
+        echo "oc describe pod $(oc get pod -n ${CATALOG_NAMESPACE} | grep $online_source | awk '{print $1}') -n ${CATALOG_NAMESPACE}"
         exit 1
       else
         sleep 30
@@ -200,7 +206,7 @@ function apply_operator_olm() {
     echo "Found operator group"
     ${CLI_CMD} get og -n "${temp_project_name}"
   else
-    sed "s/REPLACE_NAMESPACE/$temp_project_name/g" ${OLM_OPT_GROUP} >${OLM_OPT_GROUP_TMP}
+    sed -e "s/REPLACE_NAMESPACE/$temp_project_name/g" ${OLM_OPT_GROUP} >${OLM_OPT_GROUP_TMP}
     ${CLI_CMD} apply -f ${OLM_OPT_GROUP_TMP}
     if [ $? -eq 0 ]; then
       echo "IBM FileNet Content Manager Operator Group Created!"
@@ -209,11 +215,15 @@ function apply_operator_olm() {
     fi
   fi
 
-  if ${CLI_CMD} get subscription -n "${temp_project_name}" | grep ibm-fncm-operator; then
+    if ${CLI_CMD} get subscription -n "${temp_project_name}" | grep ibm-fncm-operator; then
     echo "Found IBM FileNet Content Manager Operator Subscription, updating it"
     OLM_SUBSCRIPTION_NAME=$(${CLI_CMD} get subscription -n "${temp_project_name}" | grep ibm-fncm-operator | awk '{print $1}')
   fi
-  sed  -e "s/REPLACE_NAMESPACE/$temp_project_name/g" -e "s/ibm-fncm-operator-catalog-subscription/$OLM_SUBSCRIPTION_NAME/g" ${OLM_SUBSCRIPTION} >${OLM_SUBSCRIPTION_TMP}
+
+  sed -e "s/REPLACE_NAMESPACE/$temp_project_name/g" -e "s/ibm-fncm-operator-catalog-subscription/$OLM_SUBSCRIPTION_NAME/g" ${OLM_SUBSCRIPTION} >${OLM_SUBSCRIPTION_TMP}
+  if [[ $PRIVATE_CATALOG ]]; then
+    ${SED_COMMAND} "s/sourceNamespace: .*/sourceNamespace: $temp_project_name/g" ${OLM_SUBSCRIPTION_TMP}
+  fi
 
   ${CLI_CMD} apply -f ${OLM_SUBSCRIPTION_TMP}
 
@@ -232,10 +242,10 @@ function apply_operator_olm() {
     if [[ -z $isReady ]]; then
       if [[ $retry -eq ${maxRetry} ]]; then
         echo "Timeout Waiting for IBM FileNet Content Manager Operator to start"
-        echo -e "\x1B[1mPlease check the status of Pod by issue cmd:\x1B[0m"
+        echo -e "\x1b[1mPlease check the status of Pod by issue cmd:\x1b[0m"
         echo "oc describe pod $(oc get pod -n $temp_project_name | grep ibm-fncm-operator | awk '{print $1}') -n $temp_project_name"
         printf "\n"
-        echo -e "\x1B[1mPlease check the status of ReplicaSet by issue cmd:\x1B[0m"
+        echo -e "\x1b[1mPlease check the status of ReplicaSet by issue cmd:\x1b[0m"
         echo "oc describe rs $(oc get rs -n $temp_project_name | grep ibm-fncm-operator | awk '{print $1}') -n $temp_project_name"
         exit 1
       else
@@ -249,17 +259,147 @@ function apply_operator_olm() {
   done
 
   echo
-  echo -ne Checking ibm-fncm-operator role...
-  role_name_olm=$(${CLI_CMD} get role -n "$temp_project_name" --no-headers | grep ibm-fncm-operator.v | awk '{print $1}')
-  if [[ -z $role_name_olm ]]; then
-    echo "No role found for IBM FileNet Content Manager Operator"
-    exit 1
+  # Add user to role if chosen from prompt
+  if [[ -n "$user_name" ]]; then
+    echo -ne Adding the user ${user_name} to the ibm-fncm-operator role...
+    role_name_olm=$(${CLI_CMD} get role -n "$temp_project_name" --no-headers | grep ibm-fncm-operator.v | awk '{print $1}')
+    if [[ -z $role_name_olm ]]; then
+      echo "No role found for IBM FileNet Content Manager Operator"
+      exit 1
+    else
+      ${CLI_CMD} project ${temp_project_name} >>${LOG_FILE}
+      ${CLI_CMD} adm policy add-role-to-user edit ${user_name} >>${LOG_FILE}
+      ${CLI_CMD} adm policy add-role-to-user registry-editor ${user_name} >>${LOG_FILE}
+      ${CLI_CMD} adm policy add-role-to-user $role_name_olm ${user_name} >/dev/null 2>&1
+      ${CLI_CMD} adm policy add-role-to-user $role_name_olm ${user_name} >>${LOG_FILE}
+      echo "Done!"
+    fi
   fi
   echo
   echo -ne Label the default namespace to allow network policies to open traffic to the ingress controller using a namespaceSelector...
   ${CLI_CMD} label --overwrite namespace default 'network.openshift.io/policy-group=ingress'
   echo "Done"
 }
+
+#function apply_operator_olm() {
+#  local maxRetry=20
+#  local temp_project_name=""
+#
+#  if [[ $ALL_NAMESPACE == "Yes" ]]; then
+#    temp_project_name=$PROJ_NAME_ALL_NAMESPACE
+#  else
+#    temp_project_name=$project_name
+#  fi
+#
+#  if ${CLI_CMD} get catalogsource -n $temp_project_name | grep $online_source; then
+#    echo "Found existing ibm operator catalog source, updating it"
+#    sed "s/openshift-marketplace/$temp_project_name/g" ${OLM_CATALOG} >${OLM_CATALOG_TMP}
+#    ${CLI_CMD} apply -f $OLM_CATALOG_TMP
+#    if [ $? -eq 0 ]; then
+#      echo "IBM FileNet Content Manager Operator Catalog source updated!"
+#    else
+#      echo "IBM FileNet Content Manager Operator catalog source update failed"
+#      exit 1
+#    fi
+#  else
+#    sed "s/openshift-marketplace/$temp_project_name/g" ${OLM_CATALOG} >${OLM_CATALOG_TMP}
+#    ${CLI_CMD} apply -f $OLM_CATALOG_TMP
+#    if [ $? -eq 0 ]; then
+#      echo "IBM FileNet Content Manager Operator Catalog source created!"
+#    else
+#      echo "IBM FileNet Content Manager Operator catalog source creation failed"
+#      exit 1
+#    fi
+#  fi
+#
+#  for ((retry = 0; retry <= ${maxRetry}; retry++)); do
+#    echo "Waiting for IBM FileNet Content Manager Operator Catalog pod initialization"
+#
+#    isReady=$(${CLI_CMD} get pod -n "$temp_project_name" --no-headers | grep $online_source | grep "Running")
+#    if [[ -z $isReady ]]; then
+#      if [[ $retry -eq ${maxRetry} ]]; then
+#        echo "Timeout Waiting for IBM FileNet Content Manager Operator Catalog pod to start"
+#        echo -e "\x1B[1mPlease check the status of Pod by issue cmd: \x1B[0m"
+#        echo "oc describe pod $(oc get pod -n "$temp_project_name" | grep $online_source | awk '{print $1}') -n $temp_project_name"
+#        exit 1
+#      else
+#        sleep 30
+#        continue
+#      fi
+#    else
+#      echo "IBM FileNet Content Manager Operator Catalog is running $isReady"
+#      break
+#    fi
+#  done
+#
+#  if [[ $(${CLI_CMD} get og -n "${temp_project_name}" -o=go-template --template='{{len .items}}') -gt 0 ]]; then
+#    echo "Found operator group"
+#    ${CLI_CMD} get og -n "${temp_project_name}"
+#  else
+#    sed "s/REPLACE_NAMESPACE/$temp_project_name/g" ${OLM_OPT_GROUP} >${OLM_OPT_GROUP_TMP}
+#    ${CLI_CMD} apply -f ${OLM_OPT_GROUP_TMP}
+#    if [ $? -eq 0 ]; then
+#      echo "IBM FileNet Content Manager Operator Group Created!"
+#    else
+#      echo "IBM FileNet Content Manager Operator Group creation failed"
+#    fi
+#  fi
+#
+#  if ${CLI_CMD} get subscription -n "${temp_project_name}" | grep ibm-fncm-operator; then
+#    echo "Found IBM FileNet Content Manager Operator Subscription, updating it"
+#    OLM_SUBSCRIPTION_NAME=$(${CLI_CMD} get subscription -n "${temp_project_name}" | grep ibm-fncm-operator | awk '{print $1}')
+#  fi
+#
+#  sed -e "s/REPLACE_NAMESPACE/$temp_project_name/g" -e "s/ibm-fncm-operator-catalog-subscription/$OLM_SUBSCRIPTION_NAME/g" ${OLM_SUBSCRIPTION} >${OLM_SUBSCRIPTION_TMP}
+#  if [[ $PRIVATE_CATALOG == "Yes" ]]; then
+#    ${SED_COMMAND} "s/sourceNamespace: .*/sourceNamespace: $temp_project_name/g" ${OLM_SUBSCRIPTION_TMP}
+#  fi
+#
+#  ${CLI_CMD} apply -f ${OLM_SUBSCRIPTION_TMP}
+#
+#  if [ $? -eq 0 ]; then
+#    echo "IBM FileNet Content Manager Operator Subscription Created!"
+#  else
+#    echo "IBM FileNet Content Manager Operator Subscription creation failed"
+#    exit 1
+#  fi
+#
+#  printf "\n"
+#  for ((retry = 0; retry <= ${maxRetry}; retry++)); do
+#    echo "Waiting for IBM FileNet Content Manager Operator pod initialization"
+#
+#    isReady=$(${CLI_CMD} get pod -n "$temp_project_name" --no-headers | grep ibm-fncm-operator | grep "Running")
+#    if [[ -z $isReady ]]; then
+#      if [[ $retry -eq ${maxRetry} ]]; then
+#        echo "Timeout Waiting for IBM FileNet Content Manager Operator to start"
+#        echo -e "\x1B[1mPlease check the status of Pod by issue cmd:\x1B[0m"
+#        echo "oc describe pod $(oc get pod -n $temp_project_name | grep ibm-fncm-operator | awk '{print $1}') -n $temp_project_name"
+#        printf "\n"
+#        echo -e "\x1B[1mPlease check the status of ReplicaSet by issue cmd:\x1B[0m"
+#        echo "oc describe rs $(oc get rs -n $temp_project_name | grep ibm-fncm-operator | awk '{print $1}') -n $temp_project_name"
+#        exit 1
+#      else
+#        sleep 30
+#        continue
+#      fi
+#    else
+#      echo "IBM FileNet Content Manager Operator is running $isReady"
+#      break
+#    fi
+#  done
+#
+#  echo
+#  echo -ne Checking ibm-fncm-operator role...
+#  role_name_olm=$(${CLI_CMD} get role -n "$temp_project_name" --no-headers | grep ibm-fncm-operator.v | awk '{print $1}')
+#  if [[ -z $role_name_olm ]]; then
+#    echo "No role found for IBM FileNet Content Manager Operator"
+#    exit 1
+#  fi
+#  echo
+#  echo -ne Label the default namespace to allow network policies to open traffic to the ingress controller using a namespaceSelector...
+#  ${CLI_CMD} label --overwrite namespace default 'network.openshift.io/policy-group=ingress'
+#  echo "Done"
+#}
 
 # Get user's input on whether accept the license
 function userInput() {
@@ -300,8 +440,8 @@ function select_user() {
     options=($userlist)
     usernum=${#options[*]}
     PS3='Enter an existing username in your cluster, valid option [1 to '${usernum}'], non-admin is suggested: '
-    select opt in "${options[@]}"; do
-      if [[ -n "$opt" && "${options[@]}" =~ $opt ]]; then
+    select opt in "${options[*]}"; do
+      if [[ -n "$opt" && "${options[*]}" =~ $opt ]]; then
         user_name=$opt
         break
       else
@@ -323,11 +463,6 @@ function select_user() {
 
 function collect_input() {
   project_name=""
-  if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
-    select_all_namespace
-    user_name=""
-    #    select_user
-  fi
 
   if [[ "$NAMESPACE" == openshift* ]]; then
     echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
@@ -336,50 +471,94 @@ function collect_input() {
     echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
     exit 1
   fi
+
   project_name=$NAMESPACE
+
+  if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
+    if (${CLI_CMD} get catalogsource -n "$project_name" | grep $online_source); then
+      CATALOG_FOUND=true
+      PRIVATE_CATALOG=true
+    elif (${CLI_CMD} get catalogsource -n openshift-marketplace | grep $online_source); then
+      CATALOG_FOUND=true
+      switch_private_catalog
+    else
+      CATALOG_FOUND=false
+      select_private_catalog
+    fi
+
+    user_name=""
+  fi
 }
 
-function select_all_namespace() {
+function switch_private_catalog() {
   printf "\n"
+  echo "${YELLOW_TEXT}You can install the FNCM Standalone catalog as either a private catalog in the same target namespace or as a global catalog in the openshift-marketplace namespace.${RESET_TEXT}"
+  echo "${YELLOW_TEXT}Your current install has the FNCM Standalone catalog as a global catalog in the openshift-marketplace namespace.${RESET_TEXT}"
   while true; do
-    if [ -z "$FNCM_AUTO_ALL_NAMESPACES" ]; then
-      printf "\x1B[1mDo you want IBM FileNet Content Manager Operator support 'All Namespaces'? (Yes/No, default: No) \x1B[0m"
-
-      read -rp "" ans
-      case "$ans" in
-      "y" | "Y" | "yes" | "Yes" | "YES")
-        ALL_NAMESPACE="Yes"
-        break
-        ;;
-      "n" | "N" | "no" | "No" | "NO" | "")
-        ALL_NAMESPACE="No"
-        break
-        ;;
-      *)
-        ALL_NAMESPACE=""
-        echo -e "Answer must be \"Yes\" or \"No\"\n"
-        ;;
-      esac
-    else
-      printf "\x1B[1mDo you want IBM FileNet Content Manager Operator support 'All Namespaces'? (Yes/No, default: No)  \x1B[0m$FNCM_AUTO_ALL_NAMESPACES\n"
-      case "$FNCM_AUTO_ALL_NAMESPACES" in
-      "y" | "Y" | "yes" | "Yes" | "YES")
-        ALL_NAMESPACE="Yes"
-        break
-        ;;
-      "n" | "N" | "no" | "No" | "NO")
-        ALL_NAMESPACE="No"
-        break
-        ;;
-      *)
-        ALL_NAMESPACE=""
-        echo -e "Answer must be \"Yes\" or \"No\"\n"
-        exit 1
-        ;;
-      esac
-    fi
+    printf "\n\x1B[1mDo you switch to deploy FNCM Standalone catalog as a private catalog? (Yes/No, default: Yes): \x1B[0m"
+    read -rp "" ans
+    case "$ans" in
+    "y" | "Y" | "yes" | "Yes" | "YES")
+      PRIVATE_CATALOG=true
+      break
+      ;;
+    "n" | "N" | "no" | "No" | "NO" | "")
+      PRIVATE_CATALOG=false
+      break
+      ;;
+    *)
+      PRIVATE_CATALOG=""
+      echo -e "Answer must be \"Yes\" or \"No\"\n"
+      ;;
+    esac
   done
 }
+
+function select_private_catalog() {
+  printf "\n"
+  echo "${YELLOW_TEXT}You can install the FNCM Standalone catalog as either a private catalog in the same target namespace or as a global catalog in the openshift-marketplace namespace.${RESET_TEXT}"
+  while true; do
+    printf "\x1B[1mDo you want to deploy FNCM Standalone catalog as a private catalog? (Yes/No, default: No): $FNCM_AUTO_PRIVATE_CATALOG\x1B[0m\n"
+    ans=$FNCM_AUTO_PRIVATE_CATALOG
+    case "$ans" in
+    "y" | "Y" | "yes" | "Yes" | "YES")
+      PRIVATE_CATALOG=true
+      break
+      ;;
+    "n" | "N" | "no" | "No" | "NO" | "")
+      PRIVATE_CATALOG=false
+      break
+      ;;
+    *)
+      PRIVATE_CATALOG=""
+      echo -e "Answer must be \"Yes\" or \"No\"\n"
+      ;;
+    esac
+  done
+}
+
+#function select_all_namespace() {
+#  printf "\n"
+#  while true; do
+#    printf "\x1B[1mDo you want IBM FileNet Content Manager Operator support 'All Namespaces'? (Yes/No, default: No) \x1B[0m"
+#
+#    read -rp "" ans
+#    case "$ans" in
+#    "y" | "Y" | "yes" | "Yes" | "YES")
+#      ALL_NAMESPACE="Yes"
+#      break
+#      ;;
+#    "n" | "N" | "no" | "No" | "NO" | "")
+#      ALL_NAMESPACE="No"
+#      break
+#      ;;
+#    *)
+#      ALL_NAMESPACE=""
+#      echo -e "Answer must be \"Yes\" or \"No\"\n"
+#      ;;
+#    esac
+#  done
+#}
 
 function upgrade_cncf() {
   sed -e '/dba_license/{n;s/value:.*/value: accept/;}' ${CUR_DIR}/../upgradeOperator.yaml >${CUR_DIR}/../upgradeOperatorsav.yaml
