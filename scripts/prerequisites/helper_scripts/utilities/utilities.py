@@ -18,12 +18,12 @@ import docker
 import requests
 import toml
 import yaml
-from .prerequisites_utilites import command_available, check_java_version, get_kubectl_version, \
-    kubectl_log_in_check, get_skopeo_version, filepath_validate
 from rich import print
 from rich.text import Text
 from toml.decoder import TomlDecodeError
 
+from .prerequisites_utilites import command_available, check_java_version, get_kubectl_version, \
+    kubectl_log_in_check, get_skopeo_version, filepath_validate
 from ..property.read_prop import ReadPropImageTag
 
 

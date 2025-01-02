@@ -9,8 +9,8 @@
 CREATE ROLE ${youruser1} WITH INHERIT LOGIN ENCRYPTED PASSWORD '${yourpassword}';
 
 -- please modify location follow your requirement
-create tablespace ${datatablespace} owner ${youruser1} location '/pgsqldata/${os_name}';
-create tablespace ${indextablespace} owner ${youruser1} location '/pgsqldata/${os_name}';
+create tablespace ${datatablespace} owner ${youruser1} location '/pgsqldata/${os_name}/data';
+create tablespace ${indextablespace} owner ${youruser1} location '/pgsqldata/${os_name}/index';
 
 
 grant create on tablespace ${datatablespace} to ${youruser1};

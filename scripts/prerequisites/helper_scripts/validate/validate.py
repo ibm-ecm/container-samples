@@ -292,10 +292,10 @@ class Validate:
         ssl_enabled = self._db_prop['DATABASE_SSL_ENABLE']
 
         if db_type == "oracle":
-            servername_regex = re.compile("(?<=HOST=)[\s]*[^)\s]*")
+            servername_regex = re.compile(r"(?<=HOST=)[\s]*[^)\s]*")
             db_servername = servername_regex.search(self._db_prop[db_label]['ORACLE_JDBC_URL']).group()
             db_servername = remove_protocol(db_servername)
-            port_regex = re.compile("(?<=PORT=)[\s]*[^)\s]*")
+            port_regex = re.compile(r"(?<=PORT=)[\s]*[^)\s]*")
             db_port = port_regex.search(self._db_prop[db_label]['ORACLE_JDBC_URL']).group()
         else:
             db_servername = remove_protocol(self._db_prop[db_label]['DATABASE_SERVERNAME'])
