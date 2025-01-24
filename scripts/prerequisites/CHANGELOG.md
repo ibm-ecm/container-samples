@@ -22,8 +22,7 @@
 - fixed process engine duplicate region name for generated custom resource
 - fixed mustgather to allow select component to have zero pods available
 - added unique name and timestamp to mustgather tar file
-- fixed mustgather for unparseable custom resource 
-- fixed cleanup script to delete catalog source for private catalog deployments
+- fixed mustgather for unparseable custom resource
 
 ## 2.8.0 (2024-09-12)
 
