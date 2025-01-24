@@ -15,6 +15,7 @@ import os
 import typer
 from rich import print
 from rich.console import Console
+from rich.console import Group
 from rich.logging import RichHandler
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, MofNCompleteColumn, \
@@ -22,18 +23,17 @@ from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskPr
 from rich.prompt import Confirm
 from rich.syntax import Syntax
 from rich.text import Text
-from rich.console import Group
 from typing_extensions import Annotated
 
-from helper_scripts.upgrade import upgrade as u
 from helper_scripts.gather import gather as g
 from helper_scripts.gather import silent_gather as sg
+from helper_scripts.upgrade import upgrade as u
 from helper_scripts.utilities.interface import clear, display_issues, display_prereq_passed, upgrade_details, \
     upgrade_cr_details
 from helper_scripts.utilities.utilities import prereq_checks, read_version_toml, create_deployment_info, \
     create_version_info, create_current_operator_info
 
-__version__ = "3.1.1"
+__version__ = "4.0.0"
 
 app = typer.Typer()
 

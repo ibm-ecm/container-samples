@@ -1,3 +1,14 @@
+## 4.0.0 (2025-01-23)
+
+### Fix
+
+- fixed oracle url parsing error during database validation
+- fixed version query when using move / migration feature
+- fixed missing external share optional component
+- added lc_bind_secret for multildap configuration
+- replaced kubectl connection check with 'kubectl version'
+- fixed case for oracle tablespaces
+
 ## 3.1.1 (2024-10-10)
 
 ### Fix
@@ -6,6 +17,7 @@
 - fixed mustgather to allow select component to have zero pods available
 - added unique name and timestamp to mustgather tar file
 - fixed mustgather for unparseable custom resource
+- fixed cleanup script to delete catalog source for private catalog deployments
 
 ## 3.1.0 (2024-09-11)
 

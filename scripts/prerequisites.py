@@ -25,7 +25,6 @@ import os
 import shutil
 from datetime import datetime
 from typing import Optional
-from toml.decoder import TomlDecodeError
 
 import typer
 from rich import print
@@ -42,6 +41,7 @@ from rich.progress import (
 from rich.prompt import Confirm
 from rich.syntax import Syntax
 from rich.text import Text
+from toml.decoder import TomlDecodeError
 
 from helper_scripts.gather import gather_prerequisites as g
 from helper_scripts.gather import silent_gather_prerequisites as sg
@@ -50,13 +50,13 @@ from helper_scripts.generate.generate_secrets import GenerateSecrets
 from helper_scripts.generate.generate_sql import GenerateSql
 from helper_scripts.property import property as p
 from helper_scripts.property.read_prop import *
+from helper_scripts.utilities.interface import clear, generate_gather_results, generate_generate_results, display_issues
 from helper_scripts.utilities.prerequisites_utilites import zip_folder, \
     create_generate_folder, check_ssl_folders, check_icc_masterkey, check_trusted_certs, check_dbname, \
     check_keystore_password_length, collect_visible_files, check_db_password_length, check_db_ssl_mode
-from helper_scripts.utilities.interface import clear, generate_gather_results, generate_generate_results, display_issues
 from helper_scripts.validate import validate as v
 
-__version__ = "3.1.1"
+__version__ = "4.0.0"
 
 app = typer.Typer()
 state = {
@@ -191,6 +191,8 @@ def gather(
             clear(console)
             deploy1.collect_init_verify_content()
         else:
+            deploy1.collect_fncm_version()
+            clear(console)
             deploy1.collect_license_model()
 
             clear(console)
@@ -254,6 +256,8 @@ def gather(
                 deploy1.os_number = os_number
                 move_dict["OS"] = os_files
             else:
+                print()
+                print(Panel.fit("Database"))
                 deploy1.collect_os_number()
                 move_dict["OS"] = []
 
@@ -363,7 +367,9 @@ def generate():
     prop_folder = os.path.join(os.getcwd(), "propertyFile")
 
     if not os.path.exists(prop_folder):
-        state["logger"].error("Property files are missing. Please run the gather command first.")
+        state["logger"].info("Property files are missing. Please run the gather command first.")
+        print(Panel.fit(Text("Property files are missing.\n"
+                             "Please run the python3 prerequisites.py gather command first.", style="bold red")))
         raise typer.Exit()
 
     ssl_cert_folder = os.path.join(os.getcwd(), "propertyFile", "ssl-certs")
@@ -644,6 +650,16 @@ def validate(
 
     # Loading property folder locations
     prop_folder = os.path.join(os.getcwd(), "propertyFile")
+
+    # Loading property folder locations
+    prop_folder = os.path.join(os.getcwd(), "propertyFile")
+
+    if not os.path.exists(prop_folder):
+        state["logger"].info("Property files are missing. Please run the gather command first.")
+        print(Panel.fit(Text("Property files are missing.\n"
+                             "Please run the python3 prerequisites.py gather command first.", style="bold red")))
+        raise typer.Exit()
+
     ssl_cert_folder = os.path.join(os.getcwd(), "propertyFile", "ssl-certs")
     icc_folder = os.path.join(os.getcwd(), "propertyFile", "icc")
     trusted_certs_folder = os.path.join(os.getcwd(), "propertyFile", "ssl-certs", "trusted-certs")

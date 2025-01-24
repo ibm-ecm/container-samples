@@ -183,6 +183,10 @@ class CleanDeployment:
                 operator_group = None
             else:
                 operator_group = self._operator_details["operatorGroup"]
+            if "catalogSource" not in self._operator_details:
+                catalog_source = None
+            else:
+                catalog_source = self._operator_details["catalogSource"]
 
             progress.log("Starting FNCM Standalone Operator OLM Uninstallation")
             progress.log()
@@ -218,6 +222,18 @@ class CleanDeployment:
                 progress.log(Panel.fit("Operator Group not found", style="bold red"))
             time.sleep(SLEEP_TIMER)
             progress.advance(task1)
+
+            # Deleting the catalog source if it is private
+            # For https://jsw.ibm.com/browse/DBACLD-158407
+            if self._operator_details["catalogType"].lower() == "private":
+                progress.log()
+                progress.log("Deleting Catalog Source...")
+                self._kube.delete_catalog_source(namespace=self._namespace, name=catalog_source)
+                time.sleep(SLEEP_TIMER)
+                progress.advance(task1)
+            else:
+                progress.log()
+                progress.log("Skipping the Deletion of Catalog Source as it is installed in a global scope...")
 
             progress.log()
             progress.log(Panel.fit("Uninstalling FNCM Standalone Operator completed!", style="bold green"))
