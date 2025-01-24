@@ -1162,7 +1162,7 @@ def ldap_search_results(entries_result_dict):
             ldaps = ""
             for i in entries_result_dict[group]["ldap_id"]:
                 ldaps += "- " + i + "\n"
-            group_duplicate_table.add_row(group, entries_result_dict[group]["ldap_id"])
+            group_duplicate_table.add_row(group, ldaps)
 
         group_table_list.append(group_duplicate_table)
         duplicated = True
@@ -1315,9 +1315,9 @@ def display_deployment_resources(logger, deployment_resources=None, deployment_d
                              "  - Role, RoleBinding & Service Account\n")
 
         if operator_details["type"] == "OLM":
-            instructions_msg += "  - Subscription and Operator Group\n"
-            left_behind_msg += ("  - Operator Catalog Source\n"
-                                "  - Cluster Role & Cluster Role Binding\n"
+            instructions_msg += ("  - Subscription and Operator Group\n"
+                                 "  - Operator Catalog Source\n")
+            left_behind_msg += ("  - Cluster Role & Cluster Role Binding\n"
                                 "  - Custom Resource Definition (CRD)\n")
         else:
             left_behind_msg += "  - Custom Resource Definition (CRD)\n"

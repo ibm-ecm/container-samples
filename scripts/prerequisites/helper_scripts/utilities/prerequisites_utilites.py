@@ -529,7 +529,8 @@ def command_available(command):
 # (!!!) DOES NOT WORK WHEN INSIDE OPERATOR POD
 def kubectl_log_in_check(logger):
     try:
-        subprocess.check_output("kubectl get pods", shell=True, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL,
+        # DBACLD-161187: Changed to general 'kubectl version' command to check if kubectl is logged in
+        subprocess.check_output("kubectl version", shell=True, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL,
                                 universal_newlines=True, timeout=5)
         return True
     except subprocess.TimeoutExpired:
