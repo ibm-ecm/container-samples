@@ -292,10 +292,10 @@ class Validate:
         ssl_enabled = self._db_prop['DATABASE_SSL_ENABLE']
 
         if db_type == "oracle":
-            servername_regex = re.compile("(?<=HOST=)[\s]*[^)\s]*")
+            servername_regex = re.compile(r"(?<=HOST=)[\s]*[^)\s]*")
             db_servername = servername_regex.search(self._db_prop[db_label]['ORACLE_JDBC_URL']).group()
             db_servername = remove_protocol(db_servername)
-            port_regex = re.compile("(?<=PORT=)[\s]*[^)\s]*")
+            port_regex = re.compile(r"(?<=PORT=)[\s]*[^)\s]*")
             db_port = port_regex.search(self._db_prop[db_label]['ORACLE_JDBC_URL']).group()
         else:
             db_servername = remove_protocol(self._db_prop[db_label]['DATABASE_SERVERNAME'])
@@ -370,7 +370,7 @@ class Validate:
                 jar_cmd = "java " + f"-D\"semeru.fips={self.fips_enabled}\" -D\"user.language=en\" -D\"user.country=US\" -cp " \
                           + f"\"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           + f"{self._DB_CONNECTION_JAR_PATH}\" " \
-                          + f"OracleConnection -url \"{self._db_prop[db_label]['ORACLE_JDBC_URL']}\" " \
+                          + f"OracleConnection -url '{self._db_prop[db_label]['ORACLE_JDBC_URL']}' " \
                           + f"-u '{db_user}' -pwd '{db_pwd}' " \
                           + f"-ssl -trustorefile \"{truststore_path}\" -trustoretype \"{truststore_type}\" " \
                           + f"-trustorePwd \"{truststore_pwd}\""
@@ -445,7 +445,7 @@ class Validate:
                 jar_cmd = "java " + f"-D\"semeru.fips={self.fips_enabled}\" -D\"user.language=en\" -D\"user.country=US\" " \
                           + f"-cp \"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           + f"{self._DB_CONNECTION_JAR_PATH}\" OracleConnection " \
-                          + f"-url {self._db_prop[db_label]['ORACLE_JDBC_URL']} -u '{db_user}' -pwd '{db_pwd}'"
+                          + f"-url '{self._db_prop[db_label]['ORACLE_JDBC_URL']}' -u '{db_user}' -pwd '{db_pwd}'"
             elif db_type == "sqlserver":
                 jar_cmd = "java " + f"-D\"semeru.fips={self.fips_enabled}\" -D\"user.language=en\" -D\"user.country=US\" " \
                           + f"-cp \"{self._DB_JDBC_PATH}{class_path_delim_char}" \

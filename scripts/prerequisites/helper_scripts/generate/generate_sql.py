@@ -142,6 +142,7 @@ class GenerateSql:
                         indextablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['INDEX_TABLESPACE']),
                         lobdatatablespace=parse_yaml_sql(self._dbprop[os_id.upper()]['LOB_TABLESPACE'])
                     )
+                #no lob for postgresql only for others
                 elif self._dbprop["DATABASE_TYPE"] == "postgresql":
                     finished_output = self._os_template.safe_substitute(
                         os_name=self._dbprop[os_id.upper()]['DATABASE_NAME'],

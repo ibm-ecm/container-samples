@@ -33,7 +33,7 @@ ALTER DATABASE ${os_name}
 ADD FILE
 (
     NAME = ${indextablespace},
-    FILENAME = 'C:\MSSQL_DATABASE\${indexdatatablespace}.ndf',
+    FILENAME = 'C:\MSSQL_DATABASE\${indextablespace}.ndf',
     SIZE = 300MB,
     FILEGROWTH = 128MB
 )
@@ -55,7 +55,6 @@ GO
 --)
 --TO FILEGROUP ${lobtablespace};
 --GO
-
 
 ALTER DATABASE ${os_name} SET RECOVERY SIMPLE
 GO

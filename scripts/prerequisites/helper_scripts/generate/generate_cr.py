@@ -516,7 +516,7 @@ class GenerateCR:
             else:
                 base_dict["spec"]["license"]["accept"] = True
             if self._deployment_properties["FNCM_Version"] == "5.5.8":
-                optional_components_list = ["css", "tm", "cmis"]
+                optional_components_list = ["css", "tm", "cmis", "es"]
                 optional_components_present = []
                 for component in optional_components_list:
                     if self._deployment_properties[component.upper()]:
