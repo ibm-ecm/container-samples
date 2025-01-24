@@ -835,7 +835,7 @@ class GatherPrereqOptions:
             print(Panel.fit("Version"))
             while True:
                 print()
-                print("Which version of FNCM S do you want to deploy?")
+                print("Which version of FNCM Standalone do you want to deploy?")
                 print("1. 5.5.8")
                 print("2. 5.5.11")
                 print("3. 5.5.12")
@@ -851,7 +851,7 @@ class GatherPrereqOptions:
 
         except Exception as e:
             self._logger.exception(
-                f"Exception from gather script in FNCM S collect version function -  {str(e)}")
+                f"Exception from gather script in FNCM Standalone collect version function -  {str(e)}")
 
     # Function to collect FIPS related info
     def collect_fips_info(self):
@@ -1046,7 +1046,6 @@ class GatherPrereqOptions:
                 print("1. OCP")
                 print("2. ROKS")
                 print("3. CNCF")
-                print()
                 result = IntPrompt.ask('Enter a valid option [[b]1[/b] and [b]3[/b]]')
 
                 if 1 <= result <= 3:

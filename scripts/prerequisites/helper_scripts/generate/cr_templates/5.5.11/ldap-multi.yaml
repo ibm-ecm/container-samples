@@ -22,6 +22,9 @@ spec:
     # The port of the LDAP server to connect.  Some possible values are: 389, 636, etc.
     lc_ldap_port: "<Required>"
 
+    # The LDAP bind secret for LDAP authentication.
+    lc_bind_secret: ldap-bind-secret
+
     # The LDAP base DN.  For example, "dc=example,dc=com", "dc=abc,dc=com", etc
     lc_ldap_base_dn: "<Required>"
 

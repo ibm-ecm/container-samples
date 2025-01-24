@@ -1,3 +1,20 @@
+## 3.0.0 (2025-01-23)
+
+### Fix
+
+- fixed oracle url parsing error during database validation
+- fixed version query when using move / migration feature
+- fixed missing external share as optional component
+- added lc_bind_secret for multildap configuration
+
+## 2.8.3 (2025-01-02)
+
+### Fix
+
+- updated python packages to fix security vulnerabilities
+- fixed mustgather to check k8s connection without a namespace
+- fixed oracle / postgresql case sensitivity for process engine tablespace names 
+
 ## 2.8.2 (2024-10-10)
 
 ### Fix
@@ -5,7 +22,7 @@
 - fixed process engine duplicate region name for generated custom resource
 - fixed mustgather to allow select component to have zero pods available
 - added unique name and timestamp to mustgather tar file
-- fixed mustgather for unparseable custom resource
+- fixed mustgather for unparseable custom resource 
 
 ## 2.8.0 (2024-09-12)
 
