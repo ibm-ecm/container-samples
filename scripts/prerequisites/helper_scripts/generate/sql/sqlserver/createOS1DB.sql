@@ -56,7 +56,6 @@ GO
 --TO FILEGROUP ${lobtablespace};
 --GO
 
-
 ALTER DATABASE ${os_name} SET RECOVERY SIMPLE
 GO
 

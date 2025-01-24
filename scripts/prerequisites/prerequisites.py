@@ -56,7 +56,7 @@ from helper_scripts.utilities.prerequisites_utilites import zip_folder, \
     check_keystore_password_length, collect_visible_files, check_db_password_length, check_db_ssl_mode
 from helper_scripts.validate import validate as v
 
-__version__ = "2.8.3"
+__version__ = "3.0.0"
 
 app = typer.Typer()
 state = {
@@ -191,6 +191,8 @@ def gather(
             clear(console)
             deploy1.collect_init_verify_content()
         else:
+            deploy1.collect_fncm_version()
+            clear(console)
             deploy1.collect_license_model()
 
             clear(console)
@@ -254,6 +256,8 @@ def gather(
                 deploy1.os_number = os_number
                 move_dict["OS"] = os_files
             else:
+                print()
+                print(Panel.fit("Database"))
                 deploy1.collect_os_number()
                 move_dict["OS"] = []
 

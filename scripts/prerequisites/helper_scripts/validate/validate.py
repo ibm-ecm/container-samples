@@ -370,7 +370,7 @@ class Validate:
                 jar_cmd = "java " + f"-D\"semeru.fips={self.fips_enabled}\" -D\"user.language=en\" -D\"user.country=US\" -cp " \
                           + f"\"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           + f"{self._DB_CONNECTION_JAR_PATH}\" " \
-                          + f"OracleConnection -url \"{self._db_prop[db_label]['ORACLE_JDBC_URL']}\" " \
+                          + f"OracleConnection -url '{self._db_prop[db_label]['ORACLE_JDBC_URL']}' " \
                           + f"-u '{db_user}' -pwd '{db_pwd}' " \
                           + f"-ssl -trustorefile \"{truststore_path}\" -trustoretype \"{truststore_type}\" " \
                           + f"-trustorePwd \"{truststore_pwd}\""
@@ -445,7 +445,7 @@ class Validate:
                 jar_cmd = "java " + f"-D\"semeru.fips={self.fips_enabled}\" -D\"user.language=en\" -D\"user.country=US\" " \
                           + f"-cp \"{self._DB_JDBC_PATH}{class_path_delim_char}" \
                           + f"{self._DB_CONNECTION_JAR_PATH}\" OracleConnection " \
-                          + f"-url {self._db_prop[db_label]['ORACLE_JDBC_URL']} -u '{db_user}' -pwd '{db_pwd}'"
+                          + f"-url '{self._db_prop[db_label]['ORACLE_JDBC_URL']}' -u '{db_user}' -pwd '{db_pwd}'"
             elif db_type == "sqlserver":
                 jar_cmd = "java " + f"-D\"semeru.fips={self.fips_enabled}\" -D\"user.language=en\" -D\"user.country=US\" " \
                           + f"-cp \"{self._DB_JDBC_PATH}{class_path_delim_char}" \
