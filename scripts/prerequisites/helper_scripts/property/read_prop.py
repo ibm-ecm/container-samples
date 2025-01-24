@@ -97,17 +97,18 @@ class ReadPropDb(ReadProp):
                 self._toml_dict[os_id]["INDEX_TABLESPACE"] = f"{os_name}INDEXTS"
                 self._toml_dict[os_id]["LOB_TABLESPACE"] = f"{os_name}LOBTS"
         elif self._toml_dict["DATABASE_TYPE"] == "oracle":
+            # DBACLD-159430: Oracle tablespace names must be uppercase
             for os_id in self._toml_dict["_os_ids"]:
                 os_name = self._toml_dict[os_id]["DATABASE_NAME"]
-                self._toml_dict[os_id]["DATA_TABLESPACE"] = f"{os_name}DATATS"
-                self._toml_dict[os_id]["TMP_TABLESPACE"] = f"{os_name}DATATSTEMP"
-                self._toml_dict[os_id]["INDEX_TABLESPACE"] = f"{os_name}INDEXTS"
-                self._toml_dict[os_id]["LOB_TABLESPACE"] = f"{os_name}LOBTS"
+                self._toml_dict[os_id]["DATA_TABLESPACE"] = f"{os_name}DATATS".upper()
+                self._toml_dict[os_id]["TMP_TABLESPACE"] = f"{os_name}DATATSTEMP".upper()
+                self._toml_dict[os_id]["INDEX_TABLESPACE"] = f"{os_name}INDEXTS".upper()
+                self._toml_dict[os_id]["LOB_TABLESPACE"] = f"{os_name}LOBTS".upper()
         elif self._toml_dict["DATABASE_TYPE"] == "postgresql":
             for os_id in self._toml_dict["_os_ids"]:
                 os_name = self._toml_dict[os_id]["DATABASE_NAME"]
-                self._toml_dict[os_id]["DATA_TABLESPACE"] = f"{os_name}_tbs"
-                self._toml_dict[os_id]["INDEX_TABLESPACE"] = f"{os_name}indexts"
+                self._toml_dict[os_id]["DATA_TABLESPACE"] = f"{os_name}_tbs".lower()
+                self._toml_dict[os_id]["INDEX_TABLESPACE"] = f"{os_name}indexts".lower()
         elif self._toml_dict["DATABASE_TYPE"] == "db2":
             for os_id in self._toml_dict["_os_ids"]:
                 os_name = self._toml_dict[os_id]["DATABASE_NAME"]
