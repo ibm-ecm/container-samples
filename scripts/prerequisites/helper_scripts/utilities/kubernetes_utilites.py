@@ -350,6 +350,7 @@ class KubernetesUtilities:
             cr_details["components"] = components
 
             # Equate AppVersion to FNCM Version
+            # DBACLD-157604 added the mapping for 24.0.1
             versions = {
                 "21.0.3": "5.5.8",
                 "22.0.1": "5.5.9",
@@ -357,6 +358,7 @@ class KubernetesUtilities:
                 "23.0.1": "5.5.11",
                 "23.0.2": "5.5.12",
                 "24.0.0": "5.6.0",
+                "24.0.1": "5.6.0",
             }
 
             cr_details["version"] = versions[cr_details["appVersion"]]
@@ -1023,6 +1025,18 @@ class KubernetesUtilities:
             return True
         except client.ApiException as e:
             self._logger.info(f"Error in utilities.py from the delete_subscription: {e}")
+            return False
+
+    def delete_catalog_source(self, namespace, name):
+        try:
+            self._custom_api.delete_namespaced_custom_object(
+                group="operators.coreos.com", version="v1alpha1", namespace=namespace, plural="catalogsources",
+                name=name
+            )
+            self._logger.info(f"Catalog Source '{name}' deleted successfully in namespace '{namespace}'.")
+            return True
+        except client.ApiException as e:
+            self._logger.info(f"Error in utilities.py from the delete_catalog_source: {e}")
             return False
 
     def get_version(self):
