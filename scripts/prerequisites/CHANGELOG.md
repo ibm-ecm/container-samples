@@ -1,3 +1,14 @@
+## 3.2.0 (2025-01-31)
+
+### Fix
+
+- fixed oracle password special character handling in db template
+- fixed duplicate package in requirements.txt 
+
+### Feat
+
+- added support for openshift airgap 
+
 ## 3.0.0 (2025-01-23)
 
 ### Fix

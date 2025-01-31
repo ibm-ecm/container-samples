@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# This script is used to load the generated CASE Package & Airgap variables
+
+{% for var in airgap_vars %}
+export {{ var.key }}={{ var.value }}
+{% endfor %}
+
+
