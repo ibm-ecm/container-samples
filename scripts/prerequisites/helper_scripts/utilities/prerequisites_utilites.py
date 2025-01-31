@@ -605,6 +605,66 @@ def gather_var(key, _logger, _envfile, _error_list, section_header='', valid_val
         _logger.info(
             f"Exception from utilities.py script in {inspect.currentframe().f_code.co_name} function -  {str(e)}")
 
+def get_oc_version(logger):
+    try:
+        # Get the oc version
+        process = subprocess.run(["oc", "version", "--output=json"],
+                                             capture_output=True,
+                                             text=True,
+                                             timeout=5)
+
+        if process.returncode == 0:
+            oc_version = json.loads(process.stdout)["releaseClientVersion"]
+            return oc_version
+
+        oc_version = json.loads(process.stderr)["releaseClientVersion"]
+        return oc_version
+
+    except subprocess.TimeoutExpired:
+        logger.info("Error: Timeout while getting oc version")
+        return ""
+    except Exception as e:
+        logger.info(f"Error: {e}")
+        return ""
+
+def get_ibm_pak_version(logger):
+    try:
+        process = subprocess.run(["oc", "ibm-pak", "--version"],
+                                 capture_output=True,
+                                 text=True,
+                                 timeout=5)
+
+        ibm_pak_version = process.stdout.strip()
+        return ibm_pak_version
+
+    except subprocess.TimeoutExpired:
+        logger.info("Error: Timeout while getting oc version")
+        return ""
+    except Exception as e:
+        logger.info(f"Error: {e}")
+        return ""
+
+def get_mirror_version(logger):
+    try:
+        # Get the oc version
+        process = subprocess.run(["oc", "mirror", "version", "--output=json"],
+                                             capture_output=True,
+                                             text=True,
+                                             timeout=5)
+
+        if process.returncode == 0:
+            mirror_version = json.loads(process.stdout)["clientVersion"]["gitVersion"].split("-")[0]
+            return mirror_version
+        else:
+            return ""
+
+    except subprocess.TimeoutExpired:
+        logger.info("Error: Timeout while getting oc mirror version")
+        return ""
+    except Exception as e:
+        logger.info(f"Error: {e}")
+        return ""
+
 # Function to check if a specific file path is present
 def filepath_validate(filepath):
     if not os.path.exists(filepath):

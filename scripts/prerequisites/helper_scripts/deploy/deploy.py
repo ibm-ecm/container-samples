@@ -337,7 +337,7 @@ class Deploy:
                 progress.log("Please check the status of Pod by issuing the below command:")
                 progress.log()
                 progress.log(Syntax(
-                    f"oc describe pod $(oc get pod -n {self._setup.namespace} | grep ibm-fncm-operator | awk '{{print $1}}') -n ${self._setup.namespace}",
+                    f"oc describe pod $(oc get pod -n {self._setup.namespace} | grep ibm-fncm-operator | awk '{{print $1}}') -n {self._setup.namespace}",
                     "bash"))
                 exit()
 
