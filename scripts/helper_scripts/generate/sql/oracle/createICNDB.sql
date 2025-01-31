@@ -8,14 +8,14 @@
 
 -- Please ensure you already have existing oracle instance.
 -- If your oracle instance does not support multi-tenant architecture, comment out follow lines:
-CREATE PLUGGABLE DATABASE ${icn_name} ADMIN USER ${icn_name}_admin IDENTIFIED BY ${yourpassword} ROLES=(DBA);
+CREATE PLUGGABLE DATABASE ${icn_name} ADMIN USER ${icn_name}_admin IDENTIFIED BY "${yourpassword}" ROLES=(DBA);
 ALTER PLUGGABLE DATABASE ${icn_name} OPEN READ WRITE;
 ALTER PLUGGABLE DATABASE ${icn_name} save state;
 ALTER SESSION SET CONTAINER=${icn_name};
 
 -- Create a new user
 -- Note: the Operator default for schema is ICNDB
-CREATE USER ${youruser1} IDENTIFIED BY ${yourpassword};
+CREATE USER ${youruser1} IDENTIFIED BY "${yourpassword}";
 
 -- Allow the user to connect to the database
 GRANT CONNECT TO ${youruser1};

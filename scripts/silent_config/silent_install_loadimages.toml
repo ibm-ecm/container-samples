@@ -34,3 +34,29 @@ PRIVATE_REGISTRY_SSL_ENABLED = true
 # Required Field only if PRIVATE_REGISTRY_SSL_ENABLED is true
 # Cerificates needs to in PEM format
 PRIVATE_REGISTRY_SSL_CRT_PATH = "/path/to/crt/certificate.pem"
+
+# ####################################################
+# ##          Airgap Mirroring Info                 ##
+# ####################################################
+
+# ####################################################
+# ##     Filenet Content Manager Version            ##
+# ####################################################
+# Filenet Content Manager CASE Package version - Valid values: [1; 2; 3; 4; 5]
+# The latest CASE Package for that version will be pulled
+# 1. 5.5.9
+# 2. 5.5.10
+# 3. 5.5.11
+# 4. 5.5.12
+# 5. 5.6.0
+FNCM_VERSION = 5
+
+# ####################################################
+# ##       Airgap Channel Mirror Configuration      ##
+# ####################################################
+# By default, each CASE Package includes all image of every FNCM Standalone version.
+# Reducing the number of channels will reduce the size of the total image set.
+# If set to true, the script will mirror all channels.
+# If set to false, the script will mirror only the channel corresponding to the FNCM_VERSION.
+# Do you want to mirror all channels - Valid values: [true; false]
+MIRROR_ALL_CHANNELS = false

@@ -21,7 +21,7 @@ The FNCM Standalone Suite includes the following tools:
 - Deployment Cleanup
     The Cleanup Script helps you clean up a FileNet Standalone deployment including the Operator. This script automates the cleanup process and simplifies the removal of a FileNet Standalone deployment from a Kubernetes cluster.
 - LoadImages
-    The LoadImages script helps you load the FileNet Standalone images into your private image registry. This script automates the loading of images for Offline CNCF deployments.
+    The LoadImages script helps you load the FileNet Standalone images into your private image registry. This script automates the loading of images for Offline CNCF and Airgap for OCP.
 - MustGather
     The MustGather script helps you gather information about your FileNet Standalone deployment. This script automates the collection of logs, configuration files, and other diagnostic information to help troubleshoot issues with your FileNet Standalone Install.
 
@@ -256,6 +256,11 @@ You can use the LoadImages Script in the following modes:
    - Run the script using the following command::
 
        python3 loadimages.py
+
+To enable the LoadImages script for Airgap for OCP, you will need to pass the `--airgap` flag to the command. For example::
+
+    python3 loadimages.py --airgap generate
+    python3 loadimages.py --airgap push
 
 For more information on running the LoadImages Script, refer to the `documentation <https://www.ibm.com/docs/SSNW2F_5.6.0/com.ibm.dba.install/filenet_containers_install_topics/containers_tsk_images_enterp.html>`_.
 

@@ -38,7 +38,7 @@ from helper_scripts.utilities.interface import (
     display_prereq_passed, mustgather_details)
 from helper_scripts.utilities.utilities import prereq_checks
 
-__version__ = "4.0.0"
+__version__ = "4.1.1"
 
 # app = typer.Typer()
 
@@ -95,9 +95,13 @@ def display_mode_version(mode: str, description: str):
     """
     clear(console)
     print()
-    msg = ("Version: {version}\n"
-           "Mode: {mode}\n"
-           "{description}").format(version=__version__, mode=mode, description=description)
+    msg = f"Version: {__version__}\n" \
+          f"Mode: {mode}\n" \
+          f"{description}"
+
+    if state["silent"]:
+        msg += "\nSilent Mode Enabled"
+
     print(Panel.fit(msg, title="FileNet Content Manager MustGather CLI", border_style="green"))
     print()
 
@@ -218,7 +222,7 @@ def main(
     if dryrun:
         state["dryrun"] = True
 
-    checks = ["kubectl"]
+    checks = ["kubectl", "connection"]
 
     missing_tools, results, files = prereq_checks(logger=state["logger"], prereqs=checks)
 

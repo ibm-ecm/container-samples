@@ -119,6 +119,11 @@ spec:
     
     ## Optional: You can specify a profile size for CloudPak - valid values are small,medium,large - default is small.
     sc_deployment_profile_size: "small"
+
+    ## If a cluster is configured for multiple availability zones (AZ) and the parameter sc_is_multiple_az is set to true, then the pods are spread across all the zones.
+    ## By default, the sc_is_multiple_az parameter is set to false. When the value is set to true, the pods of the FNCM deployment are spread across your user-defined topology domains.
+    ## The pod API includes a spec.topologySpreadConstraints field, which is used by the FNCM operator to configure it.
+    sc_is_multiple_az: false
     
     ## Specify the RunAsUser for the security context of the pod.  This is usually a numeric value that corresponds to a user ID.
     ## For non-OCP (e.g., CNCF platforms such as AWS, GKE, etc), this parameter is optional. It is not supported on OCP and ROKS.
@@ -155,7 +160,7 @@ spec:
     images:
       keytool_init_container:
         repository: cp.icr.io/cp/cp4a/common/dba-keytool-initcontainer
-        tag: "24.0.0-IF003"
+        tag: "24.0.0-IF004"
     
     ## This is necessary if you want to use your own JDBC drivers and/or need to provide ICCSAP drivers.  If you are providing multiple JDBC drivers and ICCSAP drivers, 
     ## all the files must be compressed in a single file.
@@ -363,6 +368,9 @@ spec:
 
     ## The port of the LDAP server to connect.  Some possible values are: 389, 636, etc.
     #lc_ldap_port: "<Required>"
+
+    ## The LDAP bind secret for LDAP authentication.  The secret is expected to have ldap<id_name>Username and ldap<id_name>Password keys.  Refer to IBM Documentation for more info.
+    #lc_bind_secret: ldap-bind-secret
 
     ## The LDAP base DN.  For example, "dc=example,dc=com", "dc=abc,dc=com", etc
     #lc_ldap_base_dn: "<Required>"
@@ -747,7 +755,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cpe
-        tag: ga-560-p8cpe-if001
+        tag: ga-560-p8cpe-if002
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -914,7 +922,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/css
-        tag: ga-560-p8css-if001
+        tag: ga-560-p8css-if002
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1012,7 +1020,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cmis
-        tag: ga-307-cmis-la702
+        tag: ga-307-cmis-la803
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1173,7 +1181,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/graphql
-        tag: ga-560-p8cgql-if001
+        tag: ga-560-p8cgql-if002
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1294,7 +1302,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/extshare
-        tag: ga-310-es-la101
+        tag: ga-310-es-if003
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1402,7 +1410,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/taskmgr
-        tag: ga-310-tm-la101
+        tag: ga-310-tm-if003
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1549,7 +1557,7 @@ spec:
     image:
       ## The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/ban/navigator
-      tag: ga-310-icn-la101
+      tag: ga-310-icn-if003
 
       ## This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
@@ -1750,7 +1758,7 @@ spec:
     image:
       # The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/ier/ier
-      tag: "24.0.0-IF003"
+      tag: ga-5218-if006-ier-2400-if004
 
       # This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
@@ -1876,7 +1884,7 @@ spec:
     image:
       ## The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/iccsap/iccsap
-      tag: "24.0.0-IF003"
+      tag: ga-4004-iccsap-if018d
 
       ## This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent

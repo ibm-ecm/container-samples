@@ -38,7 +38,7 @@ from helper_scripts.utilities.interface import display_prereq_passed, display_is
     display_deployment_resources
 from helper_scripts.utilities.utilities import prereq_checks, create_version_info, read_version_toml
 
-__version__ = "4.0.0"
+__version__ = "4.1.1"
 
 app = typer.Typer()
 
@@ -102,6 +102,9 @@ def display_mode_version(mode: str, description: str):
 
     if state["dryrun"]:
         msg += "\nDry Run Enabled"
+
+    if state["silent"]:
+        msg += "\nSilent Mode Enabled"
 
     print(Panel.fit(msg, title="FileNet Content Manager Cleanup CLI", border_style="green"))
     print()
@@ -257,7 +260,7 @@ def main(ctx: typer.Context,
     elif ctx.invoked_subcommand == "deployment":
         display_mode_version("Deployment Cleanup", "Clean up of the FNCM Deployment Only")
 
-    checks = ["kubectl", "podman", "docker"]
+    checks = ["kubectl", "connection","podman", "docker"]
     missing_tools, results, files = prereq_checks(logger=state["logger"], prereqs=checks)
 
     # Print table of prerequisites that are missing

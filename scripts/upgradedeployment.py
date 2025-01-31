@@ -33,7 +33,7 @@ from helper_scripts.utilities.interface import clear, display_issues, display_pr
 from helper_scripts.utilities.utilities import prereq_checks, read_version_toml, create_deployment_info, \
     create_version_info, create_current_operator_info
 
-__version__ = "4.0.0"
+__version__ = "4.1.1"
 
 app = typer.Typer()
 
@@ -102,6 +102,9 @@ def display_mode_version(mode: str, description: str):
 
     if state["dev"]:
         msg += "\nDevelopment Mode Enabled"
+
+    if state["silent"]:
+        msg += "\nSilent Mode Enabled"
 
     print(Panel.fit(msg, title="FileNet Content Manager Upgrade CLI", border_style="green"))
     print()
@@ -419,7 +422,7 @@ def main(ctx: typer.Context,
     for file in files:
         required_files.append(os.path.join(descriptor_path, file))
 
-    checks = ["kubectl", "podman", "docker"]
+    checks = ["kubectl", "connection","podman", "docker"]
     missing_tools, results, files = prereq_checks(logger=state["logger"], prereqs=checks, files=required_files)
 
     # Print table of prerequisites that are missing

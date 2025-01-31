@@ -1,3 +1,13 @@
+## 4.1.1 (2025-01-31)
+
+### Fix
+
+- fixed oracle password special character handling in db template
+
+### Feat
+
+- added support for openshift airgap in loadImages script
+
 ## 4.0.0 (2025-01-23)
 
 ### Fix
