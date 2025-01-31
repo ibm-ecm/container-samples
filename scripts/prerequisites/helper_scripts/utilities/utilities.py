@@ -17,13 +17,16 @@ import subprocess
 import docker
 import requests
 import toml
-import yaml
+
 from rich import print
+from rich.panel import Panel
+from rich.syntax import Syntax
 from rich.text import Text
 from toml.decoder import TomlDecodeError
 
 from .prerequisites_utilites import command_available, check_java_version, get_kubectl_version, \
-    kubectl_log_in_check, get_skopeo_version, filepath_validate
+    kubectl_log_in_check, get_skopeo_version, filepath_validate, get_ibm_pak_version, get_oc_version, get_mirror_version
+
 from ..property.read_prop import ReadPropImageTag
 
 
@@ -99,6 +102,28 @@ def login_to_registry_podman(registry, username, password, logger, ssl_enabled=F
         logger.info(f"Error: {e}")
         return False
 
+# Function to check oc plugins
+def check_oc_plugins(logger, plugin):
+    try:
+        logger.info("OpenShift CLI available")
+        env_vars = {
+            'PATH': os.environ["PATH"],
+            'HOME': os.environ["HOME"]
+        }
+
+        command = f"oc {plugin} --help"
+        oc_plugins = subprocess.run(command, env=env_vars, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        # Get Error code from the command
+        if oc_plugins.returncode == 0:
+            logger.info(f"{plugin} plugin available")
+            return True
+
+        logger.info(f"{plugin} plugin not available")
+        return False
+    except Exception as e:
+        logger.info(f"Error: {e}")
+        return
+
 # Function to do the prerequisite checks before the script starts
 def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.6.0'):
     if prereqs is None:
@@ -120,6 +145,12 @@ def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.6.0'):
             "connection": False,
             "skopeo": False,
             "skopeo_version": "",
+            "oc": False,
+            "oc_version": "",
+            "mirror": False,
+            "mirror_version": "",
+            "ibm-pak": False,
+            "ibm-pak_version": ""
         }
 
         platform_type = platform.system()
@@ -158,8 +189,50 @@ def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.6.0'):
                     prereq_summary["podman"] = True
 
                 else:
-                    logger.info("neither podman or docker daemon present")
+                    logger.info("Neither Podman or Docker Daemon present")
                     missing_tools.append("Podman/Docker CLI")
+
+        if "oc" in prereqs:
+            oc = command_available("oc")
+            if not oc:
+                logger.info("Prerequisites failed -> OpenShift CLI not installed")
+                missing_tools.append("OpenShift CLI")
+            else:
+                logger.info("OpenShift CLI available")
+                prereq_summary["oc"] = True
+                prereq_summary["oc_version"] = get_oc_version(logger)
+
+                if "mirror" in prereqs:
+                    if platform_type.lower() == "windows":
+                        missing_tools.append("Windows OS")
+                        logger.info("Prerequisites failed -> Windows Machine not supported")
+
+                    elif platform_type.lower() == "darwin":
+                        missing_tools.append("Mac OS")
+                        logger.info("Prerequisites failed -> Mac OS not supported")
+
+                    else:
+                        mirror = check_oc_plugins(logger, "mirror")
+                        if not mirror:
+                            logger.info("Prerequisites failed -> oc mirror plugin not installed")
+                            missing_tools.append("mirror plugin")
+                        else:
+                            logger.info("oc mirror plugin available")
+                            prereq_summary["mirror"] = True
+                            prereq_summary["mirror_version"] = get_mirror_version(logger)
+                            logger.info(f"Mirror Version: {prereq_summary['mirror_version']}")
+
+
+                if "ibm-pak" in prereqs:
+                    ibm_pak = check_oc_plugins(logger, "ibm-pak")
+                    if not ibm_pak:
+                        logger.info("Prerequisites failed -> oc ibm-pak plugin not installed")
+                        missing_tools.append("ibm-pak plugin")
+                    else:
+                        logger.info("oc ibm-pak plugin available")
+                        prereq_summary["ibm-pak"] = True
+                        prereq_summary["ibm-pak_version"] = get_ibm_pak_version(logger)
+                        logger.info(f"IBM PAK Version: {prereq_summary['ibm-pak_version']}")
 
         # Java Check
         if "java" in prereqs:
@@ -192,7 +265,8 @@ def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.6.0'):
                 kubectl_version = get_kubectl_version(logger)
                 prereq_summary["kubectl_version"] = kubectl_version
 
-            # check if cluster is logged in
+        # check if cluster is logged in
+        if "connection" in prereqs:
             ocp_logged_in = kubectl_log_in_check(logger)
             if not ocp_logged_in:
                 logger.info("Prerequisites failed -> User is not logged into the OCP console")
@@ -221,41 +295,6 @@ def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.6.0'):
         logger.info(
             f"Exception from prerequisites check function -  {str(e)}")
 
-# Validate the image tag and repo file details
-def validate_image_details_file(logger, image_tag_file):
-    try:
-        # Load property files if they exist
-        if os.path.exists(image_tag_file):
-            try:
-                image_prop = ReadPropImageTag(image_tag_file, logger)
-            except TomlDecodeError:
-                print(
-                    f"[prompt.invalid]Exception when reading ImageDetails File\n"
-                    f"Please Review your Property files for missing quotes and formatting.\n\n")
-                exit(1)
-            incorrect_keys = image_prop.check_toml()
-            if incorrect_keys:
-                print(f"[prompt.invalid]There are certain components which have incorrect format.\n"
-                      f"Please review the file and correct the following keys: {incorrect_keys}")
-                exit(1)
-
-        else:
-            print(
-                f"[prompt.invalid]Image details file {image_tag_file} is missing.\n"
-                f"Please run the script in generate mode to generate the file.")
-            exit(1)
-        # Create dictionaries for property files if not None
-        if image_prop:
-            image_prop_dict = image_prop.to_dict()
-        else:
-            image_prop_dict = {}
-
-        return image_prop_dict
-    except Exception as e:
-        logger.exception(
-            f"Exception when reading ImageDetails Files\n"
-            f"Please Review your Property files for missing quotes and formatting.{e}\n\n")
-        exit(1)
 
 # Function to read a version toml file
 def read_version_toml(file_path, logger):
@@ -521,21 +560,6 @@ def create_version_info(setup, version_data):
 
     return version_details
 
-def write_yaml_to_file(content, path):
-    if not isinstance(content, dict):
-        content = content.to_dict()
-    with open(path, 'w') as f:
-        yaml.dump(content, f, default_flow_style=False)
-
-
-def write_log_to_file(content, path):
-    with open(path, 'w') as f:
-        f.write(content)
-
-
-def compress_extract_from_pod(command):
-    subprocess.run(command, shell=True, check=True)
-
 # Create tmp folder
 def create_tmp_folder():
     tmp_folder = os.path.join(os.getcwd(), ".tmp")
@@ -586,6 +610,82 @@ def copy_image(source_image, dest_image, progress=None):
         (f"Error: {e}")
         return False
 
+# Function to read all env variables from the airgap variables file
+def read_airgap_vars(airgap_details_file):
+    airgap_vars = {}
+    # Need to ignore comments and "remove" the export keyword
+    with open(airgap_details_file, 'r') as file:
+        for line in file:
+            trimmed = line.strip()
+            if trimmed and not trimmed.startswith('#'):
+                key, value = trimmed.split("=")
+                key = key.replace("export ", "")
+                airgap_vars[key] = value
+
+    return airgap_vars
+
+# Parse the airgap details file
+
+# Validate the image tag and repo file details
+def validate_airgap_details_file(logger, airgap_details_file: str):
+    try:
+        # Check if the airgap details file exists
+        if not os.path.exists(airgap_details_file):
+            print(Panel.fit(f"Issues Found", style="bold red"))
+            print(
+                f"\n[prompt.invalid]Airgap details file {airgap_details_file} is missing.\n\n"
+                f"Please run the script in generate mode to generate the file.\n")
+
+            print(Panel.fit(
+                Syntax("python3 loadimages.py --airgap generate", "bash", theme="ansi_dark")
+            ))
+            exit(1)
+
+        airgap_vars = read_airgap_vars(airgap_details_file)
+
+        if not airgap_vars:
+            print(Panel.fit(f"Issues Found", style="bold red"))
+            print(
+                f"\n[prompt.invalid]Airgap details file {airgap_details_file} is empty.\n\n"
+                f"Please run the script in generate mode to generate the file.\n")
+
+            print(Panel.fit(
+                Syntax("python3 loadimages.py --airgap generate", "bash", theme="ansi_dark")
+            ))
+            exit(1)
+
+        # Check all the required variables are present
+        required_vars = ["CASE_NAME", "CASE_VERSION", "IBMPAK_HOME", "TARGET_REGISTRY",
+                         "REGISTRY_AUTH_FILE", "CASE_INVENTORY_SETUP"]
+
+        missing_vars = [var for var in required_vars if var not in airgap_vars]
+
+        if missing_vars:
+            print(Panel.fit(f"Issues Found", style="bold red"))
+            print(f"\n[prompt.invalid]Required variables are missing in the airgap details file.\n\n"
+                  f"Please add the following variables to the file: {missing_vars}")
+            exit(1)
+
+        # Check if the IBM PAK home directory is valid
+        ibm_pak_home = os.path.join(airgap_vars["IBMPAK_HOME"], '.ibm-pak')
+        if not os.path.exists(ibm_pak_home):
+            print(Panel.fit(f"Issues Found", style="bold red"))
+            print(f"\n[prompt.invalid]IBM PAK home directory {ibm_pak_home} does not exist.\n\n"
+                  f"The IBM PAK directory is populated when the CASE Package is downloaded.\n"
+                  f"Please run the script in generate mode to complete the CASE package setup.\n")
+            print(Panel.fit(
+                Syntax("python3 loadimages.py --airgap generate", "bash", theme="ansi_dark")
+            ))
+            exit(1)
+
+        return airgap_vars
+
+    except Exception as e:
+        logger.exception(
+            f"Exception when reading ImageDetails Files\n"
+            f"Please Review your Airgap Details file: {e}\n\n")
+        exit(1)
+
 
 # Validate the image tag and repo file details
 def validate_image_details_file(logger, image_tag_file):
@@ -595,20 +695,29 @@ def validate_image_details_file(logger, image_tag_file):
             try:
                 image_prop = ReadPropImageTag(image_tag_file, logger)
             except TomlDecodeError:
+                print(Panel.fit(f"Issues Found", style="bold red"))
                 print(
-                    f"[prompt.invalid]Exception when reading ImageDetails File\n"
+                    f"\n[prompt.invalid]Exception when reading ImageDetails File\n\n"
                     f"Please Review your Property files for missing quotes and formatting.\n\n")
                 exit(1)
             incorrect_keys = image_prop.check_toml()
             if incorrect_keys:
-                print(f"[prompt.invalid]There are certain components which have incorrect format.\n"
+                print(Panel.fit(f"Issues Found", style="bold red"))
+                print(f"\n[prompt.invalid]There are certain components which have incorrect format.\n\n"
                       f"Please review the file and correct the following keys: {incorrect_keys}")
                 exit(1)
 
         else:
+            print(Panel.fit(f"Issues Found", style="bold red"))
             print(
-                f"[prompt.invalid]Image details file {image_tag_file} is missing.\n"
-                f"Please run the script in generate mode to generate the file.")
+                f"\n[prompt.invalid]Image details file {image_tag_file} is missing.\n\n"
+                f"Please run the script in generate mode to generate the file.\n")
+
+            print(Panel.fit(
+                Syntax("python3 loadimages.py generate", "bash", theme="ansi_dark")
+            ))
+
+
             exit(1)
         # Create dictionaries for property files if not None
         if image_prop:

@@ -56,7 +56,7 @@ from helper_scripts.utilities.prerequisites_utilites import zip_folder, \
     check_keystore_password_length, collect_visible_files, check_db_password_length, check_db_ssl_mode
 from helper_scripts.validate import validate as v
 
-__version__ = "3.0.0"
+__version__ = "3.2.0"
 
 app = typer.Typer()
 state = {
@@ -125,6 +125,23 @@ def setup_logger(file_log_level, verbose=False):
     return logger
 
 
+def display_mode_version(mode: str, description: str):
+    """
+        Display the mode and version of the script.
+    """
+    clear(console)
+    print()
+    msg = f"Version: {__version__}\n" \
+          f"Mode: {mode}\n" \
+          f"{description}"
+
+    if state["silent"]:
+        msg += "\nSilent Mode Enabled"
+
+    print(Panel.fit(msg, title="FileNet Content Manager Deploy Operator CLI", border_style="green"))
+    print()
+
+
 @app.command()
 def gather(
         move: str = typer.Option("", help="Folder location of the migration files", rich_help_panel="Mode Options",
@@ -133,13 +150,9 @@ def gather(
     """
     Gather the prerequisites for FileNet Content Manager Deployment.
     """
-
     clear(console)
-    print()
-    print(Panel.fit("Version: {version}\n"
-                    "Mode: Gather".format(version=__version__),
-                    title="FileNet Content Manager Deployment Prerequisites CLI", border_style="green"))
-    print()
+    display_mode_version("Gather",
+                         "FileNet Content Manager Deployment Prerequisites CLI")
 
     if move != '':
         dir_exists = os.path.isdir(move)
@@ -357,11 +370,9 @@ def generate():
     """
 
     clear(console)
-    print()
-    print(Panel.fit("Version: {version}\n"
-                    "Mode: Generate".format(version=__version__),
-                    title="FileNet Content Manager Deployment Prerequisites CLI", border_style="green"))
-    print()
+    display_mode_version("Generate",
+                         "FileNet Content Manager Deployment Prerequisites CLI")
+
 
     # Loading property folder locations
     prop_folder = os.path.join(os.getcwd(), "propertyFile")
@@ -618,11 +629,9 @@ def validate(
     """
 
     clear(console)
-    print()
-    print(Panel.fit("Version: {version}\n"
-                    "Mode: Validate".format(version=__version__),
-                    title="FileNet Content Manager Deployment Prerequisites CLI", border_style="green"))
-    print()
+    display_mode_version("Validate",
+                         "FileNet Content Manager Deployment Prerequisites CLI")
+
     hint_panel = Panel.fit(
         "- Run the validation from the FNCM Standalone Operator \n"
         "- All tools and libraries are installed \n"
