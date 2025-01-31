@@ -8,7 +8,7 @@
 
 -- Please ensure you already have existing oracle instance.
 -- If your oracle instance does not support multi-tenant architecture, comment out follow lines:
-CREATE PLUGGABLE DATABASE ${gcd_name} ADMIN USER ${gcd_name}_admin IDENTIFIED BY ${yourpassword} ROLES=(DBA);
+CREATE PLUGGABLE DATABASE ${gcd_name} ADMIN USER ${gcd_name}_admin IDENTIFIED BY "${yourpassword}" ROLES=(DBA);
 ALTER PLUGGABLE DATABASE ${gcd_name} OPEN READ WRITE;
 ALTER PLUGGABLE DATABASE ${gcd_name} save state;
 ALTER SESSION SET CONTAINER=${gcd_name};
@@ -19,7 +19,7 @@ CREATE TABLESPACE ${gcd_name}DATATS DATAFILE '/home/oracle/orcl/${gcd_name}DATAT
 CREATE TEMPORARY TABLESPACE ${gcd_name}DATATSTEMP TEMPFILE '/home/oracle/orcl/${gcd_name}DATATSTEMP.dbf' SIZE 200M REUSE AUTOEXTEND ON NEXT 20M EXTENT MANAGEMENT LOCAL;
 
 -- Create a new user for ${gcd_name}
-CREATE USER ${youruser1} PROFILE DEFAULT IDENTIFIED BY ${yourpassword} DEFAULT TABLESPACE ${gcd_name}DATATS TEMPORARY TABLESPACE ${gcd_name}DATATSTEMP ACCOUNT UNLOCK;
+CREATE USER ${youruser1} PROFILE DEFAULT IDENTIFIED BY "${yourpassword}" DEFAULT TABLESPACE ${gcd_name}DATATS TEMPORARY TABLESPACE ${gcd_name}DATATSTEMP ACCOUNT UNLOCK;
 -- Provide quota on all tablespaces with GCD tables
 ALTER USER ${youruser1} QUOTA UNLIMITED ON ${gcd_name}DATATS;
 ALTER USER ${youruser1} DEFAULT TABLESPACE ${gcd_name}DATATS;

@@ -43,6 +43,15 @@ class GatherOptions:
         ROKS = 2
         other = 3
 
+    class Version:
+        FNCMVersion = Enum(
+            value='FNCMVersion',
+            names=[("5.5.9", 1), ("5.5.10", 2), ("5.5.11", 3), ("5.5.12", 4), ("5.6.0", 5)]
+        )
+
+        def __init__(self, fncm_version: FNCMVersion):
+            self._fncm_version = fncm_version
+
     # Script type options are cleanup,deploy,load_extract and upgrade
     def __init__(self, logger, console, script_type="cleanup", dev=False):
         self._script_type = script_type
@@ -71,6 +80,7 @@ class GatherOptions:
         self._private_registry_ssl_enabled = False
         self._private_registry_ssl_cert = ''
         self._private_catalog = True
+        self._all_channels = False
         self._components = set()
         if dev:
             self._runtime_mode = "dev"
@@ -83,6 +93,14 @@ class GatherOptions:
         # Initialize Kubernetes client
         self._core_api_instance = client.CoreV1Api()
         self._k = KubernetesUtilities()
+
+    @property
+    def fncm_version(self):
+        return self._fncm_version
+
+    @property
+    def all_channels(self):
+        return self._all_channels
 
     @property
     def accept_license(self):
@@ -204,7 +222,7 @@ class GatherOptions:
                     self._platform = self.Platform(result).name
                     break
 
-                print("[prompt.invalid] Number must be between [[b]1[/b] and [b]3[/b]]")
+                print("\n[prompt.invalid]Number must be between [[b]1[/b] and [b]3[/b]]")
         except Exception as e:
             self._logger.exception(
                 f"Exception from utility script in collect_platform function -  {str(e)}")
@@ -284,7 +302,7 @@ class GatherOptions:
                             "- Java Version\n"
                             "- Liberty Version\n")
                     else:
-                        print(f'[prompt.invalid] Number must be between [[b]1[/b] and [b]{num_components}[/b]]')
+                        print(f'\n[prompt.invalid]Number must be between [[b]1[/b] and [b]{num_components}[/b]]')
             else:
                 print()
                 print(Panel.fit("Deployed Components"))
@@ -334,7 +352,7 @@ class GatherOptions:
                             "- Java Version\n"
                             "- Liberty Version\n")
                     else:
-                        print(f'[prompt.invalid] Number must be between [[b]1[/b] and [b]{num_components}[/b]]')
+                        print(f'\n[prompt.invalid]Number must be between [[b]1[/b] and [b]{num_components}[/b]]')
 
             self.__parse_optional_components__(choices)
 
@@ -557,7 +575,7 @@ class GatherOptions:
                 self._accept_license = license_accept
 
             if not self._accept_license:
-                print("[prompt.invalid] You must accept the International Program License to continue.")
+                print("\n[prompt.invalid]You must accept the International Program License to continue.")
                 exit(1)
 
         except Exception as e:

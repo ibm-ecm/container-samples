@@ -8,7 +8,7 @@
 
 -- Please ensure you already have existing oracle instance.
 -- If your oracle instance does not support multi-tenant architecture, comment out follow lines:
-CREATE PLUGGABLE DATABASE ${os_name} ADMIN USER ${os_name}_admin IDENTIFIED BY ${yourpassword} ROLES=(DBA);
+CREATE PLUGGABLE DATABASE ${os_name} ADMIN USER ${os_name}_admin IDENTIFIED BY "${yourpassword}" ROLES=(DBA);
 ALTER PLUGGABLE DATABASE ${os_name} OPEN READ WRITE;
 ALTER PLUGGABLE DATABASE ${os_name} save state;
 ALTER SESSION SET CONTAINER=${os_name};
@@ -22,7 +22,7 @@ CREATE TABLESPACE ${indextablespace} DATAFILE '/home/oracle/orcl/${indextablespa
 -- CREATE TABLESPACE ${lobtablespace} DATAFILE '/home/oracle/orcl/${lobdatatablespace}.dbf' SIZE 300M REUSE AUTOEXTEND ON NEXT 20M EXTENT MANAGEMENT LOCAL SEGMENT SPACE MANAGEMENT AUTO ONLINE PERMANENT;
 
 -- Create a new user for ${youruser1}
-CREATE USER ${youruser1} PROFILE DEFAULT IDENTIFIED BY ${yourpassword} DEFAULT TABLESPACE ${datatablespace} TEMPORARY TABLESPACE ${tmp_tablespace} ACCOUNT UNLOCK;
+CREATE USER ${youruser1} PROFILE DEFAULT IDENTIFIED BY "${yourpassword}" DEFAULT TABLESPACE ${datatablespace} TEMPORARY TABLESPACE ${tmp_tablespace} ACCOUNT UNLOCK;
 
 -- Provide quota on all tablespaces with BPM tables
 ALTER USER ${youruser1} QUOTA UNLIMITED ON ${datatablespace};

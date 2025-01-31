@@ -946,7 +946,7 @@ class GatherPrereqOptions:
             self._accept_license = Confirm.ask("Do you accept the International Program License?")
 
             if not self._accept_license:
-                print("[prompt.invalid] You must accept the International Program License to continue.")
+                print("\n[prompt.invalid]You must accept the International Program License to continue.")
                 exit(1)
 
             while True:
@@ -961,7 +961,7 @@ class GatherPrereqOptions:
                     model = self.LicenseModel(result).name
                     break
 
-                print("[prompt.invalid] Number must be between [[b]1[/b] and [b]3[/b]]")
+                print("\n[prompt.invalid]Number must be between [[b]1[/b] and [b]3[/b]]")
 
             while True:
                 print()
@@ -975,7 +975,7 @@ class GatherPrereqOptions:
                         metric = self.LicenseMetricCP4BA(result).name
                         break
 
-                    print("[prompt.invalid] Number must be between [[b]1[/b] and [b]3[/b]]")
+                    print("\n[prompt.invalid]Number must be between [[b]1[/b] and [b]3[/b]]")
 
                 else:
                     print("1. PVUProd")
@@ -988,7 +988,7 @@ class GatherPrereqOptions:
                         metric = self.LicenseMetricFNCM(result).name
                         break
 
-                    print("[prompt.invalid] Number must be between [[b]1[/b] and [b]4[/b]]")
+                    print("\n[prompt.invalid]Number must be between [[b]1[/b] and [b]4[/b]]")
 
             self._license_model = f"{model}.{metric}"
 
@@ -1014,7 +1014,7 @@ class GatherPrereqOptions:
                         self._db_type = self.DatabaseType(result).name
                         break
 
-                    print("[prompt.invalid] Number must be between [[b]1[/b] and [b]4[/b]]")
+                    print("\n[prompt.invalid]Number must be between [[b]1[/b] and [b]4[/b]]")
                 else:
                     print()
                     print("Select a Database Type")
@@ -1029,7 +1029,7 @@ class GatherPrereqOptions:
                         self._db_type = self.DatabaseType(result).name
                         break
 
-                    print("[prompt.invalid] Number must be between [[b]1[/b] and [b]5[/b]]")
+                    print("\n[prompt.invalid]Number must be between [[b]1[/b] and [b]5[/b]]")
 
 
         except Exception as e:
@@ -1052,7 +1052,7 @@ class GatherPrereqOptions:
                     self._platform = self.Platform(result).name
                     break
 
-                print("[prompt.invalid] Number must be between [[b]1[/b] and [b]3[/b]]")
+                print("\n[prompt.invalid]Number must be between [[b]1[/b] and [b]3[/b]]")
 
             if self._platform == "other" and self.fncm_version != "5.5.8":
                 print()
@@ -1113,9 +1113,9 @@ class GatherPrereqOptions:
                             self._idp_info.append(idp)
                             break
                         else:
-                            print("[prompt.invalid] Discovery URL is invalid")
+                            print("\n[prompt.invalid]Discovery URL is invalid")
                             print(
-                                '[prompt.invalid] Make sure your discovery URL ends with ".well-known/openid-configuration"')
+                                '\n[prompt.invalid]Make sure your discovery URL ends with ".well-known/openid-configuration"')
                     else:
                         idp = self.Idp(discovery_enabled, idp_id)
                         self._idp_info.append(idp)
@@ -1181,7 +1181,7 @@ class GatherPrereqOptions:
                             self._ldap_info.append((self.Ldap(ldap_type, ldap_ssl, ldap_id)))
                             break
 
-                        print("[prompt.invalid] Number must be between [[b]1[/b] and [b]6[/b]]")
+                        print("\n[prompt.invalid]Number must be between [[b]1[/b] and [b]6[/b]]")
                     else:
                         print("7. CA eTrust")
                         result = IntPrompt.ask('Enter a valid option [[b]1[/b] and [b]7[/b]]')
@@ -1198,7 +1198,7 @@ class GatherPrereqOptions:
                             self._ldap_info.append((self.Ldap(ldap_type, ldap_ssl, ldap_id)))
                             break
 
-                        print("[prompt.invalid] Number must be between [[b]1[/b] and [b]7[/b]]")
+                        print("\n[prompt.invalid]Number must be between [[b]1[/b] and [b]7[/b]]")
 
         except Exception as e:
             self._logger.exception(

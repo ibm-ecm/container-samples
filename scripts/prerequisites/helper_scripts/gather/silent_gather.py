@@ -184,7 +184,7 @@ class SilentGatherOptions(GatherOptions):
                 self.error_check()
 
     # method to parse load images silent install file
-    def silent_parse_load_images_file(self):
+    def silent_parse_load_images_file(self, airgap=False):
         self._entitlement_key = self._envfile.get("ENTITLEMENT_KEY")
         if self._entitlement_key == "" or self._entitlement_key is None:
             self._error_list.append(
@@ -212,7 +212,22 @@ class SilentGatherOptions(GatherOptions):
                 self._error_list.append(
                     f"ERROR with PRIVATE REGISTRY SSL CRT PATH in silent mode configuration {self._envfile_path} file -  Field Cannot be Empty if SSL is Enabled")
 
+        if airgap:
+            self.silent_version()
+            self._all_channels = gather_var(key="MIRROR_ALL_CHANNELS", valid_values=[True, False], _logger=self._logger, _envfile=self._envfile,
+                                            _error_list=self._error_list)
+
+
         self.error_check()
+
+
+    def silent_version(self):
+        version = gather_var(key="FNCM_VERSION", valid_values=[1, 2, 3, 4, 5], _logger=self._logger,
+                             _envfile=self._envfile,
+                             _error_list=self._error_list)
+        if version:
+            self._fncm_version = self.Version.FNCMVersion(version).name
+
 
     def silent_parse_deploy_operator_file(self):
         self.silent_license_model()
