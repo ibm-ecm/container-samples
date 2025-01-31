@@ -11,7 +11,9 @@
 import time
 
 import requests
+from click import style
 from rich.panel import Panel
+from rich.text import Text
 
 requests.packages.urllib3.disable_warnings()
 from ..utilities import kubernetes_utilites as k
@@ -122,15 +124,10 @@ class CleanDeployment:
                     pods = self._kube.get_pods_for_deployment(namespace=self._namespace,
                                                               deployment_name=deployment.metadata.name)
                     if pods:
-                        # print("Pods for deployment:")
                         for pod in pods:
-                            print(pod.metadata.name)
                             pods_to_delete.append(pod.metadata.name)
-                    else:
-                        print("No pods found for deployment")
             else:
                 pods_to_delete = []
-                print("No deployments found with matching owner reference name")
 
             retries = 0
             while retries < 20:
@@ -144,16 +141,15 @@ class CleanDeployment:
                 else:
                     break
             if retries == 20:
-                print("Timeout Waiting for Clean up of  IBM FileNet Content Manager Deployment pods ")
-                print("Please check the status of the Pods by issuing the below command:\n")
-                print(
-                    f"kubectl describe pod $(kubectl get pods -n {self._namespace} ")
+                progress.log(Text("Timeout Waiting for Clean up of  IBM FileNet Content Manager Deployment pods\n"
+                                  "Please check the status of the Pods by issuing the below command:\n"
+                                  f"kubectl describe pod $(kubectl get pods -n {self._namespace} ",style("bold red")))
                 exit(1)
         except Exception as e:
-            print("Error in logic for checking when resources are deleted -", e)
+            self._logger.info("Error in logic for checking when resources are deleted -", e)
 
         progress.log()
-        progress.log("All resources have been deleted successfully...")
+        progress.log(Panel(Text("All resources have been deleted successfully...", style="bold green")))
         progress.advance(task1)
 
     def collect_operator_details(self):
@@ -183,7 +179,6 @@ class CleanDeployment:
                 operator_group = None
             else:
                 operator_group = self._operator_details["operatorGroup"]
-
             if "catalogSource" not in self._operator_details:
                 catalog_source = None
             else:
@@ -207,7 +202,7 @@ class CleanDeployment:
             progress.log(f"Deleting CSV...")
             if installed_csv:
                 self._kube.delete_clusterserviceversion(csv_name=installed_csv,
-                                                        namespace=self._namespace)
+                                                    namespace=self._namespace)
             else:
                 progress.log()
                 progress.log(Panel.fit("CSV not found", style="bold red"))

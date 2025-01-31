@@ -361,7 +361,11 @@ class KubernetesUtilities:
                 "24.0.1": "5.6.0",
             }
 
-            cr_details["version"] = versions[cr_details["appVersion"]]
+            # Making sure there is always a version value
+            if cr_details["appVersion"] in versions:
+                cr_details["version"] = versions[cr_details["appVersion"]]
+            else:
+                cr_details["version"] = "Unknown"
 
             cr_details["storage_classes"] = self.extract_storage_classes()
 
@@ -688,6 +692,12 @@ class KubernetesUtilities:
             if resource_type.lower() == "custom resource definition":
                 api_method = self._extensions_v1.create_custom_resource_definition
                 api_patch_method = self._extensions_v1.patch_custom_resource_definition
+            elif resource_type.lower() == "image policy":
+                api_method = self._custom_api.create_cluster_custom_object
+                group = "operator.openshift.io"
+                version = "v1alpha1"
+                plural = "ImageContentSourcePolicy"
+                api_patch_method = self._custom_api.patch_namespaced_custom_object
             elif resource_type.lower() == "cluster role binding":
                 api_method = self._rbac_v1.create_cluster_role_binding
                 api_patch_method = self._rbac_v1.patch_cluster_role_binding
@@ -1030,8 +1040,7 @@ class KubernetesUtilities:
     def delete_catalog_source(self, namespace, name):
         try:
             self._custom_api.delete_namespaced_custom_object(
-                group="operators.coreos.com", version="v1alpha1", namespace=namespace, plural="catalogsources",
-                name=name
+                group="operators.coreos.com", version="v1alpha1", namespace=namespace, plural="catalogsources", name=name
             )
             self._logger.info(f"Catalog Source '{name}' deleted successfully in namespace '{namespace}'.")
             return True

@@ -585,6 +585,15 @@ def display_prereq_passed(prereqs=None):
     if "descriptor_files" in prereqs:
         if prereqs["descriptor_files"]:
             check_list.append("All Required Descriptor Files")
+    if "oc" in prereqs:
+        if prereqs["oc"]:
+            check_list.append("OC CLI")
+    if "ibm-pak" in prereqs:
+        if prereqs["ibm-pak"]:
+            check_list.append("IBM-Pak Plugin")
+    if "mirror" in prereqs:
+        if prereqs["mirror"]:
+            check_list.append("Mirror Plugin")
 
     if len(check_list) == 0:
         return msg_panel
@@ -603,7 +612,10 @@ def display_prereq_passed(prereqs=None):
     version_list = [
         prereqs['kubectl'],
         prereqs['java'],
-        prereqs['skopeo']
+        prereqs['skopeo'],
+        prereqs['oc'],
+        prereqs['ibm-pak'],
+        prereqs['mirror']
     ]
 
     if any(version_list):
@@ -624,6 +636,18 @@ def display_prereq_passed(prereqs=None):
             if prereqs['skopeo']:
                 cli_version_table.add_row("Skopeo CLI", prereqs["skopeo_version"])
 
+        if 'oc' in prereqs:
+            if prereqs['oc']:
+                cli_version_table.add_row("OC CLI", prereqs["oc_version"])
+
+        if 'ibm-pak' in prereqs:
+            if prereqs['ibm-pak']:
+                cli_version_table.add_row("IBM-Pak Plugin", prereqs["ibm-pak_version"])
+
+        if 'mirror' in prereqs:
+            if prereqs['mirror']:
+                cli_version_table.add_row("OC Mirror Plugin", prereqs["mirror_version"])
+
         version_panel = Panel(cli_version_table)
 
         prereq_info = Columns([left_group, version_panel], equal=True)
@@ -632,6 +656,35 @@ def display_prereq_passed(prereqs=None):
 
     return left_group
 
+def display_manifest_results(manifests=None):
+    header_panel = Panel.fit("Manifests Generated", style="bold green")
+
+    manifest_msg = Text("\n"+manifests, style="bold cyan")
+
+    return Group(header_panel, manifest_msg)
+
+def display_airgap_vars(airgap_vars=None):
+    if airgap_vars is None:
+        airgap_vars = {}
+
+    airgap_msg = Text(
+                      "\n\nThe following variables will be used to configure and mirror the FNCM Standalone Images."
+                      "\nReview all Airgap Variables below:\n")
+
+
+    if len(airgap_vars) > 0:
+
+        var_table = Table(title="Airgap Variables")
+
+        var_table.add_column("Name", style="cyan")
+        var_table.add_column("Value", style="magenta")
+
+        for var in airgap_vars:
+            var_table.add_row(var, airgap_vars[var])
+
+    var_group = Group( airgap_msg, var_table)
+
+    return var_group
 
 def display_issues(generate_folder=None, required_fields=None,
                    certs=None, incorrect_certs=None,
@@ -795,10 +848,14 @@ def display_issues(generate_folder=None, required_fields=None,
             instruction_list.append("Make sure you are connected to a K8s Cluster")
             error_tables.append(Panel.fit("K8s Cluster not Connected", style="bold cyan"))
             tools.remove("connection")
-        if "Windows Machine" in tools:
-            instruction_list.append("Load Images Script is not supported on a Windows Machine")
-            error_tables.append(Panel.fit("Windows Machine not supported for this script", style="bold cyan"))
-            tools.remove("Windows Machine")
+        if "Windows OS" in tools:
+            instruction_list.append("Load Images Script is not supported for Windows OS")
+            error_tables.append(Panel.fit("Windows OS is not supported for this script", style="bold cyan"))
+            tools.remove("Windows OS")
+        if "Mac OS" in tools:
+            instruction_list.append("Load Images Script in Airgap mode is not supported for Mac OS")
+            error_tables.append(Panel.fit("Mac OS is not supported for this script", style="bold cyan"))
+            tools.remove("Mac OS")
 
         if "java_version" in tools:
             instruction_list.append(
@@ -814,6 +871,21 @@ def display_issues(generate_folder=None, required_fields=None,
                 error_table.add_row("5.5.12 & 5.6.0", "Java 17")
             error_tables.append(error_table)
             tools.remove("java_version")
+
+        if "oc" in tools:
+            instruction_list.append("Make sure you have the oc CLI installed\n\n"
+                                    "See the following link for installation instructions: https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/")
+
+        if "mirror plugin" in tools:
+            instruction_list.append("Make sure you have the oc mirror plugin installed\n\n"
+                                    "See the following link for installation instructions: https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/")
+
+
+        if "ibm-pak plugin" in tools:
+            instruction_list.append("Make sure you have the oc ibm-pak plugin installed\n\n"
+                                    "See the following link for installation instructions: https://github.com/IBM/ibm-pak/releases/latest")
+
+
         if tools:
             instruction_list.append("Install any missing tools")
             error_table = Table(title="Tools Missing")
@@ -855,6 +927,55 @@ def display_issues(generate_folder=None, required_fields=None,
 
     left_panel = Group(*left_panel_list)
 
+    layout["lower"]["left"].update(left_panel)
+
+    return layout
+
+def generate_casepackage_results(ibmpak_folder: str, download_output: str, repo: bool ) -> Layout:
+    # Build Layout for display
+    layout = Layout()
+    layout.split_column(
+        Layout(name="upper"),
+        Layout(name="lower"),
+    )
+
+    layout["upper"].size = 3
+
+    layout["lower"].split_row(
+        Layout(name="left"),
+        Layout(name="right"),
+    )
+
+    layout["left"].size = None
+    layout["right"].ratio = 2
+
+    left_panel_list = []
+
+    right_panel_list = []
+
+    # Create the left side panel
+    # Create next steps panel
+    message = Text("Case Package Downloaded", style="bold cyan", justify="center")
+    result_panel = Panel(message)
+
+    layout["upper"].update(result_panel)
+
+    if repo:
+        repo_panel = Panel.fit(Text("IBM Cloud-Pak OCI registry Enabled"), style="bold green")
+        left_panel_list.append(repo_panel)
+
+    download = Panel.fit(Text(download_output))
+
+    left_panel_list.append(download)
+
+    left_panel = Group(*left_panel_list)
+
+    right_panel_list.append(Panel.fit("IBM-Pak Files Structure"))
+    right_panel_list.append(print_directory_tree(".ibm-pak", ibmpak_folder))
+
+    right_panel = Group(*right_panel_list)
+
+    layout["lower"]["right"].update(right_panel)
     layout["lower"]["left"].update(left_panel)
 
     return layout
@@ -1000,7 +1121,7 @@ def generate_loadimage_results(summary: {}) -> Layout:
     return layout
 
 
-def generate_loadimages_results(imageDetailFolder: str) -> Layout:
+def generate_loadimages_results(imageDetailFolder: str, airgap=False) -> Layout:
     # Build Layout for display
     layout = Layout()
     layout.split_column(
@@ -1021,22 +1142,35 @@ def generate_loadimages_results(imageDetailFolder: str) -> Layout:
 
     # Create the left side panel
     # Create next steps panel
-    message = Text("ImageDetail Files Generated Successfully", style="bold cyan", justify="center")
+    if airgap:
+        message = Text("Airgap Environment Variables File Generated Successfully", style="bold cyan", justify="center")
+    else:
+        message = Text("ImageDetail File Generated Successfully", style="bold cyan", justify="center")
     result_panel = Panel(message)
 
     layout["upper"].update(result_panel)
 
     next_steps_panel = Panel.fit("Next Steps")
-    instructions = Panel.fit(
-        "1. Review the elements of the ImageDetails file: \n"
-        "  - Image Repositories\n"
-        "  - Image Tags \n"
-        "  - All Components Images to be pushed\n"
-        "2. Remove or update any repositories or tags \n"
-        "3. Run the following command to push selected images"
-    )
+    if airgap:
+        instructions = Panel.fit(
+            "1. Review the generated Airgap Environment Variables file\n"
+            "2. The FNCM Standalone CASE Package has been downloaded to your current directory\n"
+            "2. Run the following command start the image mirror"
+        )
 
-    code = "python3 loadimages.py push"
+        code = "python3 loadimages.py --airgap push"
+    else:
+        instructions = Panel.fit(
+            "1. Review the elements of the ImageDetails file: \n"
+            "  - Image Repositories\n"
+            "  - Image Tags \n"
+            "  - All Components Images to be pushed\n"
+            "2. Remove or update any repositories or tags \n"
+            "3. Run the following command to push selected images"
+        )
+
+        code = "python3 loadimages.py push"
+
 
     command = Panel.fit(
         Syntax(code, "bash", theme="ansi_dark")
@@ -1048,8 +1182,14 @@ def generate_loadimages_results(imageDetailFolder: str) -> Layout:
 
     left_panel = Group(*left_panel_list)
 
-    right_panel_list.append(Panel.fit("ImageDetails Files Structure"))
-    right_panel_list.append(print_directory_tree("ImageDetails", imageDetailFolder))
+    if airgap:
+        right_panel_list.append(Panel.fit("Airgap Environment Variables Structure"))
+        right_panel_list.append(print_directory_tree("Airgap Variables", imageDetailFolder))
+    else:
+        right_panel_list.append(Panel.fit("ImageDetails Files Structure"))
+        right_panel_list.append(print_directory_tree("ImageDetails", imageDetailFolder))
+
+
 
     right_panel = Group(*right_panel_list)
 

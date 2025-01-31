@@ -1,3 +1,14 @@
+## 3.2.0 (2025-01-31)
+
+### Fix
+
+- fixed oracle password special character handling in db template
+- fixed duplicate package in requirements.txt 
+
+### Feat
+
+- added support for openshift airgap 
+
 ## 3.0.0 (2025-01-23)
 
 ### Fix
@@ -22,7 +33,7 @@
 - fixed process engine duplicate region name for generated custom resource
 - fixed mustgather to allow select component to have zero pods available
 - added unique name and timestamp to mustgather tar file
-- fixed mustgather for unparseable custom resource
+- fixed mustgather for unparseable custom resource 
 
 ## 2.8.0 (2024-09-12)
 

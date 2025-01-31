@@ -14,6 +14,7 @@ import os
 import string
 
 
+
 def parse_yaml_sql(parameter):
     if parameter:
         parameter = parameter.replace("'", "''")
