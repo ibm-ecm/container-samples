@@ -861,7 +861,7 @@ def display_issues(generate_folder=None, required_fields=None,
             instruction_list.append(
                 "Make sure you have the correct Java version installed, refer to the table on the right for the correct Java version to install.\n")
             error_table = Table(title="Correct Java Version to use")
-            error_table.add_column("FNCM S Version", style="green")
+            error_table.add_column("FNCM Standalone Version", style="green")
             error_table.add_column("Java Version", style="green")
             if deployment_prop["FNCM_Version"] == "5.5.8":
                 error_table.add_row("5.5.8", "Java 8")

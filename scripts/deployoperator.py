@@ -29,7 +29,7 @@ from helper_scripts.utilities.interface import clear, display_issues, display_pr
 from helper_scripts.utilities.utilities import prereq_checks, read_version_toml, create_deployment_info, \
     create_version_info
 
-__version__ = "4.1.1"
+__version__ = "4.3.0"
 
 app = typer.Typer()
 state = {
@@ -39,7 +39,8 @@ state = {
     "setup": None,
     "silent": False,
     "version": None,
-    "dryrun": False
+    "dryrun": False,
+    "validate": True
 }
 
 console = Console(record=True)
@@ -157,7 +158,7 @@ def deploy():
                                                 silent_path, script_type="deploy", dev=state["dev"])
         state["setup"].podman_available = results["podman"]
         state["setup"].docker_available = results["docker"]
-        state["setup"].silent_parse_deploy_operator_file()
+        state["setup"].silent_parse_deploy_operator_file(state["validate"])
 
     deployment_details = create_deployment_info(state["setup"], version_data)
     version_details = create_version_info(state["setup"], version_data)
@@ -224,7 +225,8 @@ def main(version: Annotated[bool, typer.Option(
          dryrun: Annotated[bool, typer.Option(
              help="Perform a dry run",
              rich_help_panel="Customization and Utils")] = False,
-         dev: Annotated[bool, typer.Option(hidden=True)] = False):
+         dev: Annotated[bool, typer.Option(hidden=True)] = False,
+         validate: Annotated[bool, typer.Option(hidden=True)] = True):
     """
     FileNet Content Manager Operator Deployment CLI.
     """
@@ -244,6 +246,9 @@ def main(version: Annotated[bool, typer.Option(
 
     if dryrun:
         state["dryrun"] = True
+
+    if validate:
+        state["validate"] = False
 
     clear(console)
     display_mode_version("Deploy FNCM Operator",
