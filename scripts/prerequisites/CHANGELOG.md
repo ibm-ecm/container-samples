@@ -1,47 +1,54 @@
-## 3.2.0 (2025-01-31)
+## 4.3.0 (2025-02-28)
+
+### Fix
+
+- changed ldap connection to same test as operator deployment
+- fixed number of tasks for OCP cluster setup
+- increased timeout for operator deployment
+
+### Feat
+
+- flags introduced to skip validation tests
+- ip are now tested if hostnames are supplied
+
+## 4.1.1 (2025-01-31)
 
 ### Fix
 
 - fixed oracle password special character handling in db template
-- fixed duplicate package in requirements.txt 
 
 ### Feat
 
-- added support for openshift airgap 
+- added support for openshift airgap in loadImages script
 
-## 3.0.0 (2025-01-23)
+## 4.0.0 (2025-01-23)
 
 ### Fix
 
 - fixed oracle url parsing error during database validation
 - fixed version query when using move / migration feature
-- fixed missing external share as optional component
+- fixed missing external share optional component
 - added lc_bind_secret for multildap configuration
+- replaced kubectl connection check with 'kubectl version'
+- fixed case for oracle tablespaces
 
-## 2.8.3 (2025-01-02)
-
-### Fix
-
-- updated python packages to fix security vulnerabilities
-- fixed mustgather to check k8s connection without a namespace
-- fixed oracle / postgresql case sensitivity for process engine tablespace names 
-
-## 2.8.2 (2024-10-10)
+## 3.1.1 (2024-10-10)
 
 ### Fix
 
 - fixed process engine duplicate region name for generated custom resource
 - fixed mustgather to allow select component to have zero pods available
 - added unique name and timestamp to mustgather tar file
-- fixed mustgather for unparseable custom resource 
+- fixed mustgather for unparseable custom resource
+- fixed cleanup script to delete catalog source for private catalog deployments
 
-## 2.8.0 (2024-09-12)
+## 3.1.0 (2024-09-11)
 
 ### Feat
 
 - added support for running MustGather with only the operator deployed
 - added support for inProgress Operator Ansible log in MustGather
-- adding support for object store table lob index storage location
+- adding support for table lob and index storage locations for os database
 
 ### Fix
 
@@ -50,18 +57,22 @@
 - fix for incorrect folder path for operator image push
 - fix for silent deploy entitlement key issue
 
-## 2.7.1 (2024-08-01)
+## 3.0.1 (2024-07-20)
 
 ### Fix
 
-- updated pyyaml to 6.0.2rc1, tomlkit to 0.13.0, cryptography to 43.0.0, kubernetes to 30.1.0
 - fix for mismatched tablespace for PE initialization in custom resource file
+- updated pyyaml to 6.0.2rc1, tomlkit to 0.13.0, cryptography to 43.0.0, kubernetes to 30.1.0
 
-## 2.7.0 (2024-06-27)
+## 3.0.0 (2024-06-28)
 
 ### Feat
 
-- added new script: 'mustGather'
+- added new scripts: 'deployOperator', 'upgradeDeployment', 'cleanDeployment', 'loadImages'
+- added new script: 'mustGather'  
+- added support for FNCM 5.6.0 deployment 
+- added support for IBM Enterprise Records in prerequisites
+- added support for IBM Content Collector for SAP in prerequisites
 - added support for Process Engine workflow enablement in prerequisites
 - updated MSSQL Server SQL template to support AzureSQL Managed Instance
 - added support for TLS 1.3 in prerequisites
@@ -73,24 +84,6 @@
 ### Refactor
 
 - changed IBM Security Directory Server (SDS) to IBM Security Verify Directory (ISVD) in prerequisites
-
-## 2.4.10 (2024-05-30)
-
-### Fix
-
-- fixed ldap ssl connection validation
-- fixed mssql ssl database connection validation
-- updated requests library to 2.32.3
-- fixed validation of ldap entries
-- updated cryptography library to 42.0.5
-
-## 2.4.9 (2024-03-24)
-
-### Fix
-
-- fixed error handling for invalid discovery url
-- updated cryptography library to 42.0.5
-- added object store sharing grants to Oracle SQL template
 
 ## 2.4.7 (2024-02-26)
 
