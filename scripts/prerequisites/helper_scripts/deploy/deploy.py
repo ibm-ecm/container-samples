@@ -65,7 +65,7 @@ class Deploy:
             self._task_numbers = {
                 "ClusterSetup": 3,
                 "DeploymentSetup": 3,
-                "Install": 2,
+                "Install": 3,
             }
         else:
             self._deployment_type = "yaml"
@@ -313,7 +313,7 @@ class Deploy:
             retries = 0
             progress.log(f"Checking rollout status of FileNet Content Management Operator deployment")
             progress.log()
-            while retries < 20:
+            while retries < 40:
                 pods = self._core_v1_api.list_namespaced_pod(self._setup.namespace)
                 running_pods = [pod.metadata.name for pod in pods.items if
                                 "ibm-fncm-operator" in pod.metadata.name and "catalog" not in pod.metadata.name and pod.status.phase == "Running" and pod.status.container_statuses[0].ready]
@@ -329,7 +329,7 @@ class Deploy:
                     progress.log()
                     sleep(15)
 
-            if retries == 20:
+            if retries == 40:
                 progress.log(Text("Timeout Waiting for IBM FileNet Content Manager Operator pod to start",
                                   style="bold red"))
                 progress.log()
@@ -337,7 +337,7 @@ class Deploy:
                 progress.log("Please check the status of Pod by issuing the below command:")
                 progress.log()
                 progress.log(Syntax(
-                    f"oc describe pod $(oc get pod -n {self._setup.namespace} | grep ibm-fncm-operator | awk '{{print $1}}') -n {self._setup.namespace}",
+                    f"kubectl describe pod $(kubectl get pod -n {self._setup.namespace} | grep ibm-fncm-operator | awk '{{ print $1 }}') -n {self._setup.namespace}",
                     "bash"))
                 exit()
 
