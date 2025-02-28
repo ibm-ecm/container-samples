@@ -63,9 +63,9 @@ class Deploy:
         if self._setup.platform.lower() == "ocp" or self._setup.platform.lower() == "roks":
             self._deployment_type = "olm"
             self._task_numbers = {
-                "ClusterSetup": 3,
+                "ClusterSetup": 4,
                 "DeploymentSetup": 3,
-                "Install": 2,
+                "Install": 3,
             }
         else:
             self._deployment_type = "yaml"
