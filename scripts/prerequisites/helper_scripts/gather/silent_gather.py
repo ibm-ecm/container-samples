@@ -229,7 +229,7 @@ class SilentGatherOptions(GatherOptions):
             self._fncm_version = self.Version.FNCMVersion(version).name
 
 
-    def silent_parse_deploy_operator_file(self):
+    def silent_parse_deploy_operator_file(self, validate=True):
         self.silent_license_model()
         self.silent_platform()
         self._entitlement_key = self._envfile.get("ENTITLEMENT_KEY")
@@ -270,9 +270,11 @@ class SilentGatherOptions(GatherOptions):
                         f"ERROR with ENTITLEMENT KEY in silent mode configuration {self._envfile_path} file -  Field Cannot be Empty if a private registry is not used")
                     self.error_check()
                 else:
-                    self.collect_verify_entitlement_key()
+                    if validate:
+                        self.collect_verify_entitlement_key()
         else:
-            self.collect_verify_entitlement_key()
+            if validate:
+                self.collect_verify_entitlement_key()
         self.silent_namespace()
         self._private_catalog = not (self._envfile.get("GLOBAL_CATALOG", False))
 

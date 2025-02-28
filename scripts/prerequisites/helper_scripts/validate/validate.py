@@ -19,19 +19,19 @@ import string
 import subprocess
 import time
 from urllib.parse import urlparse
+import base64
+import shlex
 
-import ldap3
 import requests
 import typer
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
-from ldap3 import Server, Connection, ALL
-from ldap3.core.exceptions import LDAPBindError
 from rich import print
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.text import Text
+from rich.console import Console
 
 from ..utilities.interface import ldap_search_results, ldap_entry_types
 from ..utilities.prerequisites_utilites import command_available, check_java_version, kubectl_log_in_check, \
@@ -470,6 +470,9 @@ class Validate:
             self._logger.info(f"Failed to connect to {db_label} database!")
             progress.log(not_connected_str)
             progress.log()
+            panel = Panel.fit(jar_cmd,title="Execute the following command for more details",style="yellow",border_style="cyan")
+            progress.log(panel)
+            progress.log()
         self.is_validated[db_label] = db_is_connected
         progress.advance(task3)
         return db_is_connected
@@ -783,139 +786,365 @@ class Validate:
         authenticated, connect = self.get_ldap_connection(ldap_id, progress, ssl_enabled, cert_path)
 
         if authenticated:
-            progress.log(Text(f"Successfully authenticated with \"{bind_dn}\"", style="bold green"))
+            if ssl_enabled == True :
+                progress.log(Text(f"Successfully authenticated with \"{bind_dn}\" over SSL!", style="bold green"))
+            else :
+                progress.log(Text(f"Successfully authenticated with \"{bind_dn}\" over non-SSL!", style="bold green"))
             progress.log()
 
         return authenticated
 
-    def get_ldap_connection(self, ldap_id, progress, ssl_enabled=False, cert_path=""):
+    def get_user_password_list(self,bind_dn,bind_dn_password) :
+        """
+        Method name: get_user_password_list
+        Author: Anisha Suresh (anisha-suresh@ibm.com)
+        Description: Fetch the encoded (user:password;) list from ldap property files as a string to use in the java command
+        Parameters:
+            bind_dn (str) : bind_dn of ldap
+            bind_dn_password (str) : bind_dn password of ldap
+        Returns:
+           user_password_list (str) : list of encoded user:password; separated by commmas
+        """
+        user_password_list = ""
+        match = re.search(r"(?i)(CN|UID)=([^,]+)", bind_dn)
+        if match:
+            ldap_username = match.group(2)
+        user1 = self.encode_base64(ldap_username)
+        password1 = self.encode_base64(bind_dn_password)
+        user_password_list = user_password_list + f"username:{user1},password:{password1};"
 
-        hostname = remove_protocol(self._ldap_prop[ldap_id]["LDAP_SERVER"])
+        users = self.get_users()
+        for user in users.keys() :
+            if user != ldap_username :
+                encoded_user = self.encode_base64(user)
+                user_password_list = user_password_list + f"username:{encoded_user};"
+        return user_password_list
+
+    def get_group_list(self) :
+        """
+        Method name: get_group_list
+        Author: Anisha Suresh (anisha-suresh@ibm.com)
+        Description: Fetch the list of groups from ldap property files as a string to use in the java command
+        Parameters: None
+        Returns:
+           group_list (str) : list of groups separated by commmas
+        """
+        group_list = ""
+        groups = self.get_groups()
+        for group in groups.keys() :
+            if group not in group_list :
+                group_list = group_list + f"{group},"
+        return group_list
+
+    def get_usergroup_list(self,group_list) :
+        """
+        Method name: get_usergroup_list
+        Author: Anisha Suresh (anisha-suresh@ibm.com)
+        Description: Fetch the list of user-groups from ldap property files as a string to use in the java command
+        Parameters:
+            group_list (str) : list of groups separated by commmas
+        Returns:
+           group_list (str) : appended list of groups separated by commmas
+        """
+        groups = self.get_users_and_groups()
+        for group in groups.keys() :
+            if group not in group_list :
+                group_list = group_list + f"{group},"
+        return group_list
+
+    def get_ldap_connection(self, ldap_id, progress, ssl_enabled=False, cert_path=""):
+        """
+        Method name: get_ldap_connection
+        Author: Anisha Suresh (anisha-suresh@ibm.com)
+        Description: Establishes and validates an LDAP connection.
+                    This function attempts to connect to an LDAP server using the provided LDAP ID and credentials.
+                    It supports both SSL and non-SSL connections and verifies the connection using the LdapTest.jar utility.
+        Parameters:
+            ldap_id (str): The identifier for the LDAP configuration from self._ldap_prop.
+            progress (object): A logging/progress tracking object used for reporting errors and status.
+            ssl_enabled (bool, optional): If True, SSL is enabled for the LDAP connection. Defaults to False.
+            cert_path (str, optional): The file path to the SSL certificate when SSL is enabled. Defaults to an empty string.
+        Returns:
+           tuple:
+            - authenticated (bool): True if LDAP authentication is successful, False otherwise.
+            - valid_users_and_groups (dict): A dictionary containing valid users and groups retrieved from LDAP.
+        Raises:
+            Exception: If an error occurs while executing the LDAP connection command.
+        Notes:
+            - If SSL is enabled, the function converts the certificate to DER format and imports it into a Java Keystore (JKS).
+            - Uses the LdapTest.jar utility to perform LDAP binding validation.
+            - Logs errors and debug information throughout the process.
+        """
+
+        server = remove_protocol(self._ldap_prop[ldap_id]["LDAP_SERVER"])
         port = self._ldap_prop[ldap_id]["LDAP_PORT"]
         bind_dn = self._ldap_prop[ldap_id]["LDAP_BIND_DN"]
         bind_dn_password = self._ldap_prop[ldap_id]["LDAP_BIND_DN_PASSWORD"]
+        base_dn = self._ldap_prop[ldap_id]["LDAP_BASE_DN"]
+        group_base_dn = self._ldap_prop[ldap_id]["LDAP_GROUP_BASE_DN"]
+        user_filter = self._ldap_prop[ldap_id]["LC_USER_FILTER"]
+        group_filter = self._ldap_prop[ldap_id]["LC_GROUP_FILTER"]
 
+        user_password_list = str(self.get_user_password_list(bind_dn,bind_dn_password))
+        initial_group_list = self.get_group_list()
+        group_list = str(self.get_usergroup_list(initial_group_list))
+
+        # Validate LDAP Connection
+        LDAP_TEST_JAR_PATH = os.getcwd() + "/helper_scripts/validate/jars/ldap/LdapTest.jar"
+        # FIPS is always set to False. Reference defect : https://jsw.ibm.com/browse/DBACLD-154012.
+        FIPS_FLAG = False
         authenticated = False
-        # ldap.protocol_version = ldap.VERSION3
+        valid_users_and_groups = ""
 
         if ssl_enabled:
-            try:
-                ssl.create_default_context()
-                server = ldap3.Server(hostname, port=int(port), use_ssl=True, get_info=ldap3.ALL,
-                                      tls=ldap3.Tls(validate=ssl.CERT_REQUIRED, version=ssl.PROTOCOL_SSLv23,
-                                                    ca_certs_file=cert_path))
-                # Bind and search
-                conn = Connection(server, user=bind_dn, password=bind_dn_password)
-                bind_response = conn.bind()
-                if not bind_response:
-                    raise LDAPBindError()
-                authenticated = True
-                return authenticated, conn
-            except LDAPBindError as e:
+            self._logger.info(f"LDAP certificate path is : {cert_path}")
+            if not os.path.exists(cert_path):
+                self._logger.error("LDAP certifcate not found.")
+                return authenticated, valid_users_and_groups
+
+            # Converting certificate to der format for keytool to import it into JKS
+            DER_CERT_PATH = "/tmp/ldap-cert.der"
+            self.remove_file(DER_CERT_PATH)
+            self._logger.info(f"Converting certificate to der format.")
+            self.run_command(f"openssl x509 -outform der -in {cert_path} -out {DER_CERT_PATH}")
+
+            TRUSTSTORE_PATH = "/tmp/ldap-truststore.jks"
+            TRUSTSTORE_PASSWORD = "changeit"
+            self.remove_file(TRUSTSTORE_PATH)
+            keytool_cmd = f"keytool -import -alias fncmLdapCerts -keystore {TRUSTSTORE_PATH} -file {DER_CERT_PATH} -storetype JKS -storepass changeit -noprompt"
+            self._logger.info(f"Importing certificate to keystore.")
+            self.run_command(keytool_cmd)
+
+            self._logger.info(f"Checking ldap SSL connection test using LdapTest.jar for the server: {server} using Bind DN :{bind_dn}")
+            ldap_test_cmd = (
+                            f"java -Dsemeru.fips={FIPS_FLAG} -Djavax.net.ssl.trustStore={TRUSTSTORE_PATH} " 
+                            f"-Djavax.net.ssl.trustStorePassword={TRUSTSTORE_PASSWORD} "
+                            f"-jar {LDAP_TEST_JAR_PATH} -u 'ldaps://{server}:{port}' " 
+                            f"-b '{base_dn}' -D '{bind_dn}' -w '{bind_dn_password}' "  
+                            f"-additionalvalidation -gdn '{group_base_dn}' " 
+                            f"-upl '{user_password_list}' -gl '{group_list}' " 
+                            f"-uf '{user_filter}' -gf '{group_filter}'"
+                        )
+            java_msg = f"java -Dsemeru.fips={FIPS_FLAG} -Djavax.net.ssl.trustStore={TRUSTSTORE_PATH} -Djavax.net.ssl.trustStorePassword={TRUSTSTORE_PASSWORD} -jar {LDAP_TEST_JAR_PATH} -u 'ldaps://{server}:{port}' -b '{base_dn}' -D '{bind_dn}' -w '*****'"
+
+        else :
+            self._logger.info(f"Checking ldap non-SSL connection test using LdapTest.jar for the server: {server} using Bind DN :{bind_dn}")
+            ldap_test_cmd = (
+                            f"java -Dsemeru.fips={FIPS_FLAG} -jar {LDAP_TEST_JAR_PATH} "
+                            f"-u 'ldap://{server}:{port}' -b '{base_dn}' " 
+                            f"-D '{bind_dn}' -w '{bind_dn_password}' " 
+                            f"-additionalvalidation -gdn '{group_base_dn}' " 
+                            f"-upl '{user_password_list}' -gl '{group_list}' " 
+                            f"-uf '{user_filter}' -gf '{group_filter}'"
+                        )
+            java_msg = f"java -Dsemeru.fips={FIPS_FLAG} -jar {LDAP_TEST_JAR_PATH} -u 'ldap://{server}:{port}' -b '{base_dn}' -D '{bind_dn}' -w '*****'"
+
+        # Running java command for ldap binding using LdapTest.jar
+        self._logger.info(f"Java command for ldap binding using LdapTest.jar : {ldap_test_cmd}")
+        try :
+            bind_output = self.run_command(ldap_test_cmd)
+            self._logger.info(f"Ldap bind output : {bind_output}")
+            if "AuthenticationException" in bind_output:
+                progress.log(bind_output)
                 progress.log(Text(f"LDAP Invalid Credentials", style="bold red"))
                 msg = Text(f"Failed to authenticate \"{bind_dn}\"\n"
-                           f"Please check the following values in property files:\n"
-                           f" - LDAP_BIND_DN \n"
-                           f" - LDAP_BIND_DN_PASSWORD\n")
+                            f"Please check the following values in property files:\n"
+                            f" - LDAP_BIND_DN \n"
+                            f" - LDAP_BIND_DN_PASSWORD\n")
                 progress.log(msg, style="bold red")
                 progress.log()
-                authenticated = False
-                return authenticated, conn
-            except Exception as e:
-                if "CERTIFICATE_VERIFY_FAILED" in str(e):
-                    progress.log(Text(f"LDAP SSL Error: SSL Certificate could not be validated. Please check the supplied certificate in propertyFile/ssl-certs.", style="bold red"))
-                    progress.log()
-                else:
-                    progress.log(Text(f"LDAP Error: {e}", style="bold red"))
-                    msg = Text(f"Failed to authenticate \"{bind_dn}\"\n"
-                               f"Please check the SSL Certificate", style="bold red")
-                    progress.log(msg)
-                    progress.log()
-                progress.log(Text(f"Failed to connect to LDAP server \"{hostname}\"", style="bold red"))
+                panel = Panel.fit(java_msg, title="Execute the following command for more details", style="yellow", border_style="cyan")
+                progress.log(panel)
                 progress.log()
-                authenticated = False
-                return authenticated, conn
-        else:
-            try:
-                connect = f"ldap://{hostname}:{port}"
-
-                server = Server(connect, get_info=ALL)
-                # username and password can be configured during openldap setup
-                conn = Connection(server,
-                                  user=bind_dn,
-                                  password=bind_dn_password)
-                bind_response = conn.bind()
-                if not bind_response:
-                    raise LDAPBindError()
+            elif "bind failed" in bind_output or "Error while binding to LDAP" in bind_output:
+                progress.log(bind_output)
+                progress.log(Text(f"Unable to connect to LDAP server '{server}' using Bind DN '{bind_dn}', please check configuration in ldap property again.",style="bold red"))
+                progress.log()
+                panel = Panel.fit(java_msg, title="Execute the following command for more details", style="yellow", border_style="cyan")
+                progress.log(panel)
+                progress.log()
+            elif "Connected to:" in bind_output:
                 authenticated = True
-                return authenticated, conn
-            except LDAPBindError as e:
-                progress.log(Text(f"LDAP Invalid Credentials", style="bold red"))
-                msg = Text(f"Failed to authenticate \"{bind_dn}\"\n"
-                           f"Please check the following values in property files:\n"
-                           f" - LDAP_BIND_DN \n"
-                           f" - LDAP_BIND_DN_PASSWORD\n")
-                progress.log(msg, style="bold red")
-                progress.log()
-                authenticated = False
-                return authenticated, conn
-            except Exception as e:
-                progress.log(Text(f"LDAP Error: {e}", style="bold red"))
-                msg = Text(f"Failed to authenticate \"{bind_dn}\"\n"
-                           f"Please check the SSL Certificate", style="bold red")
-                progress.log(msg)
-                progress.log(Text(f"Failed to connect to LDAP server \"{hostname}\"", style="bold red"))
-                progress.log()
-                authenticated = False
-                return authenticated, conn
-
-    def ldap_item_exists(self, connect, base_dn, filter):
-        try:
-            search_results = connect.search(search_base=base_dn, search_filter=filter)
+                valid_users_and_groups = self.parse_ldap_output(bind_output)
+                self._logger.info(f"Users : {valid_users_and_groups['users']}")
+                self._logger.info(f"Groups : {valid_users_and_groups['groups']}")
         except Exception as e:
-            self._logger.info(
-                f"Error found in search function of ldap_search function in validation script --- {str(e)}")
+            self._logger.error(f"An exception occured during validation ldap connection : {e}")
+            progress.log(Text(f"LDAP Error: {e}", style="bold red"))
+            msg = Text(f"Failed to authenticate \"{bind_dn}\"\n"
+                        f"Please check the SSL Certificate", style="bold red")
+            progress.log(msg)
+            progress.log(Text(f"Failed to connect to LDAP server : '{server}'", style="bold red"))
+            progress.log()
+        return authenticated, valid_users_and_groups
+
+    def encode_base64(self,data) :
+        """
+        Method name: encode_base64
+        Author: Anisha Suresh (anisha-suresh@ibm.com)
+        Description: Encodes a string into its base64 format.
+        Parameters:
+            data (str) : The string to be encoded.
+        Returns:
+            encoded_data (str): The encoded string.
+        Raises:
+            Exception: If an error occurs while encoding the string.
+        """
+        try :
+            self._logger.info(f"Encoding data : {data}.")
+            encoded_data = base64.b64encode(data.encode()).decode()
+            self._logger.info(f"Encoded data : {encoded_data}.")
+            return encoded_data
+        except Exception as e:
+            self._logger.error(f"An error occured during encoded the data : {e}")
+
+    def run_command(self,command):
+        """
+        Method name: run_command
+        Author: Anisha Suresh (anisha-suresh@ibm.com)
+        Description:  Executes shell commands
+        Parameters:
+            command (str): The command to the to be executed.
+        Returns:
+            str: The standard output (stdout) if the command runs successfully.
+                The standard error (stderr) if an error occurs.
+        Raises:
+            Exception: If an error occurs while executing the command.
+        """
+        try :
+            self._logger.info(f"Executing command : {command}")
+            result = subprocess.run(shlex.split(command),capture_output=True, text=True)
+            if result.returncode != 0:
+                self._logger.error(f"\nAn error occured during execution of the command -- stdout : {result.stdout}, stderror : {result.stderr}")
+                return result.stderr
+            self._logger.info(f"Output of execution : {result.stdout}")
+            return result.stdout
+        except Exception as e :
+            self._logger.error(f"An exception occured during running the command -- {command} : {e}")
+            return str(e)
+
+    def remove_file(self,file_path) :
+        """
+        Method name: remove_file
+        Author: Anisha Suresh (anisha-suresh@ibm.com)
+        Description:  Removes the file at the given file path.
+        Parameters:
+            file_path (str): The path to the file to be removed.
+        Returns: None
+        Raises:
+            Exception: If an error occurs while removing the file.
+        """
+        try :
+            if os.path.exists(file_path) :
+                os.remove(file_path)
+                self._logger.info(f"Removed the file : {file_path}")
+        except Exception as e:
+            self._logger.error(f"An exception occured during removal of file : {file_path}. Error : {e}")
+
+    def parse_ldap_output(self,output):
+        """
+        Method name: parse_ldap_output
+        Author: Anisha Suresh (anisha-suresh@ibm.com)
+        Description:  Retrives the validated users and groups from the ldap bind output
+        Parameters:
+            output (str): The ldap bind output
+        Returns:
+            users_and_groups (dict): The valid users and groups from the ldap bind output
+        Raises:
+            Exception: If an error occurs while parsing the ldap output.
+        """
+        try:
+            self._logger.info("Fetching valid users and groups from ldap bind output.")
+            users_and_groups = {
+                "users": [],
+                "groups": []
+            }
+
+            # Set of all the users
+            all_users = set()
+
+            # Extract users and their authentication status
+            self._logger.info(f"Extracting users and their authentication status")
+            user_pattern = re.compile(r"(?P<username>\S+)\s+\|\s+(?P<valid>true|false)\s+\|\s+(?P<auth>true|false)")
+            for match in user_pattern.finditer(output):
+                username = match.group("username")
+                all_users.add(username)
+                if match.group("auth") == "true" and match.group("valid") == "true":
+                    users_and_groups["users"].append(username)
+            self._logger.info(f"Valid users are : {users_and_groups['users']}")
+
+            # Extract groups and their validity
+            self._logger.info(f"Extracting groups and their validity")
+            group_pattern = re.compile(r"(?P<groupname>\S+)\s+\|\s+(?P<valid>true)")
+            for match in group_pattern.finditer(output):
+                groupname = match.group("groupname")
+                if groupname not in all_users:
+                    users_and_groups["groups"].append(groupname)
+            self._logger.info(f"Valid groups are : {users_and_groups['groups']}")
+            return users_and_groups
+        except Exception as e:
+            self._logger.error(f"An exception occured during fetching valid users and groups: {e}.")
             return
-        return connect.entries
+
+
+    def ldap_item_exists(self, entry, valid_entry):
+        """
+        Method name: ldap_item_exists
+        Description: Checks if the user/group entry from property file is valid.
+                    Checks if the property file entry is present in the valid user/groups from the bind output.
+        Parameters:
+            entry (str): The property file entry
+            valid_entry (list): A list containing the valid users or groups from the bind output.
+        Returns:
+            If the entry is valid, returns the entry (str). Else returns None.
+        Raises:
+            None
+        """
+        if entry in valid_entry :
+            return entry
+        else :
+            return
 
     def ldap_search(self, ldap_id, progress, ssl_enabled=False, cert_path=""):
+        """
+        Method name: ldap_search
+        Description: Authenticates and get valid users and groups from the LDAP server.
+                    Then if authenticated usccessfully, updates the valid entries from dictionary _entries_dict.
+        Parameters:
+            ldap_id (str): The identifier for the LDAP configuration from self._ldap_prop.
+            progress (object): A logging/progress tracking object used for reporting errors and status.
+            ssl_enabled (bool, optional): If True, SSL is enabled for the LDAP connection. Defaults to False.
+            cert_path (str, optional): The file path to the SSL certificate when SSL is enabled. Defaults to an empty string.
+        Returns: None
+        Raises:
+            Exception: If an error occurs while performing ldap search.
+        """
         try:
-            base_dn = self._ldap_prop[ldap_id]["LDAP_BASE_DN"]
-            user_filter = self._ldap_prop[ldap_id]["LC_USER_FILTER"]
-            group_filter = self._ldap_prop[ldap_id]["LC_GROUP_FILTER"]
-            user_name = self._ldap_prop[ldap_id]["LDAP_BIND_DN"]
-            password = self._ldap_prop[ldap_id]["LDAP_BIND_DN_PASSWORD"]
-
-            authenticated, connect = self.get_ldap_connection(ldap_id, progress, ssl_enabled, cert_path)
+            authenticated, valid_users_and_groups = self.get_ldap_connection(ldap_id, progress, ssl_enabled, cert_path)
 
             if authenticated:
                 for entry, value in self._entries_dict.items():
                     if value['type'] == ldap_entry_types.USER:
-                        search_filter = user_filter.replace("%v", entry)
-                        if self.ldap_item_exists(connect, base_dn, search_filter):
+                        if self.ldap_item_exists(entry,valid_users_and_groups['users']):
                             self._entries_dict[entry]["count"] += 1
                             self._entries_dict[entry]["ldap_id"].append(ldap_id)
 
                     elif value['type'] == ldap_entry_types.GROUP:
-                        search_filter = group_filter.replace("%v", entry)
-                        if self.ldap_item_exists(connect, base_dn, search_filter):
+                        if self.ldap_item_exists(entry,valid_users_and_groups['groups']):
                             self._entries_dict[entry]["count"] += 1
                             self._entries_dict[entry]["ldap_id"].append(ldap_id)
 
                     elif value['type'] == ldap_entry_types.USER_GROUP:
-                        search_filter = user_filter.replace("%v", entry)
-                        if self.ldap_item_exists(connect, base_dn, search_filter):
+                        if self.ldap_item_exists(entry,valid_users_and_groups['users']):
                             self._entries_dict[entry]["type"] = ldap_entry_types.USER
                             self._entries_dict[entry]["count"] += 1
                             self._entries_dict[entry]["ldap_id"].append(ldap_id)
                             continue
-                        search_filter = group_filter.replace("%v", entry)
-                        if self.ldap_item_exists(connect, base_dn, search_filter):
+                        if self.ldap_item_exists(entry,valid_users_and_groups['groups']):
                             self._entries_dict[entry]["type"] = ldap_entry_types.GROUP
                             self._entries_dict[entry]["count"] += 1
                             self._entries_dict[entry]["ldap_id"].append(ldap_id)
                             continue
-
         except Exception as e:
             self._logger.info(f"Error found in ldap_search function in validation script --- {str(e)}")
 
