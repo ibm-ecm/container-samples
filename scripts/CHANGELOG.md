@@ -1,3 +1,14 @@
+## 4.3.0 (2025-02-28)
+
+### Fix
+
+- changed ldap connection to same test as operator deployment
+
+### Feat
+
+- flags introduced to skip validation tests
+- ip are now tested if hostnames are supplied
+
 ## 4.1.1 (2025-01-31)
 
 ### Fix

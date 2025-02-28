@@ -38,7 +38,7 @@ from helper_scripts.utilities.interface import (
     display_prereq_passed, mustgather_details)
 from helper_scripts.utilities.utilities import prereq_checks
 
-__version__ = "4.1.1"
+__version__ = "4.3.0"
 
 # app = typer.Typer()
 
