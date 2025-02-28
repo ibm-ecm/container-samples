@@ -18,7 +18,7 @@ import shutil
 import struct
 import subprocess
 import time
-from socket import socket, gaierror
+from socket import socket, gaierror, gethostbyname_ex
 
 import yaml
 from OpenSSL import SSL
@@ -507,9 +507,52 @@ def connect_to_server(host, port, ssl=False, client_cert_file=None, pg=False, pr
 
     # Calculate RTT and format to milliseconds
     rtt = (end_time - start_time) * 1000
-
+    IP_connected = connect_to_server_ip(host,port,ssl,client_cert_file,pg,progress)
+    if not IP_connected:
+        progress.log(Text(f"Failed to connect over any one of the Resolved IP",style="bold red"))
+        return conn, rtt, IP_connected
     return conn, rtt, connected
 
+#Verifying that able to establish connection with atleast 1 ip resolved by hostname
+def connect_to_server_ip(host, port, ssl=False, client_cert_file=None, pg=False, progress=None):
+    check_ip_connected = False
+    ip_addresses = gethostbyname_ex(host)[2]
+    for ip in ip_addresses :
+        # If SSL is enabled, create an SSL socket
+        # Create an SSL context
+        if ssl:
+            context = SSL.Context(SSL.SSLv23_METHOD)
+            context.set_cipher_list(_CIPHERS)
+            context.set_min_proto_version(SSL.TLS1_2_VERSION)
+            if client_cert_file:
+                context.use_certificate_file(client_cert_file)
+            # Create an SSL socket
+            sock = socket()
+            ip_conn = SSL.Connection(context, sock)
+        else:
+            ip_conn = socket()
+        try:
+            ip_conn.settimeout(10)
+            ip_conn.connect((ip, port))
+            ip_conn.settimeout(None)
+            if ssl:
+                # Postgres requires protocol negotiation before SSL since everything's on same port
+                # https://www.postgresql.org/docs/current/protocol-flow.html#PROTOCOL-FLOW-SSL
+                if pg:
+                    version_ssl = struct.pack('!I', 1234 << 16 | 5679)
+                    length = struct.pack('!I', 8)
+                    packet = length + version_ssl
+                    sock.sendall(packet)
+                    sock.recv(1)
+                ip_conn.do_handshake()
+            check_ip_connected = True
+            progress.log(Text(f"Connection succeeded over IP: {ip} over port: {port}",style="bold green"))
+        except Exception as e:
+            progress.log(Text(f"Failed to connect over IP: {ip} over port: {port}\nError : {e}",style="bold red"))
+            continue
+        finally:
+            ip_conn.close()
+    return check_ip_connected
 
 # Function to check if podman, oc and other commands are available
 def command_available(command):

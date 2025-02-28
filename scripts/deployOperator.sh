@@ -411,14 +411,19 @@ function get_entitlement_registry() {
               cli_command="docker"
             fi
 
-            if $cli_command login -u "$DOCKER_REG_USER" -p "$DOCKER_REG_KEY" "$DOCKER_REG_SERVER"; then
+            if [[ "$RUNTIME_MODE" == "dev" || $RUNTIME_MODE == "baw-dev" ]]; then
               printf 'Entitlement Registry key is valid.\n'
               entitlement_verify_passed="passed"
             else
-              printf '\x1b[1;31mThe Entitlement Registry key failed.\n\x1b[0m'
-              printf '\x1b[1mEnter a valid Entitlement Registry key.\n\x1b[0m'
-              entitlement_key=''
-              entitlement_verify_passed="failed"
+              if $cli_command login -u "$DOCKER_REG_USER" -p "$DOCKER_REG_KEY" "$DOCKER_REG_SERVER"; then
+                printf 'Entitlement Registry key is valid.\n'
+                entitlement_verify_passed="passed"
+              else
+                printf '\x1b[1;31mThe Entitlement Registry key failed.\n\x1b[0m'
+                printf '\x1b[1mEnter a valid Entitlement Registry key.\n\x1b[0m'
+                entitlement_key=''
+                entitlement_verify_passed="failed"
+              fi
             fi
           done
         fi
@@ -1212,7 +1217,6 @@ fi
 if [[ "$use_entitlement" == "no" ]]; then
   create_secret_local_registry
 fi
-
 
 if [[ "$SCRIPT_MODE" == "OLM" ]]; then
   select_private_catalog
