@@ -56,7 +56,7 @@ from helper_scripts.utilities.prerequisites_utilites import zip_folder, \
     check_keystore_password_length, collect_visible_files, check_db_password_length, check_db_ssl_mode
 from helper_scripts.validate import validate as v
 
-__version__ = "3.2.0"
+__version__ = "4.3.0"
 
 app = typer.Typer()
 state = {
@@ -623,10 +623,18 @@ def generate():
 @app.command()
 def validate(
         apply: bool = typer.Option(False, help="Apply all generated artifacts to the cluster"),
+        skip_storage_class: bool = typer.Option(False, "--skip-storageclass", "-sc", help="Skip storage class validation"),
+        skip_database: bool = typer.Option(False, "--skip-database", "-db", help="Skip database validation"),
+        skip_ldap: bool = typer.Option(False, "--skip-ldap", "-l", help="Skip LDAP validation"),
 ):
     """
     Validate the prerequisites for FileNet Content Manager Deployment.
     """
+
+    # By default, all validations are executed
+    validate_storage_class = not skip_storage_class
+    validate_database = not skip_database
+    validate_ldap = not skip_ldap
 
     clear(console)
     display_mode_version("Validate",
@@ -819,26 +827,38 @@ def validate(
                 transient=False,
         ) as progress:
 
-            task3 = progress.add_task("[green]Validate Storage Class", total=storageclass_number)
-            if db_number > 0:
-                task4 = progress.add_task("[yellow]Validate Database", total=db_number)
-            if ldap_prop:
-                task1 = progress.add_task("[cyan]Validate LDAP", total=ldap_prop_dict["ldap_number"])
+            # Adding storage classes validation task only if storageclass flag is True
+            if validate_storage_class :
+                task3 = progress.add_task("[green]Validate Storage Class", total=storageclass_number)
+            # Adding databases validation task only if database flag is True
+            if validate_database :
+                if db_number > 0:
+                    task4 = progress.add_task("[yellow]Validate Database", total=db_number)
+            # Adding ldaps validation task only if ldap flag is True
+            if validate_ldap :
+                if ldap_prop:
+                    task1 = progress.add_task("[cyan]Validate LDAP", total=ldap_prop_dict["ldap_number"])
             # if idp_prop:
             #     task4 = progress.add_task("[blue]Validate IDP", total=idp_prop_dict["idp_number"])
 
             while not progress.finished:
-                if (deployment_prop_dict["FNCM_Version"] == "5.5.12" or deployment_prop_dict["FNCM_Version"] == "5.6.0")  and deployment_prop_dict["FIPS_SUPPORT"]:
+                if (deployment_prop_dict["FNCM_Version"] not in ["5.5.8", "5.5.11"])  and deployment_prop_dict["FIPS_SUPPORT"]:
                     progress.log(Panel.fit(Text("Validating all connections with FIPS protocol.\n"
                                             "These tests will only pass on FIPS enabled platforms.", style="bold purple")))
-                vobject.validate_all_storage_classes(task3, progress)
-                if db_number > 0:
-                    vobject.validate_all_db(task4, progress)
-                if ldap_prop:
-                    ldaps_validated = vobject.validate_all_ldap(task1, progress)
-                    if ldaps_validated:
-                        task2 = progress.add_task("[purple]Validate LDAP Users and Groups", total=1)
-                        vobject.validate_ldap_users_groups(task2, progress)
+                # Validating storage classes only if storageclass flag is True
+                if validate_storage_class :
+                    vobject.validate_all_storage_classes(task3, progress)
+                # Validating databases only if database flag is True
+                if validate_database :
+                    if db_number > 0:
+                        vobject.validate_all_db(task4, progress)
+                # Validating ldaps only if ldap flag is True
+                if validate_ldap :
+                    if ldap_prop:
+                        ldaps_validated = vobject.validate_all_ldap(task1, progress)
+                        if ldaps_validated:
+                            task2 = progress.add_task("[purple]Validate LDAP Users and Groups", total=1)
+                            vobject.validate_ldap_users_groups(task2, progress)
                 # if idp_prop:
                 #     vobject.validate_scim(task4, progress)
         vobject.cleanup_tmp()
