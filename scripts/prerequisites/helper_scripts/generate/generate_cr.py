@@ -667,15 +667,15 @@ class GenerateCR:
             os_list_element = CommentedMap()
 
             for count, ele in enumerate(os_list):
-                os_id = "OS" + str(count + 1).zfill(1)
-                os_name = "OS" + str(count + 1).zfill(2)
+                os_id = self._db_properties[ele]["OS_LABEL"].lower()
+                os_name = self._db_properties[ele]["OS_LABEL"].lower()
 
                 os_list_element["oc_cpe_obj_store_display_name"] = os_name
                 os_list_element["oc_cpe_obj_store_symb_name"] = os_name
                 os_list_element["oc_cpe_obj_store_conn"] = {}
                 os_list_element["oc_cpe_obj_store_conn"]["name"] = os_id + "_dbconnection"
-                os_list_element["oc_cpe_obj_store_conn"]["dc_os_datasource_name"] = "FN" + os_id + "DS"
-                os_list_element["oc_cpe_obj_store_conn"]["dc_os_xa_datasource_name"] = "FN" + os_id + "DSXA"
+                os_list_element["oc_cpe_obj_store_conn"]["dc_os_datasource_name"] = self._db_properties[ele]["DATASOURCE_NAME"]
+                os_list_element["oc_cpe_obj_store_conn"]["dc_os_xa_datasource_name"] = self._db_properties[ele]["DATASOURCE_NAME_XA"]
 
                 os_list_element["oc_cpe_obj_store_admin_user_groups"] = []
                 for admin_user_group in self._usergroup_properties[ele]["CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS"]:
@@ -691,7 +691,7 @@ class GenerateCR:
                         if self._usergroup_properties[ele]["CPE_OBJ_STORE_OS_PE_WORKFLOW_ENABLE"]:
                             pe_workflow_dict = CommentedMap()
                             pe_workflow_dict["oc_cpe_obj_store_enable_workflow"] = True
-                            pe_workflow_dict["oc_cpe_obj_store_workflow_region_name"] =  os_id.lower() + "_region"
+                            pe_workflow_dict["oc_cpe_obj_store_workflow_region_name"] =  os_id + "_region"
                             pe_workflow_dict["oc_cpe_obj_store_workflow_region_number"] = 1
                             pe_workflow_dict["oc_cpe_obj_store_workflow_data_tbl_space"] = self._db_properties[ele][
                                 "DATA_TABLESPACE"]
@@ -703,7 +703,7 @@ class GenerateCR:
                                 self._usergroup_properties[ele]["CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS"][0]
                             pe_workflow_dict["oc_cpe_obj_store_workflow_date_time_mask"] = "mm/dd/yy hh:tt am"
                             pe_workflow_dict["oc_cpe_obj_store_workflow_locale"] = "en"
-                            pe_workflow_dict["oc_cpe_obj_store_workflow_pe_conn_point_name"] = os_id.lower() + "_pe_conn_point"
+                            pe_workflow_dict["oc_cpe_obj_store_workflow_pe_conn_point_name"] = os_id + "_pe_conn_point"
 
                             os_list_element.update(pe_workflow_dict)
 
