@@ -1,3 +1,14 @@
+## 4.4.2 (2025-03-21)
+
+### Feat
+
+- added global catalog server check for ms active directory
+
+### Fix
+
+- fixed logging error for registry reachability check
+- fixed datasource names for objectstore init section in cr
+
 ## 4.3.0 (2025-02-28)
 
 ### Fix
