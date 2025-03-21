@@ -442,7 +442,7 @@ def check_java_version(fncm_version):
         return False
 
 
-def connect_to_server(host, port, ssl=False, client_cert_file=None, pg=False, progress=None):
+def connect_to_server(host, port, ssl=False, client_cert_file=None, pg=False, progress=None, ip_check=True):
     # If SSL is enabled, create an SSL socket
     # Create an SSL context
     if ssl:
@@ -507,10 +507,14 @@ def connect_to_server(host, port, ssl=False, client_cert_file=None, pg=False, pr
 
     # Calculate RTT and format to milliseconds
     rtt = (end_time - start_time) * 1000
-    IP_connected = connect_to_server_ip(host,port,ssl,client_cert_file,pg,progress)
-    if not IP_connected:
-        progress.log(Text(f"Failed to connect over any one of the Resolved IP",style="bold red"))
-        return conn, rtt, IP_connected
+    if ip_check:
+        ip_connected = connect_to_server_ip(host,port,ssl,client_cert_file,pg,progress)
+        if not ip_connected:
+            if progress:
+                progress.log(Text(f"Failed to connect over any one of the Resolved IP",style="bold red"))
+            else:
+                print(f"Failed to connect over any one of the Resolved IP")
+            return conn, rtt, ip_connected
     return conn, rtt, connected
 
 #Verifying that able to establish connection with atleast 1 ip resolved by hostname
@@ -546,9 +550,16 @@ def connect_to_server_ip(host, port, ssl=False, client_cert_file=None, pg=False,
                     sock.recv(1)
                 ip_conn.do_handshake()
             check_ip_connected = True
-            progress.log(Text(f"Connection succeeded over IP: {ip} over port: {port}",style="bold green"))
+            if progress:
+                progress.log(Text(f"Connection succeeded over IP: {ip} over port: {port}",style="bold green"))
+            else:
+                print(f"Connection succeeded over IP: {ip} over port: {port}")
+
         except Exception as e:
-            progress.log(Text(f"Failed to connect over IP: {ip} over port: {port}\nError : {e}",style="bold red"))
+            if progress:
+                progress.log(Text(f"Failed to connect over IP: {ip} over port: {port}\nError : {e}",style="bold red"))
+            else:
+                print(f"Failed to connect over IP: {ip} over port: {port}\nError : {e}")
             continue
         finally:
             ip_conn.close()

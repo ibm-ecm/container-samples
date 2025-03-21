@@ -226,7 +226,7 @@ class Validate:
         return directory
 
     def validate_all_db(self, task3, progress):
-        db_type = self._db_prop['DATABASE_TYPE']
+        db_type = self._db_prop['DATABASE_TYPE'].lower()
         if db_type == "postgresql":
             max_transactions = Panel.fit(Text(
                 "Ensure Postgresql Max Transactions has been configured.\n"
@@ -288,7 +288,7 @@ class Validate:
         db_name = self._db_prop[db_label]['DATABASE_NAME']
         db_user = self._db_prop[db_label]['DATABASE_USERNAME']
         db_pwd = self._db_prop[db_label]['DATABASE_PASSWORD']
-        db_type = self._db_prop['DATABASE_TYPE']
+        db_type = self._db_prop['DATABASE_TYPE'].lower()
         ssl_enabled = self._db_prop['DATABASE_SSL_ENABLE']
 
         if db_type == "oracle":
@@ -307,12 +307,36 @@ class Validate:
 
         connected = False
         # Validates DB server and checks whether postgres pre-SSL packet needs to be sent
-        if db_type == 'postgresql':
-            connected = self.validate_server(progress=progress, server=db_servername, port=db_port,
+        if ssl_enabled:
+            if db_type == 'postgresql':
+                connected = self.validate_server(progress=progress, server=db_servername, port=db_port,
+                                                 ssl_enabled=ssl_enabled,
+                                                 display_rtt=False, pg=True)
+            else:
+                connected = self.validate_server(progress=progress, server=db_servername, port=db_port,
+                                                 ssl_enabled=ssl_enabled,
+                                                 display_rtt=False)
+
+            if not connected:
+                progress.log()
+                progress.log(Panel.fit(Text(f"Reachability over SSL failed. Falling back to non-SSL connection.", style="bold yellow")))
+                progress.log()
+
+                if db_type == 'postgresql':
+                    connected = self.validate_server(progress=progress, server=db_servername, port=db_port,
+                                                 ssl_enabled=False,
+                                                 display_rtt=False, pg=True)
+                else:
+                    connected = self.validate_server(progress=progress, server=db_servername, port=db_port,
+                                                 ssl_enabled=False, display_rtt=False)
+
+        else:
+            if db_type == 'postgresql':
+                connected = self.validate_server(progress=progress, server=db_servername, port=db_port,
                                              ssl_enabled=ssl_enabled,
                                              display_rtt=False, pg=True)
-        else:
-            connected = self.validate_server(progress=progress, server=db_servername, port=db_port,
+            else:
+                connected = self.validate_server(progress=progress, server=db_servername, port=db_port,
                                              ssl_enabled=ssl_enabled,
                                              display_rtt=False)
 
@@ -587,6 +611,7 @@ class Validate:
             ldap_host = remove_protocol(self._ldap_prop[ldap_id]["LDAP_SERVER"])
             ldap_port = self._ldap_prop[ldap_id]["LDAP_PORT"]
             ssl_enabled = self._ldap_prop[ldap_id]["LDAP_SSL_ENABLED"]
+            ldap_type = self._ldap_prop[ldap_id]["LDAP_TYPE"].lower()
 
             progress.log(Panel.fit(Text(f"LDAP Server Validation: {ldap_id}", style="bold cyan")))
             progress.log()
@@ -603,6 +628,36 @@ class Validate:
                 validated = self.validate_server(progress=progress, server=ldap_host,
                                                  port=ldap_port, ssl_enabled=ssl_enabled,
                                                  cert_path=crt_path, display_rtt=True)
+
+
+                if ldap_type == "microsoft active directory":
+                    # For Microsoft Active Directory we need to check the Global Catalog (GC) port and host
+                    # If GC port or host is defined, we need to take from the toml file else we default
+
+                    try:
+                        if self._ldap_prop[ldap_id]["LC_AD_GC_HOST"] != "<Optional>":
+                            gc_host = remove_protocol(self._ldap_prop[ldap_id]["LC_AD_GC_HOST"])
+                        else:
+                            gc_host = ldap_host
+                    except KeyError:
+                        gc_host = ldap_host
+
+                    try:
+                        if self._ldap_prop[ldap_id]["LC_AD_GC_PORT"] != "<Optional>":
+                            gc_port = self._ldap_prop[ldap_id]["LC_AD_GC_PORT"]
+                        else:
+                            gc_port = "3269"
+                    except KeyError:
+                        gc_port = "3269"
+
+                    progress.log(Panel.fit(Text(f"MS Active Directory Global Catalog Server Validation: {ldap_id}", style="bold cyan")))
+                    progress.log()
+
+                    # Validate the Global Catalog (GC) port and host
+                    validated = self.validate_server(progress=progress, server=gc_host,
+                                                        port=gc_port, ssl_enabled=ssl_enabled,
+                                                        cert_path=crt_path, display_rtt=False)
+
                 check_list.append(validated)
 
                 if validated:
@@ -612,6 +667,34 @@ class Validate:
 
                 validated = self.validate_server(progress=progress, server=ldap_host,
                                                  port=ldap_port)
+
+                if ldap_type == "microsoft active directory":
+                    # For Microsoft Active Directory we need to check the Global Catalog (GC) port and host
+                    # If GC port or host is defined, we need to take from the toml file else we default
+
+                    try:
+                        if self._ldap_prop[ldap_id]["LC_AD_GC_HOST"] != "<Optional>":
+                            gc_host = remove_protocol(self._ldap_prop[ldap_id]["LC_AD_GC_HOST"])
+                        else:
+                            gc_host = ldap_host
+                    except KeyError:
+                        gc_host = ldap_host
+
+                    try:
+                        if self._ldap_prop[ldap_id]["LC_AD_GC_PORT"] != "<Optional>":
+                            gc_port = self._ldap_prop[ldap_id]["LC_AD_GC_PORT"]
+                        else:
+                            gc_port = "3268"
+                    except KeyError:
+                        gc_port = "3268"
+
+                    progress.log(Panel.fit(Text(f"MS Active Directory Global Catalog Server Validation: {ldap_id}", style="bold cyan")))
+                    progress.log()
+
+                    # Validate the Global Catalog (GC) port and host
+                    validated = self.validate_server(progress=progress, server=gc_host,
+                                                     port=gc_port, display_rtt=False)
+
                 check_list.append(validated)
 
                 if validated:
@@ -1185,7 +1268,7 @@ class Validate:
                 self.output_latency(rtt, progress, "LDAP")
         else:
             message = Text(f"\nReachability to \"{server}\" failed!\n"
-                           f"Please check configuration in Property Files", style="bold red")
+                           f"Please check configuration server host and port in Property Files", style="bold red")
             progress.log(message)
             progress.log()
 
