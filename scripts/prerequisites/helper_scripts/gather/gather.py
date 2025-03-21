@@ -828,10 +828,10 @@ class GatherOptions:
                         # Test for SSL connections
                         # Return a connection object, RTT and a boolean indicating if the connection was successful
                         if self._private_registry_ssl_enabled:
-                            conn_result, rtt, connected = connect_to_server(private_reg_hostname, int(private_reg_port),
-                                                                            True, self._private_registry_ssl_cert)
+                            conn_result, rtt, connected = connect_to_server(host=private_reg_hostname, port=int(private_reg_port),
+                                                                            ssl=True, client_cert_file=self._private_registry_ssl_cert, ip_check=False)
                         else:
-                            conn_result, rtt, connected = connect_to_server(private_reg_hostname, int(private_reg_port))
+                            conn_result, rtt, connected = connect_to_server(host=private_reg_hostname, port=int(private_reg_port), ip_check=False)
 
                         if not connected:
                             print()
@@ -856,12 +856,13 @@ class GatherOptions:
                 # Test for SSL connections
                 # Return a connection object, RTT and a boolean indicating if the connection was successful
                 if self._private_registry_ssl_enabled:
-                    conn_result, rtt, connected = connect_to_server(self._private_registry_host,
-                                                                    int(self._private_registry_port), True,
-                                                                    self._private_registry_ssl_cert)
+                    conn_result, rtt, connected = connect_to_server(host=self._private_registry_host,
+                                                                    port=int(self._private_registry_port), ssl=True,
+                                                                    client_cert_file=self._private_registry_ssl_cert, ip_check=False)
                 else:
-                    conn_result, rtt, connected = connect_to_server(self._private_registry_host,
-                                                                    int(self._private_registry_port))
+                    conn_result, rtt, connected = connect_to_server(host=self._private_registry_host,
+                                                                    port=int(self._private_registry_port),
+                                                                    ip_check=False)
 
                 if not connected:
                     print()
