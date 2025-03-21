@@ -90,13 +90,13 @@ class ReadPropDb(ReadProp):
 
     def __generate_tablespace_names(self):
         # Generate tablespace names for each OS
-        if self._toml_dict["DATABASE_TYPE"] == "sqlserver":
+        if self._toml_dict["DATABASE_TYPE"].lower() == "sqlserver":
             for os_id in self._toml_dict["_os_ids"]:
                 os_name = self._toml_dict[os_id]["DATABASE_NAME"]
                 self._toml_dict[os_id]["DATA_TABLESPACE"] = "PRIMARY"
                 self._toml_dict[os_id]["INDEX_TABLESPACE"] = f"{os_name}INDEXTS"
                 self._toml_dict[os_id]["LOB_TABLESPACE"] = f"{os_name}LOBTS"
-        elif self._toml_dict["DATABASE_TYPE"] == "oracle":
+        elif self._toml_dict["DATABASE_TYPE"].lower() == "oracle":
             # DBACLD-159430: Oracle tablespace names must be uppercase
             for os_id in self._toml_dict["_os_ids"]:
                 os_name = self._toml_dict[os_id]["DATABASE_NAME"]
@@ -104,12 +104,12 @@ class ReadPropDb(ReadProp):
                 self._toml_dict[os_id]["TMP_TABLESPACE"] = f"{os_name}DATATSTEMP".upper()
                 self._toml_dict[os_id]["INDEX_TABLESPACE"] = f"{os_name}INDEXTS".upper()
                 self._toml_dict[os_id]["LOB_TABLESPACE"] = f"{os_name}LOBTS".upper()
-        elif self._toml_dict["DATABASE_TYPE"] == "postgresql":
+        elif self._toml_dict["DATABASE_TYPE"].lower() == "postgresql":
             for os_id in self._toml_dict["_os_ids"]:
                 os_name = self._toml_dict[os_id]["DATABASE_NAME"]
                 self._toml_dict[os_id]["DATA_TABLESPACE"] = f"{os_name}_tbs".lower()
                 self._toml_dict[os_id]["INDEX_TABLESPACE"] = f"{os_name}indexts".lower()
-        elif self._toml_dict["DATABASE_TYPE"] == "db2":
+        elif self._toml_dict["DATABASE_TYPE"].lower() == "db2":
             for os_id in self._toml_dict["_os_ids"]:
                 os_name = self._toml_dict[os_id]["DATABASE_NAME"]
                 self._toml_dict[os_id]["DATA_TABLESPACE"] = f"{os_name}DATA_TS"
@@ -120,7 +120,7 @@ class ReadPropDb(ReadProp):
 
     def __force_postgres_dbnames(self):
         # Forcing lowercase on postgres db names
-        if self._toml_dict["DATABASE_TYPE"] == "postgresql":
+        if self._toml_dict["DATABASE_TYPE"].lower() == "postgresql":
             self._logger.info("Forcing lowercase on postgres db names...")
 
             toml_dict_keys = self._toml_dict.keys()

@@ -56,7 +56,7 @@ from helper_scripts.utilities.prerequisites_utilites import zip_folder, \
     check_keystore_password_length, collect_visible_files, check_db_password_length, check_db_ssl_mode
 from helper_scripts.validate import validate as v
 
-__version__ = "4.3.0"
+__version__ = "4.4.2"
 
 app = typer.Typer()
 state = {
@@ -815,6 +815,7 @@ def validate(
         print(layout)
         exit(1)
     else:
+        vobject.cleanup_tmp()
         # TODO: Add SCIM + IDP Validation
         with Progress(
                 SpinnerColumn(),
@@ -861,7 +862,6 @@ def validate(
                             vobject.validate_ldap_users_groups(task2, progress)
                 # if idp_prop:
                 #     vobject.validate_scim(task4, progress)
-        vobject.cleanup_tmp()
 
         if all(vobject.is_validated.values()):
             print()
