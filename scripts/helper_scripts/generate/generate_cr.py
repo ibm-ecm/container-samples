@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 from ruamel.yaml import CommentedMap
 from ruamel.yaml import YAML
 
-from ..utilities.prerequisites_utilites import collect_visible_files
+from ..utilities.prerequisites_utilites import collect_visible_files, is_email
 
 
 # Function to remove protocol from URL
@@ -650,6 +650,51 @@ class GenerateCR:
             self._logger.exception(
                 f"Error found in generate_multi_ldap_section function in generate_cr script --- {str(e)}")
 
+    # function to collect all usernames
+    def collect_usernames(self, os_list):
+        # this function collects all the usernames
+        user_list = set()
+        try:
+            self._logger.info("Collecting usernames from usergroup")
+
+            for obj in os_list:
+                if obj in self._usergroup_properties.keys():
+                    if "CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS" in self._usergroup_properties[obj]:
+                        user_list.update(self._usergroup_properties[obj]["CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS"])
+
+            if "GCD_ADMIN_USER_NAME" in self._usergroup_properties:
+                user_list.update(self._usergroup_properties["GCD_ADMIN_USER_NAME"])
+
+            if "ICN_LOGIN_USER" in self._usergroup_properties:
+                user_list.add(self._usergroup_properties["ICN_LOGIN_USER"])
+
+            if "FNCM_LOGIN_USER" in self._usergroup_properties:
+                user_list.add(self._usergroup_properties["FNCM_LOGIN_USER"])
+
+            self._logger.info("Collecting usernames from TaskManager Permissions")
+
+            if "PERMISSIONS" in self._customcomponent_properties:
+                if "TASK_ADMIN_USER_NAMES" in self._customcomponent_properties["PERMISSIONS"]:
+                    user_list.update(self._customcomponent_properties["PERMISSIONS"]["TASK_ADMIN_USER_NAMES"])
+
+                if "TASK_USER_USER_NAMES" in self._customcomponent_properties["PERMISSIONS"]:
+                    user_list.update(self._customcomponent_properties["PERMISSIONS"]["TASK_USER_USER_NAMES"])
+
+                if "TASK_AUDITOR_USER_NAMES" in self._customcomponent_properties["PERMISSIONS"]:
+                    user_list.update(self._customcomponent_properties["PERMISSIONS"]["TASK_AUDITOR_USER_NAMES"])
+
+            self._logger.info("Collecting usernames from ICC")
+
+            if "ICC" in self._customcomponent_properties:
+                if "ARCHIVE_USER_ID" in self._customcomponent_properties["ICC"]:
+                    user_list.add(self._customcomponent_properties["ICC"]["ARCHIVE_USER_ID"])
+
+        except Exception as e:
+            self._logger.exception(f"Error found in collect_usernames function in generate_cr script --- {str(e)}")
+            return list(user_list)
+
+        return list(user_list)
+
     # function to generate the init section
     def populate_init_section(self):
         try:
@@ -661,6 +706,13 @@ class GenerateCR:
                 "ic_ldap_admin_user_name"] = self._usergroup_properties["GCD_ADMIN_USER_NAME"]
             init_dict["spec"]["initialize_configuration"]["ic_ldap_creation"][
                 "ic_ldap_admins_groups_name"] = self._usergroup_properties["GCD_ADMIN_GROUPS_NAME"]
+
+            # DBACLD-165694: Check if any usernames are emails
+            # Set Allow UPN Shortnames in CR
+            user_list = self.collect_usernames(os_list)
+            if is_email(self._logger, user_list):
+                init_dict["spec"]["initialize_configuration"]["ic_ldap_creation"][
+                    "ic_allow_email_or_upn_short_names"] = True
 
             # Build the OS list for the init section
             os_list_section = []

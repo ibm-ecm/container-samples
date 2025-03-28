@@ -577,6 +577,20 @@ def command_available(command):
         return False
 
 
+# Function to check if username is an email
+def is_email(logger, usernames):
+    """
+    Check if the provided usernames are in email format.
+    :param logger: Logger object to log messages
+    :param usernames: List of usernames to check
+    :return: True if any usernames are in email format, False otherwise
+    """
+    for username in usernames:
+        if re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", username):
+            logger.info(f"Username {username} is in email format")
+            return True
+    return False
+
 # Checks whether we are properly logged into a Kubernetes/OCP cluster
 # 'kubectl config current-context' is not sufficient it will show most recent cluster,
 # but we cannot apply yaml which is needed to test storage classes

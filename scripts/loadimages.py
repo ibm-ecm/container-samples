@@ -58,28 +58,25 @@ state = {
 console = Console(record=True)
 
 
-def setup_logger(file_log_level, verbose=False):
+def setup_logger(file_log_level):
     # Create a logger object
-    logger = logging.getLogger("loadimages")
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
 
+    # Setup console logger
     shell_handler = RichHandler()
-    file_handler = logging.FileHandler("loadimages.log")
-
-    logger.setLevel(file_log_level)
     shell_handler.setLevel(file_log_level)
+    formatter_rich = logging.Formatter("%(message)s")
+    shell_handler.setFormatter(formatter_rich)
+
+    # Setup file logger
+    file_handler = logging.FileHandler("loadimages.log")
     file_handler.setLevel(logging.DEBUG)
+    formatter_file = logging.Formatter(
+        "%(asctime)s - %(levelname)s - %(message)-100s - %(filename)s:%(lineno)d", "%Y-%m-%d %H:%M:%S")
+    file_handler.setFormatter(formatter_file)
 
-    # the formatter determines what our logs will look like
-    fmt_shell = '%(message)s'
-    fmt_file = '%(levelname)s %(asctime)s [%(filename)s:%(funcName)s:%(lineno)d] %(message)s'
-
-    shell_formatter = logging.Formatter(fmt_shell)
-    file_formatter = logging.Formatter(fmt_file)
-
-    # here we hook everything together
-    shell_handler.setFormatter(shell_formatter)
-    file_handler.setFormatter(file_formatter)
-
+    # Add handlers to the logger
     logger.addHandler(shell_handler)
     logger.addHandler(file_handler)
 
