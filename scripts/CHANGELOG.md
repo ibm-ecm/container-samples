@@ -8,7 +8,6 @@
 
 - fixed logging error for registry reachability check
 - fixed datasource names for objectstore init section in cr
-- fixed external file logging feature
 
 ## 4.3.0 (2025-02-28)
 
