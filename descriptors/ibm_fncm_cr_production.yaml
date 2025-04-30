@@ -86,8 +86,12 @@ spec:
     sc_deployment_profile_size: "small"
 
     ## Specify the RunAsUser for the security context of the pod.  This is usually a numeric value that corresponds to a user ID.
-    ## For non-OCP (e.g., CNCF platforms such as AWS, GKE, etc), this parameter is optional. It is not supported on OCP and ROKS.
+    ## For non-OCP (e.g., CNCF platforms such as EKS, AKS, GKE, etc.), this parameter is optional. It is not supported on OCP and ROKS.
     sc_run_as_user:
+
+    ## Specify the fsGroup for the security context of the pod.  This is usually a numeric value that corresponds to a group ID.
+    ## For non-OCP (e.g., CNCF platforms such as EKS, AKS, GKE, etc.), this parameter is optional. It is not supported on OCP and ROKS.
+    sc_fs_group:
 
     ## The platform to be deployed specified by the user.  Possible values are: OCP, ROKS and other.
     ## based on input from the user.

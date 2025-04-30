@@ -126,8 +126,12 @@ spec:
     sc_is_multiple_az: false
     
     ## Specify the RunAsUser for the security context of the pod.  This is usually a numeric value that corresponds to a user ID.
-    ## For non-OCP (e.g., CNCF platforms such as AWS, GKE, etc), this parameter is optional. It is not supported on OCP and ROKS.
+    ## For non-OCP (e.g., CNCF platforms such as EKS, AKS, GKE, etc.), this parameter is optional. It is not supported on OCP and ROKS.
     sc_run_as_user:
+
+    ## Specify the fsGroup for the security context of the pod.  This is usually a numeric value that corresponds to a group ID.
+    ## For non-OCP (e.g., CNCF platforms such as EKS, AKS, GKE, etc.), this parameter is optional. It is not supported on OCP and ROKS.
+    sc_fs_group:
 
     ## The platform to be deployed specified by the user.  Possible values are: OCP, ROKS, and other.
     sc_deployment_platform: "<Required>"
@@ -160,7 +164,7 @@ spec:
     images:
       keytool_init_container:
         repository: cp.icr.io/cp/cp4a/common/dba-keytool-initcontainer
-        tag: "24.0.0-IF004"
+        tag: "24.0.0-IF005"
     
     ## This is necessary if you want to use your own JDBC drivers and/or need to provide ICCSAP drivers.  If you are providing multiple JDBC drivers and ICCSAP drivers, 
     ## all the files must be compressed in a single file.
@@ -755,7 +759,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cpe
-        tag: ga-560-p8cpe-if002
+        tag: ga-560-p8cpe-if003
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -922,7 +926,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/css
-        tag: ga-560-p8css-if002
+        tag: ga-560-p8css-if003
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1020,7 +1024,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cmis
-        tag: ga-307-cmis-la803
+        tag: ga-307-cmis-if009
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1181,7 +1185,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/graphql
-        tag: ga-560-p8cgql-if002
+        tag: ga-560-p8cgql-if003
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1302,7 +1306,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/extshare
-        tag: ga-310-es-if003
+        tag: ga-310-es-if004
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1410,7 +1414,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/taskmgr
-        tag: ga-310-tm-if003
+        tag: ga-310-tm-if004
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1557,7 +1561,7 @@ spec:
     image:
       ## The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/ban/navigator
-      tag: ga-310-icn-if003
+      tag: ga-310-icn-if004
 
       ## This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
@@ -1685,6 +1689,9 @@ spec:
     ## Default settings for logging
     logging_enabled: false
 
+    ## By default, the plugin for Graphite is enable to emit container metrics.
+    collectd_enable_plugin_write_graphite: false
+
     ## Persistent Volume Claims for ICN.  If the storage_configuration in the shared_configuration is configured,
     ## the Operator will create the PVC using the names below.
     datavolume:
@@ -1758,7 +1765,7 @@ spec:
     image:
       # The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/ier/ier
-      tag: ga-5218-if006-ier-2400-if004
+      tag: ga-5218-if006-ier-2400-if005
 
       # This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
@@ -1835,9 +1842,6 @@ spec:
       # - name: <name of configmap>
       #   is_env: # required if the configmap holds environment variables.
 
-    ## By default, the plugin for Graphite is enabled to emit container metrics.
-    collectd_enable_plugin_write_graphite: false
-
     ## Persistent Volume Claims for IER.  If the storage_configuration in the shared_configuration is configured,
     ## the Operator will create the PVC using the names below.
     datavolume:
@@ -1884,7 +1888,7 @@ spec:
     image:
       ## The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/iccsap/iccsap
-      tag: ga-4004-iccsap-if018d
+      tag: ga-4004-iccsap-if018e
 
       ## This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
@@ -2086,6 +2090,8 @@ spec:
 #      # Set to "ADAM" only when initializing Microsoft Active Directory Lightweight Directory Services (called AD LDS or ADAM).
 #      # Operator can set other values according to lc_selected_ldap_type.
 #      ic_ldap_type: ""
+#      # Enable users to sign in with their email address or user principle name (UPN).
+#      ic_allow_email_or_upn_short_names: false
 #    ic_obj_store_creation:
 #      object_stores:
 #        - oc_cpe_obj_store_display_name: "OS01" # Required display name of the object store, for example, "OS01"
