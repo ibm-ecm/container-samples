@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 from ruamel.yaml import CommentedMap
 from ruamel.yaml import YAML
 
-from ..utilities.prerequisites_utilites import collect_visible_files
+from ..utilities.prerequisites_utilites import collect_visible_files, is_email
 
 
 # Function to remove protocol from URL
@@ -620,7 +620,7 @@ class GenerateCR:
                     ingress_dict["spec"]["shared_configuration"]["sc_ingress_annotations"].append(
                         item_dict)
             ingress_dict["spec"]["shared_configuration"]["sc_deployment_hostname_suffix"] = \
-                remove_protocol(self._ingress_properties["INGRESS_HOSTNAME"])
+                remove_protocol(self._ingress_properties["INGRESS_HOSTNAME"].lower())
 
             self._merged_data["spec"]["shared_configuration"].update(ingress_dict["spec"]["shared_configuration"])
 
@@ -650,6 +650,51 @@ class GenerateCR:
             self._logger.exception(
                 f"Error found in generate_multi_ldap_section function in generate_cr script --- {str(e)}")
 
+    # function to collect all usernames
+    def collect_usernames(self, os_list):
+        # this function collects all the usernames
+        user_list = set()
+        try:
+            self._logger.info("Collecting usernames from usergroup")
+
+            for obj in os_list:
+                if obj in self._usergroup_properties.keys():
+                    if "CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS" in self._usergroup_properties[obj]:
+                        user_list.update(self._usergroup_properties[obj]["CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS"])
+
+            if "GCD_ADMIN_USER_NAME" in self._usergroup_properties:
+                user_list.update(self._usergroup_properties["GCD_ADMIN_USER_NAME"])
+
+            if "ICN_LOGIN_USER" in self._usergroup_properties:
+                user_list.add(self._usergroup_properties["ICN_LOGIN_USER"])
+
+            if "FNCM_LOGIN_USER" in self._usergroup_properties:
+                user_list.add(self._usergroup_properties["FNCM_LOGIN_USER"])
+
+            self._logger.info("Collecting usernames from TaskManager Permissions")
+
+            if "PERMISSIONS" in self._customcomponent_properties:
+                if "TASK_ADMIN_USER_NAMES" in self._customcomponent_properties["PERMISSIONS"]:
+                    user_list.update(self._customcomponent_properties["PERMISSIONS"]["TASK_ADMIN_USER_NAMES"])
+
+                if "TASK_USER_USER_NAMES" in self._customcomponent_properties["PERMISSIONS"]:
+                    user_list.update(self._customcomponent_properties["PERMISSIONS"]["TASK_USER_USER_NAMES"])
+
+                if "TASK_AUDITOR_USER_NAMES" in self._customcomponent_properties["PERMISSIONS"]:
+                    user_list.update(self._customcomponent_properties["PERMISSIONS"]["TASK_AUDITOR_USER_NAMES"])
+
+            self._logger.info("Collecting usernames from ICC")
+
+            if "ICC" in self._customcomponent_properties:
+                if "ARCHIVE_USER_ID" in self._customcomponent_properties["ICC"]:
+                    user_list.add(self._customcomponent_properties["ICC"]["ARCHIVE_USER_ID"])
+
+        except Exception as e:
+            self._logger.exception(f"Error found in collect_usernames function in generate_cr script --- {str(e)}")
+            return list(user_list)
+
+        return list(user_list)
+
     # function to generate the init section
     def populate_init_section(self):
         try:
@@ -662,18 +707,25 @@ class GenerateCR:
             init_dict["spec"]["initialize_configuration"]["ic_ldap_creation"][
                 "ic_ldap_admins_groups_name"] = self._usergroup_properties["GCD_ADMIN_GROUPS_NAME"]
 
+            # DBACLD-165694: Check if any usernames are emails
+            # Set Allow UPN Shortnames in CR
+            user_list = self.collect_usernames(os_list)
+            if is_email(self._logger, user_list):
+                init_dict["spec"]["initialize_configuration"]["ic_ldap_creation"][
+                    "ic_allow_email_or_upn_short_names"] = True
+
             # Build the OS list for the init section
             os_list_section = []
-            os_list_element = CommentedMap()
 
             for count, ele in enumerate(os_list):
-                os_id = self._db_properties[ele]["OS_LABEL"].lower()
-                os_name = self._db_properties[ele]["OS_LABEL"].lower()
+                os_list_element = CommentedMap()
+                os_id = self._db_properties[ele]["OS_LABEL"]
+                os_name = self._db_properties[ele]["OS_LABEL"]
 
                 os_list_element["oc_cpe_obj_store_display_name"] = os_name
                 os_list_element["oc_cpe_obj_store_symb_name"] = os_name
                 os_list_element["oc_cpe_obj_store_conn"] = {}
-                os_list_element["oc_cpe_obj_store_conn"]["name"] = os_id + "_dbconnection"
+                os_list_element["oc_cpe_obj_store_conn"]["name"] = os_id.lower() + "_dbconnection"
                 os_list_element["oc_cpe_obj_store_conn"]["dc_os_datasource_name"] = self._db_properties[ele]["DATASOURCE_NAME"]
                 os_list_element["oc_cpe_obj_store_conn"]["dc_os_xa_datasource_name"] = self._db_properties[ele]["DATASOURCE_NAME_XA"]
 
@@ -691,7 +743,7 @@ class GenerateCR:
                         if self._usergroup_properties[ele]["CPE_OBJ_STORE_OS_PE_WORKFLOW_ENABLE"]:
                             pe_workflow_dict = CommentedMap()
                             pe_workflow_dict["oc_cpe_obj_store_enable_workflow"] = True
-                            pe_workflow_dict["oc_cpe_obj_store_workflow_region_name"] =  os_id + "_region"
+                            pe_workflow_dict["oc_cpe_obj_store_workflow_region_name"] =  os_id.lower() + "_region"
                             pe_workflow_dict["oc_cpe_obj_store_workflow_region_number"] = 1
                             pe_workflow_dict["oc_cpe_obj_store_workflow_data_tbl_space"] = self._db_properties[ele][
                                 "DATA_TABLESPACE"]
@@ -703,7 +755,7 @@ class GenerateCR:
                                 self._usergroup_properties[ele]["CPE_OBJ_STORE_OS_ADMIN_USER_GROUPS"][0]
                             pe_workflow_dict["oc_cpe_obj_store_workflow_date_time_mask"] = "mm/dd/yy hh:tt am"
                             pe_workflow_dict["oc_cpe_obj_store_workflow_locale"] = "en"
-                            pe_workflow_dict["oc_cpe_obj_store_workflow_pe_conn_point_name"] = os_id + "_pe_conn_point"
+                            pe_workflow_dict["oc_cpe_obj_store_workflow_pe_conn_point_name"] = os_id.lower() + "_pe_conn_point"
 
                             os_list_element.update(pe_workflow_dict)
 
@@ -738,9 +790,97 @@ class GenerateCR:
 
     # function to generate the verify section
     def populate_verify_section(self):
-        self._logger.info("generating verify section")
+        self._logger.info("Generating verify section")
         try:
             verify_dict = self.load_cr_template(self._verify_template)
+
+            # Collect all OS names
+            os_list = list(self._db_properties["_os_ids"])
+
+            # Generate lists and section for folder, document, cbr and workflow
+            cpe_folder_section = []
+            cpe_document_section = []
+            cpe_cbr_section = []
+            cpe_workflow_section = []
+            icn_verify_section = []
+
+
+            for count, ele in enumerate(os_list):
+                cpe_folder_element = CommentedMap()
+                cpe_document_element = CommentedMap()
+                cpe_cbr_element = CommentedMap()
+                cpe_workflow_element = CommentedMap()
+                icn_verify_element = CommentedMap()
+
+                os_name = self._db_properties[ele]["OS_LABEL"]
+                os_id = self._db_properties[ele]["OS_LABEL"]
+                folder_name = f'/{os_name}_TestFolder'
+
+                self._logger.info(f"Generating folder verify section for {os_name}")
+
+                cpe_folder_element["folder_cpe_obj_store_name"] = os_name
+                cpe_folder_element["folder_cpe_folder_path"] = folder_name
+
+                cpe_folder_section.append(cpe_folder_element.copy())
+
+                self._logger.info(f"Generating doc verify section for {os_name}")
+
+                doc_title = f'{os_name}_TestDocument'
+                doc_type = "Document"
+                doc_content = f'This is a simple document test for {os_name}'
+                doc_content_name = f'{os_name}_content'
+
+                cpe_document_element["doc_cpe_obj_store_name"] = os_name
+                cpe_document_element["doc_cpe_folder_name"] = folder_name
+                cpe_document_element["doc_cpe_doc_title"] = doc_title
+                cpe_document_element["doc_cpe_class_name"] = doc_type
+                cpe_document_element["doc_cpe_doc_content"] = doc_content
+                cpe_document_element["doc_cpe_doc_content_name"] = doc_content_name
+
+
+                cpe_document_section.append(cpe_document_element.copy())
+
+                self._logger.info(f"Generating cbr verify section for {os_name}")
+
+                cbr_search_string = "is a simple"
+
+                cpe_cbr_element["cbr_cpe_obj_store_name"] = os_name
+                cpe_cbr_element["cbr_cpe_class_name"] = doc_type
+                cpe_cbr_element["cbr_cpe_search_string"] = cbr_search_string
+
+                cpe_cbr_section.append(cpe_cbr_element.copy())
+
+                cpe_workflow_element["workflow_cpe_enabled"] = False
+
+                if ele in self._usergroup_properties.keys():
+                    if "CPE_OBJ_STORE_OS_PE_WORKFLOW_ENABLE" in self._usergroup_properties[ele]:
+                        if self._usergroup_properties[ele]["CPE_OBJ_STORE_OS_PE_WORKFLOW_ENABLE"]:
+                            self._logger.info(f"Workflow enabled verify section for {os_name}")
+                            cpe_workflow_element["workflow_cpe_enabled"] = True
+                            cpe_workflow_element["workflow_cpe_connection_point"] = os_id.lower() + "_pe_conn_point"
+
+                cpe_workflow_section.append(cpe_workflow_element.copy())
+
+                self._logger.info(f"Navigator verify section for {os_name}")
+
+                icn_repo_name =  f'{os_name}repo'
+                icn_desktop_name = f'desktop{count+1}'
+
+                icn_verify_element['vc_icn_repository'] = icn_repo_name
+                icn_verify_element['vc_icn_desktop_id'] = icn_desktop_name
+
+                icn_verify_section.append(icn_verify_element.copy())
+
+
+            # Adding lists to the CR for verify
+            self._logger.info(f"Generating final verify CR section")
+            verify_dict["spec"]["verify_configuration"]["vc_cpe_verification"]["vc_cpe_folder"] = cpe_folder_section
+            verify_dict["spec"]["verify_configuration"]["vc_cpe_verification"]["vc_cpe_document"] = cpe_document_section
+            verify_dict["spec"]["verify_configuration"]["vc_cpe_verification"]["vc_cpe_cbr"] = cpe_cbr_section
+            verify_dict["spec"]["verify_configuration"]["vc_cpe_verification"]["vc_cpe_workflow"] = cpe_workflow_section
+            verify_dict["spec"]["verify_configuration"]["vc_icn_verification"] = icn_verify_section
+
+
             self._merged_data["spec"].update(verify_dict["spec"])
         except Exception as e:
             self._logger.exception(

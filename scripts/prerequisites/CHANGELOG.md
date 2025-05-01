@@ -1,3 +1,11 @@
+## 4.4.4 (2025-04-30)
+
+### Fix
+
+- fixed appVersion check for new license format during cr upgrade
+- generated verification cr section will have the correct objectstore names
+- keeps the objectstore name as the same case provided in the property files
+
 ## 4.4.2 (2025-03-21)
 
 ### Feat
@@ -8,6 +16,7 @@
 
 - fixed logging error for registry reachability check
 - fixed datasource names for objectstore init section in cr
+- fixed external file logging feature
 
 ## 4.3.0 (2025-02-28)
 
