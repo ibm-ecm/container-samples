@@ -56,7 +56,7 @@ from helper_scripts.utilities.prerequisites_utilites import zip_folder, \
     check_keystore_password_length, collect_visible_files, check_db_password_length, check_db_ssl_mode
 from helper_scripts.validate import validate as v
 
-__version__ = "4.4.2"
+__version__ = "4.4.4"
 
 app = typer.Typer()
 state = {
@@ -97,28 +97,25 @@ def main(version: Optional[bool] = typer.Option(None, "--version", help="Show ve
         state["silent"] = True
 
 
-def setup_logger(file_log_level, verbose=False):
+def setup_logger(file_log_level):
     # Create a logger object
-    logger = logging.getLogger("prerequisites")
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
 
+    # Setup console logger
     shell_handler = RichHandler()
-    file_handler = logging.FileHandler("prerequisites.log")
-
-    logger.setLevel(file_log_level)
     shell_handler.setLevel(file_log_level)
+    formatter_rich = logging.Formatter("%(message)s")
+    shell_handler.setFormatter(formatter_rich)
+
+    # Setup file logger
+    file_handler = logging.FileHandler("prerequisites.log")
     file_handler.setLevel(logging.DEBUG)
+    formatter_file = logging.Formatter(
+        "%(asctime)s - %(levelname)s - %(message)-100s - %(filename)s:%(lineno)d", "%Y-%m-%d %H:%M:%S")
+    file_handler.setFormatter(formatter_file)
 
-    # the formatter determines what our logs will look like
-    fmt_shell = '%(message)s'
-    fmt_file = '%(levelname)s %(asctime)s [%(filename)s:%(funcName)s:%(lineno)d] %(message)s'
-
-    shell_formatter = logging.Formatter(fmt_shell)
-    file_formatter = logging.Formatter(fmt_file)
-
-    # here we hook everything together
-    shell_handler.setFormatter(shell_formatter)
-    file_handler.setFormatter(file_formatter)
-
+    # Add handlers to the logger
     logger.addHandler(shell_handler)
     logger.addHandler(file_handler)
 
