@@ -556,7 +556,7 @@ class Upgrade:
 
             # Update AppVersion
             if is_key_present(dictionary=cr_details, key="appVersion"):
-                if cr_details["spec"]["appVersion"] == "5.5.8":
+                if cr_details["spec"]["appVersion"] == "21.0.3":
                     cr_details["spec"]["license"] = {}
                     cr_details["spec"]["license"]["accept"] = True
                     update_list.append("Updated license field to new format")

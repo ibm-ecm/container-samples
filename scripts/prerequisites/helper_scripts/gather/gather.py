@@ -82,6 +82,7 @@ class GatherOptions:
         self._private_catalog = True
         self._all_channels = False
         self._components = set()
+        self._current_namespace = None
         if dev:
             self._runtime_mode = "dev"
             self._registry = "cp.stg.icr.io"
@@ -392,10 +393,10 @@ class GatherOptions:
                 if current_context:
                     if "context" in current_context.keys():
                         if "namespace" in current_context["context"].keys():
-                            current_namespace = current_context["context"]["namespace"]
-                            self._current_namespace = current_namespace
+                            namespace = current_context["context"]["namespace"]
+                            self._current_namespace = namespace
                 else:
-                    current_namespace = None
+                    namespace = None
                     self._current_namespace = None
 
             if self._platform in ["OCP", "ROKS"]:
