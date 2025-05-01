@@ -388,6 +388,9 @@ def check_db_ssl_mode(db_prop, deploy_prop):
 
 
 def collect_visible_files(folder_path: str) -> [str]:
+    # Check if folder is a folder
+    if not os.path.isdir(folder_path):
+        return []
     return [file for file in os.listdir(folder_path) if not file.startswith('.')]
 
 
@@ -576,6 +579,20 @@ def command_available(command):
     except subprocess.CalledProcessError as error:
         return False
 
+
+# Function to check if username is an email
+def is_email(logger, usernames):
+    """
+    Check if the provided usernames are in email format.
+    :param logger: Logger object to log messages
+    :param usernames: List of usernames to check
+    :return: True if any usernames are in email format, False otherwise
+    """
+    for username in usernames:
+        if re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", username):
+            logger.info(f"Username {username} is in email format")
+            return True
+    return False
 
 # Checks whether we are properly logged into a Kubernetes/OCP cluster
 # 'kubectl config current-context' is not sufficient it will show most recent cluster,
