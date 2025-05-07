@@ -56,7 +56,7 @@ class GatherOptions:
     def __init__(self, logger, console, script_type="cleanup", dev=False):
         self._script_type = script_type
         self._ocp_logged_in = False
-        self._namespace = ""
+        self._namespace = None
         self._podman_available = False
         self._docker_available = False
         self._kubectl_available = False
@@ -393,11 +393,10 @@ class GatherOptions:
                 if current_context:
                     if "context" in current_context.keys():
                         if "namespace" in current_context["context"].keys():
-                            namespace = current_context["context"]["namespace"]
-                            self._current_namespace = namespace
+                            self._current_namespace = current_context["context"]["namespace"]
                 else:
-                    namespace = None
                     self._current_namespace = None
+
 
             if self._platform in ["OCP", "ROKS"]:
                 invalid_namespaces = ["services", "default", "calico-system", "ibm-cert-store", "ibm-observe",
@@ -484,7 +483,17 @@ class GatherOptions:
                 # Check if namespace is more than 1 word
                 if " " in answer:
                     print()
-                    print("[prompt.invalid]Namespace cannot contain spaces. Use '-' or '_'. Please try again.")
+                    print("[prompt.invalid]Namespace cannot contain spaces. Use '-'. Please try again.")
+                    print()
+                    if namespace is None:
+                        continue
+                    else:
+                        exit(0)
+
+                # Check if namespace has an underscore
+                if "_" in answer:
+                    print()
+                    print("[prompt.invalid]Namespace cannot contain '_'. Use '-'. Please try again.")
                     print()
                     if namespace is None:
                         continue
