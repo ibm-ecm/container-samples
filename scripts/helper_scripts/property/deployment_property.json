@@ -1,0 +1,38 @@
+{
+  "FNCM_Version": {
+    "value": "<Required>",
+    "comment": [
+      "Selected FileNet Content Manager Version "
+    ]
+  },
+  "LICENSE": {
+    "value": "<Required>",
+    "comment": [
+      "Selected deployment license."
+    ]
+  },
+  "PLATFORM": {
+    "value": "<Required>",
+    "comment": [
+      "Platform type."
+    ]
+  },
+  "RESTRICTED_INTERNET_ACCESS": {
+    "value": false,
+    "comment": [
+      "Support for Restricted Internet Access"
+    ]
+  },
+  "GENERATE_NETWORK_POLICIES": {
+    "value": false,
+    "comment": [
+      "Use this parameter to make operator generate Network Policy Templates"
+    ]
+  },
+  "FIPS_SUPPORT": {
+    "value": false,
+    "comment": [
+      "Support for FIPS"
+    ]
+  }
+}

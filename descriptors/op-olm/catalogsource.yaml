@@ -1,0 +1,23 @@
+################################################################################
+#
+# Licensed Materials - Property of IBM
+#
+# (C) Copyright IBM Corp. 2023. All Rights Reserved.
+#
+# US Government Users Restricted Rights - Use, duplication or
+# disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+#
+###############################################################################
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: ibm-fncm-operator-catalog
+  namespace: openshift-marketplace
+spec:
+  displayName: ibm-fncm-operator
+  publisher: IBM
+  sourceType: grpc
+  image: icr.io/cpopen/ibm-fncm-catalog@sha256:0f9ffe8e4e1935ed0e3d9cd0dbf205ca72ddda4d51739897408872a26aac6a9a
+  updateStrategy:
+    registryPoll:
+      interval: 45m

@@ -1,5 +1,0 @@
-Version info:
-1. /opt/ansible/share/jdbc/postgresql/postgresql-42.7.2.jar
-2. /opt/ansible/share/jdbc/sqlserver/mssql-jdbc.jre8.jar: 12.6.1
-3. /opt/ansible/share/jdbc/db2/db2jcc4.jar: 4.32.28
-4. /opt/ansible/share/jdbc/oracle/ojdbc8.jar: Oracle 19.22.0.0.0

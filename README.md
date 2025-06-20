@@ -1,28 +1,16 @@
-# IBM FileNet Content Manager 5.5.8 on Container Samples
+# IBM FileNet Content Manager 5.7.0 on Container Samples
 
 This repository includes folders and resources to help you install the IBM FileNet Content Manager capabilities.
 Installation of the capabilities is done with the operator.
 
-| Release          | Github Tag | Date           |
-|------------------|------------|----------------|
-| FNCM 5.5.8-IF009 | v5.5.8.9   | 01 / 29 / 2025 |
-| FNCM 5.5.8-LA835 | v5.5.8.9-1 | 01 / 02 / 2025 |
-| FNCM 5.5.8-IF008 | v5.5.8.8   | 10 / 28 / 2024 |
-| FNCM 5.5.8-LA734 | v5.5.8.8-2 | 08 / 28 / 2024 |
-| FNCM 5.5.8-LA733 | v5.5.8.8-1 | 07 / 31 / 2024 |
-| FNCM 5.5.8-IF7   | v5.5.8.7   | 06 / 28 / 2024 |
-| FNCM 5.5.8-LA631 | v5.5.8.7-2 | 05 / 29 / 2024 |
-| FNCM 5.5.8-LA630 | v5.5.8.7-1 | 04 / 24 / 2024 |
-| FNCM 5.5.8-IF6   | v5.5.8.6   | 02 / 28 / 2024 |
-| FNCM 5.5.8-IF5   | v5.5.8.5   | 08 / 30 / 2023 |
-| FNCM 5.5.8-IF4   | v5.5.8.4   | 02 / 22 / 2023 |
-| FNCM 5.5.8-IF3   | v5.5.8.3   | 11 / 30 / 2022 |
-| FNCM 5.5.8-IF2   | v5.5.8.2   | 07 / 27 / 2022 |
-| FNCM 5.5.8-IF1   | v5.5.8.1   | 03 / 30 / 2022 |
-| FNCM 5.5.8 GA    | v5.5.8.0   | 12 / 17 / 2021 |
+|    Release    |   Tag   | CASE Version |      Date      |
+|:-------------:|:-------:|:------------:|:--------------:|
+| FNCM 5.7.0 GA | v57.0.0 |    5.7.0     | 06 / 20 / 2025 |
 
 For more information about the IBM FileNet Content Manager builds, tags and compatability,
 see [FileNet P8 Fix Pack Compatibility Matrices](https://www.ibm.com/support/pages/filenet-p8-fix-pack-compatibility-matrices).
 
+For more information and download links for the IBM Filenet Content Manager CASE Packages, see [CasePackage Version Mapping](https://ibm.github.io/cloud-pak/assets/html/ibm-cp-fncm-case-table.html).
+
 For information and instructions to install, upgrade, manage, and administer FileNet Content Manager, go
-to [IBM Documentation](https://www.ibm.com/support/knowledgecenter/SSNW2F_5.5.0/com.ibm.p8.containers.doc/containers.htm).
+to [IBM Documentation](https://www.ibm.com/docs/SSNW2F_5.7.0/com.ibm.p8.containers.doc/containers.htm).
