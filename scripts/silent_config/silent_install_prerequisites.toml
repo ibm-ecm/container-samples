@@ -17,7 +17,8 @@
 # 2. 5.5.11
 # 3. 5.5.12
 # 4. 5.6.0
-FNCM_VERSION = 4
+# 5. 5.7.0
+FNCM_VERSION = 5
 
 # ####################################################
 # ##              License and Platform              ##
@@ -60,13 +61,16 @@ INGRESS = false
 # 3. SCIM_IDP
 AUTHENTICATION = 1
 
-
 # Do you want to configure restricted internet access - Valid values: [true; false]
-# Only for versions 5.5.12 and above
+# Applicable for version 5.5.12 and 5.6.0
 RESTRICTED_INTERNET_ACCESS = false
 
+# Do you want the operator to generate network policies templates for the deployment - Valid values: [true; false]
+# Applicable for version 5.7.0 and above
+GENERATE_NETWORK_POLICIES = false
+
 # Enable/disable FIPS mode for the deployment (default value is "false")
-# Only for versions 5.5.12 and above
+# Applicable for version 5.5.12 and above
 FIPS_SUPPORT = false
 
 # ####################################################
@@ -107,13 +111,16 @@ ICCSAP = false
 # ##           Common Database Properties           ##
 # ####################################################
 
-# Provide the database type from your infrastructure. - Valid values: [1; 2; 3; 4; 5]
+# Provide the database type from your infrastructure. - Valid values: [1; 2; 3; 4; 5; 6; 7]
 # 1. IBM Db2
 # 2. IBM Db2 HADR
 # 3. Microsoft SQL Server
 # 4. PostgreSQL
 # 5. Oracle
-DATABASE_TYPE = 5
+# Options 6 and 7 are valid only for version 5.7.0 and above
+# 6. IBM Db2 RDS
+# 7. IBM Db2 RDS HADR
+DATABASE_TYPE = 6
 
 # Is ssl enabled for this database - Valid values: [true; false]
 DATABASE_SSL_ENABLE = true

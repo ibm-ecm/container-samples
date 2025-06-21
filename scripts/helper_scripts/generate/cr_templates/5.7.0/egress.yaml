@@ -1,0 +1,19 @@
+spec:
+  shared_configuration:
+    sc_egress_configuration:
+      ## Optional.  Kubernetes API server namespace(s) (comma separated) to be used for egress network policy when  `sc_deployment_platform: "other"`.
+      ## "{}" can also be used as a value.  It is equivalent to all namespaces (eg: namespaceSelector:{})
+      ## Default are "openshift-kube-apiserver", "openshift-apiserver" for OCP and ROKS.
+      ## Possible values are "kube-system", "default", "kube-public" for other.
+      sc_api_namespace:
+      ## Optional.  Kubernetes API server port(s) (comma separated) to be used for egress network policy when `sc_restricted_internet_access: true` and `sc_deployment_platform: "other"`. 
+      ## Default are 443,6443 for OCP, ROKS, other
+      sc_api_port:
+      ## Optional.  Kubernetes DNS service namespace(s) (comma separated) to be used for egress network policy when `sc_restricted_internet_access: true` and `sc_deployment_platform: "other"`.
+      ## "{}" can also be used as a value.  It is equivalent to all namespaces (eg: namespaceSelector:{})
+      ## Default is "openshift-dns" for OCP and ROKS.
+      ## Possible values are "kube-system", "default", "kube-public" for other.
+      sc_dns_namespace:
+      ## Optional.  Kubernetes DNS service port(s) (comma separated) to be used for egress network policy when `sc_restricted_internet_access: true` and `sc_deployment_platform: "other"`. 
+      ## Default are 53,5353 for OCP, ROKS and other
+      sc_dns_port:

@@ -15,12 +15,12 @@
 # ##                   License                     ##
 # ####################################################
 
-# IBM FileNet Content Manager license information here: https://ibm.biz/CPE_FNCM_License_5_6_0       │
-# IBM Content Foundation license information here: https://ibm.biz/CPE_ICF_License_5_6_0             │
-# IBM Content Platform Engine Software Notices here: https://ibm.biz/CPE_FNCM_ICF_Notices_5_6_0      │
+# IBM FileNet Content Manager license information here: https://ibm.biz/CPE_FNCM_License_5_7_0       │
+# IBM Content Foundation license information here: https://ibm.biz/CPE_ICF_License_5_7_0             │
+# IBM Content Platform Engine Software Notices here: https://ibm.biz/CPE_FNCM_ICF_Notices_5_7_0      │
 # IBM Enterprise Records information here: https://ibm.biz/ier_license_521                           │
 # IBM Content Collector for SAP license information here: https://ibm.biz/iccsap_license_4002        │
-# IBM Cloud Pak for Business Automation license information here: https://ibm.biz/cp4ba_license_2400
+# IBM Cloud Pak for Business Automation license information here: https://ibm.biz/cp4ba_license_2500
 
 # License Acceptance - Valid values: [true; false]
 LICENSE_ACCEPT = false
@@ -49,7 +49,7 @@ NAMESPACE = "<Namespace>"
 # ####################################################
 
 # Key used to authenticate with IBM Entitlement Registry
-# Check the link on how to obtain an IBM Entitlement key https://www.ibm.com/docs/SSNW2F_5.6.0/com.ibm.dba.install/op_topics/tsk_images_enterp_entitled.html
+# Check the link on how to obtain an IBM Entitlement key https://www.ibm.com/docs/SSNW2F_5.7.0/com.ibm.dba.install/op_topics/tsk_images_enterp_entitled.html
 ENTITLEMENT_KEY = "<IBMEntitlementKey>"
 
 # CNCF Deploy Only

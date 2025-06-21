@@ -13,12 +13,12 @@
 # ##                   License                     ##
 # ####################################################
 
-# IBM FileNet Content Manager license information here: https://ibm.biz/CPE_FNCM_License_5_6_0       │
-# IBM Content Foundation license information here: https://ibm.biz/CPE_ICF_License_5_6_0             │
-# IBM Content Platform Engine Software Notices here: https://ibm.biz/CPE_FNCM_ICF_Notices_5_6_0      │
+# IBM FileNet Content Manager license information here: https://ibm.biz/CPE_FNCM_License_5_7_0       │
+# IBM Content Foundation license information here: https://ibm.biz/CPE_ICF_License_5_7_0             │
+# IBM Content Platform Engine Software Notices here: https://ibm.biz/CPE_FNCM_ICF_Notices_5_7_0      │
 # IBM Enterprise Records information here: https://ibm.biz/ier_license_521                           │
 # IBM Content Collector for SAP license information here: https://ibm.biz/iccsap_license_4002        │
-# IBM Cloud Pak for Business Automation license information here: https://ibm.biz/cp4ba_license_2400
+# IBM Cloud Pak for Business Automation license information here: https://ibm.biz/cp4ba_license_2500
 
 # License Acceptance - Valid values: [true; false]
 LICENSE_ACCEPT = false

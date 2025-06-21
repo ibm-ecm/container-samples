@@ -17,6 +17,7 @@ from rich import print
 from rich.panel import Panel
 from rich.prompt import Confirm, IntPrompt, Prompt
 from rich.text import Text
+from rich.syntax import Syntax
 
 from ..utilities.interface import clear
 from ..utilities.kubernetes_utilites import KubernetesUtilities
@@ -46,7 +47,7 @@ class GatherOptions:
     class Version:
         FNCMVersion = Enum(
             value='FNCMVersion',
-            names=[("5.5.9", 1), ("5.5.10", 2), ("5.5.11", 3), ("5.5.12", 4), ("5.6.0", 5)]
+            names=[("5.5.9", 1), ("5.5.10", 2), ("5.5.11", 3), ("5.5.12", 4), ("5.6.0", 5), ("5.7.0", 6)]
         )
 
         def __init__(self, fncm_version: FNCMVersion):
@@ -66,7 +67,7 @@ class GatherOptions:
         self._console = console
         self._platform = self.Platform(1).name
         self._missing_tools = []
-        self._fncm_version = "5.6.0"
+        self._fncm_version = "5.7.0"
         self._accept_license = False
         self._entitlement_key_valid = False
         self._entitlement_key = ''
@@ -208,6 +209,7 @@ class GatherOptions:
     # Create a function to gather platform from user
     def collect_platform(self):
         try:
+            self._logger.info("Collecting Platform details")
             print()
             print(Panel.fit("Platform"))
             while True:
@@ -221,9 +223,11 @@ class GatherOptions:
 
                 if 1 <= result <= 3:
                     self._platform = self.Platform(result).name
+                    self._logger.info(f"Platform selected: {self._platform}")
                     break
 
                 print("\n[prompt.invalid]Number must be between [[b]1[/b] and [b]3[/b]]")
+                self._logger.debug(f"Invalid prompt. Number must be between [1 and 3]")
         except Exception as e:
             self._logger.exception(
                 f"Exception from utility script in collect_platform function -  {str(e)}")
@@ -251,7 +255,7 @@ class GatherOptions:
             component_list = [self.OptionalComponents[component].value for component in component_list]
             choices = set(component_list)
 
-            if version in ["5.6.0"]:
+            if version in ["5.6.0", "5.7.0"]:
                 print()
                 print(Panel.fit("Deployed Components"))
                 print()
@@ -383,18 +387,22 @@ class GatherOptions:
     def collect_namespace(self, namespace=None):
         # namespace parameter is none when silent mode is NOT selected, hence the conditions to skip conditions if silent mode is selected
         try:
+            self._logger.info("Gathering namespace information")
             if namespace is None:
                 print()
                 print(Panel.fit("Namespace"))
                 print()
-                current_context = config.list_kube_config_contexts()[1]
+                try:
+                    current_context = config.list_kube_config_contexts()[1]
 
-                # Extract namespace from the current context
-                if current_context:
-                    if "context" in current_context.keys():
-                        if "namespace" in current_context["context"].keys():
-                            self._current_namespace = current_context["context"]["namespace"]
-                else:
+                    # Extract namespace from the current context
+                    if current_context:
+                        if "context" in current_context.keys():
+                            if "namespace" in current_context["context"].keys():
+                                self._current_namespace = current_context["context"]["namespace"]
+                    else:
+                        self._current_namespace = None
+                except Exception as e:
                     self._current_namespace = None
 
 
@@ -420,8 +428,10 @@ class GatherOptions:
                 else:
                     # silent install check for namespace will not loop more than once if invalid namespace is provided
                     if self._script_type != "deploy":
+                        self._logger.info(f"Checking if namespace: {namespace} exists.")
                         namespace_exists = self._k.check_namespace_exists(namespace=namespace)
                         if not namespace_exists:
+                            self._logger.debug(f"Namespace '{namespace}' does not exist.")
                             print()
                             print(f"[prompt.invalid]Namespace '{namespace}' does not exist.\n"
                                   f"Enter a valid namespace for script to proceed.")
@@ -433,6 +443,7 @@ class GatherOptions:
                 # Start of namespace validation
                 # Check if the answer is not empty after stripping whitespace
                 if answer == '':
+                    self._logger.debug(f"Namespace cannot be empty. Please try again")
                     print()
                     print("[prompt.invalid]Namespace cannot be empty. Please try again")
                     print()
@@ -451,6 +462,7 @@ class GatherOptions:
                     print()
                     print(f"[prompt.invalid]Namespace cannot be any of the following. Please try again.\n{invalid_msg}")
                     print()
+                    self._logger.debug(f"Namespace cannot be any of the following: {invalid_msg}")
                     if namespace is None:
                         continue
                     else:
@@ -465,6 +477,7 @@ class GatherOptions:
                     print(
                         f"[prompt.invalid]Namespace cannot start with any of the following. Please try again.\n{invalid_msg}")
                     print()
+                    self._logger.debug(f"Namespace cannot start with any of the following: {invalid_msg}")
                     if namespace is None:
                         continue
                     else:
@@ -475,6 +488,7 @@ class GatherOptions:
                     print()
                     print("[prompt.invalid]Namespace cannot be a number. Please try again.")
                     print()
+                    self._logger.debug(f"Namespace cannot be a number. Please try again.")
                     if namespace is None:
                         continue
                     else:
@@ -495,6 +509,7 @@ class GatherOptions:
                     print()
                     print("[prompt.invalid]Namespace cannot contain '_'. Use '-'. Please try again.")
                     print()
+                    self._logger.debug(f"Namespace cannot be a number. Please try again.")
                     if namespace is None:
                         continue
                     else:
@@ -502,6 +517,7 @@ class GatherOptions:
 
                 # for all scripts using this function other than deploy operator we need to check if namespace exists
                 self._namespace = answer
+                self._logger.info(f"Namespace entered: {self._namespace}")
                 break
 
         except Exception as e:
@@ -511,6 +527,7 @@ class GatherOptions:
     # Create a function to gather db_type from the user
     def collect_license_model(self, license_accept=None):
         try:
+            self._logger.info("Gathering license model details")
             print(Panel.fit("License"))
             print()
             if self._fncm_version == "5.5.8":
@@ -554,7 +571,7 @@ class GatherOptions:
                     f"IBM Content Foundation license information here: {icf_license_url}\n"
                     f"IBM Content Platform Engine Software Notices here: {cpe_notices_url}\n"
                     f"IBM Cloud Pak for Business Automation license information here: {cp4ba_license_url}"))
-            else:
+            elif self._fncm_version == "5.6.0":
                 fncm_license_url = Text("https://ibm.biz/CPE_FNCM_License_5_6_0",
                                         style="link https://ibm.biz/CPE_FNCM_License_5_6_0")
                 icf_license_url = Text("https://ibm.biz/CPE_ICF_License_5_6_0",
@@ -567,6 +584,19 @@ class GatherOptions:
                                        style="link https://ibm.biz/iccsap_license_4002")
                 cp4ba_license_url = Text("https://ibm.biz/cp4ba_license_2400",
                                        style="link https://ibm.biz/cp4ba_license_2400")
+            else:
+                fncm_license_url = Text("https://ibm.biz/CPE_FNCM_License_5_7_0",
+                                        style="link https://ibm.biz/CPE_FNCM_License_5_7_0")
+                icf_license_url = Text("https://ibm.biz/CPE_ICF_License_5_7_0",
+                                       style="link https://ibm.biz/CPE_ICF_License_5_7_0")
+                cpe_notices_url = Text("https://ibm.biz/CPE_FNCM_ICF_Notices_5_7_0",
+                                       style="link https://ibm.biz/CPE_FNCM_ICF_Notices_5_7_0")
+                ier_license_url = Text("https://ibm.biz/ier_license_521",
+                                       style="link https://ibm.biz/ier_license_521")
+                iccsap_license_url = Text("https://ibm.biz/iccsap_license_4002",
+                                       style="link https://ibm.biz/iccsap_license_4002")
+                cp4ba_license_url = Text("https://ibm.biz/cp4ba_license_2500",
+                                       style="link https://ibm.biz/cp4ba_license_2500")
 
                 print(Panel.fit(
                     f"IMPORTANT: Review the license information for the product bundle you are deploying.\n\n"
@@ -585,8 +615,11 @@ class GatherOptions:
                 self._accept_license = license_accept
 
             if not self._accept_license:
+                self._logger.debug("International Program License is not accepted. You must accept the International Program License to continue.")
                 print("\n[prompt.invalid]You must accept the International Program License to continue.")
                 exit(1)
+
+            self._logger.info("International Program License is accepted.")
 
         except Exception as e:
             self._logger.exception(
@@ -595,13 +628,14 @@ class GatherOptions:
     # Function to collect and validate the entitlement key
     def collect_verify_entitlement_key(self):
         try:
+            self._logger.info("Collecting and validating the IBM Entitlement Registry key")
             print()
             print(Panel.fit("Validate Entitlement Key"))
             print()
             if not self._silent_mode:
                 entitlement_key_kc = Text(
-                    "https://www.ibm.com/docs/SSNW2F_5.6.0/com.ibm.dba.install/op_topics/tsk_images_enterp_entitled.html",
-                    style="link https://www.ibm.com/docs/SSNW2F_5.6.0/com.ibm.dba.install/op_topics/tsk_images_enterp_entitled.html")
+                    "https://www.ibm.com/docs/SSNW2F_5.7.0/com.ibm.dba.install/op_topics/tsk_images_enterp_entitled.html",
+                    style="link https://www.ibm.com/docs/SSNW2F_5.7.0/com.ibm.dba.install/op_topics/tsk_images_enterp_entitled.html")
                 print(
                     f"To get access to the container images from the IBM Entitled Registry, you must have a key to pull the images from the IBM registry.\n"
                     f"For more information, see {entitlement_key_kc}.\n")
@@ -620,19 +654,7 @@ class GatherOptions:
                 self._entitlement_key_present = True
             if not self._entitlement_key_present:
                 if not self._silent_mode:
-                    if self._platform.lower() != "other":
-                        airgap_kc = Text(
-                            "https://www.ibm.com/docs/SSNW2F_5.6.0/com.ibm.dba.install/filenet_containers_install_topics/containers_airgap_OCP",
-                            style="link https://www.ibm.com/docs/SSNW2F_5.6.0/com.ibm.dba.install/filenet_containers_install_topics/containers_airgap_OCP")
-                        print()
-                        print("[prompt.invalid]To deploy FileNet Content Manager Operator online, you must have an IBM Entitlement Registry key.\n"
-                              "For RedHat Openshift Container Platform (OCP) deployments, in offline environments use an Airgap install method.")
-                        print()
-                        print(Panel.fit(
-                            f"For more information on an offline (Airgap) installation of FileNet Operator, see {airgap_kc}"))
-                        exit(1)
-                    else:
-                        self.collect_verify_private_registry()
+                    self.collect_verify_private_registry()
             else:
                 while True:
                     # No need to ask for an entitlement key if silent install is enabled
@@ -653,8 +675,10 @@ class GatherOptions:
                     if not self._entitlement_key:
                         print()
                         print("[prompt.invalid]IBM Entitlement Registry key cannot be empty. Please try again.")
+                        self._logger.debug(f"IBM Entitlement Registry key cannot be empty. Please try again.")
                         continue
                     else:
+                        self._logger.info("Collected IBM Entitlement Registry key.")
                         if self._docker_available:
                             self._entitlement_key_valid = login_to_registry_docker(registry=self._registry,
                                                                                    username=username,
@@ -668,6 +692,7 @@ class GatherOptions:
 
                     if not self._entitlement_key_valid:
                         print()
+                        self._logger.debug(f"IBM Entitlement key could not be validated.")
                         print("[prompt.invalid]IBM Entitlement key could not be validated. Please try again.")
                         if not self._silent_mode:
                             continue
@@ -676,6 +701,7 @@ class GatherOptions:
 
                     break
 
+                self._logger.info("Successfully authenticated with IBM Entitled Registry")
                 msg_panel = Panel.fit("Successfully authenticated with IBM Entitled Registry", style="bold green")
                 print()
                 print(msg_panel)
@@ -696,6 +722,7 @@ class GatherOptions:
                     if self._private_registry_username == "":
                         print()
                         print("[prompt.invalid]Private registry Username can't be empty. Please try again.")
+                        self._logger.debug(f"Private registry username cannot be empty. Please try again.")
                     else:
                         break
 
@@ -706,6 +733,7 @@ class GatherOptions:
                     if self._private_registry_password == "":
                         print()
                         print("[prompt.invalid]Private registry password can't be empty. Please try again.")
+                        self._logger.debug(f"Private registry password cannot be empty. Please try again.")
                     else:
                         break
 
@@ -732,6 +760,7 @@ class GatherOptions:
                 if not self._private_registry_valid:
                     print()
                     print("[prompt.invalid]Private registry credentials could not be authenticated. Please try again")
+                    self._logger.debug(f"Private registry credentials could not be authenticated. Please try again.")
                     if not self._silent_mode:
                         continue
                     else:
@@ -740,6 +769,7 @@ class GatherOptions:
                 msg = "Successfully Authenticated with Private Registry"
                 if self._private_registry_ssl_enabled:
                     msg = f"{msg} over SSL"
+                self._logger.info(f"{msg}")
                 msg_panel = Panel.fit(msg, style="bold green")
                 print()
                 print(msg_panel)
@@ -770,17 +800,20 @@ class GatherOptions:
                 if not self._private_registry_valid:
                     print()
                     print("[prompt.invalid]Private registry credentials could not be authenticated. Please try again")
+                    self._logger.debug(f"Private registry credentials could not be authenticated. Please try again.")
                     exit(1)
 
             msg = "Successfully authenticated with Private Registry"
             if self._private_registry_ssl_enabled:
                 msg = f"{msg} over SSL"
+            self._logger.info(f"{msg}")
             msg_panel = Panel.fit(msg, style="bold green")
             print()
             print(msg_panel)
 
     def collect_verify_private_registry(self):
         try:
+            self._logger.info("Collecting and validating the Private registry")
             print()
             print(Panel.fit("Validate Private Registry"))
             # Menu based logic required only for silent mode
@@ -800,20 +833,39 @@ class GatherOptions:
                                 "[prompt.invalid]A Private Registry is required to store images.\n"
                                 "Configure a Private Registry and re-run the script")
                             exit(1)
-                    elif self._script_type == "deploy_operator":
-                        private_registry_kc = Text(
-                            "link https://www.ibm.com/docs/SSNW2F_5.6.0/com.ibm.dba.install/filenet_containers_install_topics/containers_airgap.html",
-                            style="link https://www.ibm.com/docs/SSNW2F_5.6.0/com.ibm.dba.install/filenet_containers_install_topics/containers_airgap.html")
-                        print(f"A private image registry must be used to store all images in your local environment.\n"
-                              f"Please ensure that all required images are pushed to the private registry before proceeding.\n"
-                              f"For more information, see {private_registry_kc}.")
-                        self._private_registry_ready = Confirm.ask(
-                            "Have you pushed all required images to a private registry?", default=True)
-                        if not self._private_registry_ready:
+                    elif self._script_type == "deploy":
+                        if self._platform.lower() == "other":
+                            private_registry_kc = Text(
+                                "https://www.ibm.com/docs/SSNW2F_5.7.0/com.ibm.dba.install/filenet_containers_install_topics/containers_airgap.html",
+                                style="link https://www.ibm.com/docs/SSNW2F_5.7.0/com.ibm.dba.install/filenet_containers_install_topics/containers_airgap.html")
                             print()
-                            print(
-                                "[prompt.invalid]Use loadimages.py to push operator images to a private registry and re-run the script")
-                            exit(1)
+                            print(f"A private image registry must be used to store all images in your local environment.\n"
+                                f"Please ensure that all required images are pushed to the private registry before proceeding.\n\n"
+                                f"For more information, see {private_registry_kc}.")
+                            print()
+                            self._private_registry_ready = Confirm.ask(
+                                "Have you pushed all required images to a private registry?", default=True)
+                            if not self._private_registry_ready:
+                                print()
+                                print("[prompt.invalid]Use loadimages.py to push operator images to a private registry and re-run the script")
+                                print(Panel.fit(Syntax("python3 loadimages.py", "python")))
+                                exit(1)
+                        else:
+                            private_registry_kc = Text(
+                                "https://www.ibm.com/docs/SSNW2F_5.7.0/com.ibm.dba.install/op_topics/tsk_airgap_parent.html",
+                                style="link https://www.ibm.com/docs/SSNW2F_5.7.0/com.ibm.dba.install/op_topics/tsk_airgap_parent.html")
+                            print()
+                            print(f"A private image registry must be used to store all images in your local environment.\n"
+                                f"Please ensure that all required images are mirrored to the private registry before proceeding.\n\n"
+                                f"For more information, see {private_registry_kc}.")
+                            print()
+                            self._private_registry_ready = Confirm.ask(
+                                "Have you mirrored all required images to a private registry?", default=True)
+                            if not self._private_registry_ready:
+                                print()
+                                print("[prompt.invalid]Use loadimages.py in airgap mode to mirror operator images to a private registry and re-run the script")
+                                print(Panel.fit(Syntax("python3 loadimages.py --airgap", "python")))
+                                exit(1)
 
                     while True:
                         print()
@@ -838,10 +890,10 @@ class GatherOptions:
                         # Test for SSL connections
                         # Return a connection object, RTT and a boolean indicating if the connection was successful
                         if self._private_registry_ssl_enabled:
-                            conn_result, rtt, connected = connect_to_server(host=private_reg_hostname, port=int(private_reg_port),
-                                                                            ssl=True, client_cert_file=self._private_registry_ssl_cert, ip_check=False)
+                            conn_result, rtt, connected = connect_to_server(private_reg_hostname, int(private_reg_port),
+                                                                            True, self._private_registry_ssl_cert)
                         else:
-                            conn_result, rtt, connected = connect_to_server(host=private_reg_hostname, port=int(private_reg_port), ip_check=False)
+                            conn_result, rtt, connected = connect_to_server(private_reg_hostname, int(private_reg_port))
 
                         if not connected:
                             print()
@@ -866,13 +918,12 @@ class GatherOptions:
                 # Test for SSL connections
                 # Return a connection object, RTT and a boolean indicating if the connection was successful
                 if self._private_registry_ssl_enabled:
-                    conn_result, rtt, connected = connect_to_server(host=self._private_registry_host,
-                                                                    port=int(self._private_registry_port), ssl=True,
-                                                                    client_cert_file=self._private_registry_ssl_cert, ip_check=False)
+                    conn_result, rtt, connected = connect_to_server(self._private_registry_host,
+                                                                    int(self._private_registry_port), True,
+                                                                    self._private_registry_ssl_cert)
                 else:
-                    conn_result, rtt, connected = connect_to_server(host=self._private_registry_host,
-                                                                    port=int(self._private_registry_port),
-                                                                    ip_check=False)
+                    conn_result, rtt, connected = connect_to_server(self._private_registry_host,
+                                                                    int(self._private_registry_port))
 
                 if not connected:
                     print()
@@ -894,6 +945,7 @@ class GatherOptions:
                 f"Exception from gather Class in private registry function -  {str(e)}")
 
     def collect_private_registry_ssl_details(self):
+        self._logger.info("Collecting private registry SSL details")
         if not self._silent_mode:
             while True:
                 # Menu based logic not required for silent mode
@@ -906,16 +958,19 @@ class GatherOptions:
                     print()
                     print(
                         "[prompt.invalid]Private registry SSL certificate file path can't be empty. Please try again.")
+                    self._logger.debug("Private registry SSL certificate file path can't be empty. Please try again.")
                     continue
 
                 if not os.path.exists(self._private_registry_ssl_cert):
                     print()
                     print("[prompt.invalid]Private Registry SSL certificate can't be found. Please try again.")
+                    self._logger.debug("Private registry SSL certificate can't be found. Please try again.")
                     continue
 
                 if not check_pem_cert_format(self._private_registry_ssl_cert):
                     print()
                     print("[prompt.invalid]Private registry SSL certificate is not in PEM format. Please try again.")
+                    self._logger.debug("Private registry SSL certificate is not in PEM format. Please try again.")
                     continue
 
                 break
@@ -923,15 +978,18 @@ class GatherOptions:
             if not os.path.exists(self._private_registry_ssl_cert):
                 print()
                 print("[prompt.invalid]Private Registry SSL certificate can't be found. Please try again.")
+                self._logger.debug("Private Registry SSL certificate can't be found. Please try again.")
                 exit(1)
 
             if not check_pem_cert_format(self._private_registry_ssl_cert):
                 print()
                 print("[prompt.invalid]Private registry SSL certificate is not in PEM format. Please try again.")
+                self._logger.debug("Private registry SSL certificate is not in PEM format. Please try again.")
                 exit(1)
 
     # Function to check if private catalog is being used
     def collect_private_catalog(self):
+        self._logger.info("Collecting catalog information")
         if self._platform != "other":
             print()
             print(Panel.fit("Private Catalog"))
@@ -946,6 +1004,11 @@ class GatherOptions:
             print("Note: Private catalog is the default and recommended option.")
             self._private_catalog = not (Confirm.ask(
                 "Do you want to deploy FileNet Content Manager Operator using a global catalog?", default=False))
+            
+            if self._private_catalog:
+                self._logger.info("Selected Private catalogue")
+            else:
+                self._logger.info("Selected global catalogue")
 
     # Display preupgrade steps to be done
     # TBD for Jason to add more content to display
@@ -953,8 +1016,8 @@ class GatherOptions:
         print(Panel.fit("Pre Upgrade Checklist"))
         print()
         upgrade_link = Text(
-            "https://www.ibm.com/docs/SSNW2F_5.6.0/com.ibm.p8.containers.doc/containers_upgrading_licenseV559.htm",
-            style="link https://www.ibm.com/docs/SSNW2F_5.6.0/com.ibm.p8.containers.doc/containers_upgrading_licenseV559.htm")
+            "https://www.ibm.com/docs/SSNW2F_5.7.0/com.ibm.p8.containers.doc/containers_upgrading_licenseV559.htm",
+            style="link https://www.ibm.com/docs/SSNW2F_5.7.0/com.ibm.p8.containers.doc/containers_upgrading_licenseV559.htm")
         while True:
             print(
                 f"Please see FileNet Content Manager Documentation for important upgrade prerequisites: {upgrade_link}")

@@ -29,11 +29,11 @@ from helper_scripts.gather import gather as g
 from helper_scripts.gather import silent_gather as sg
 from helper_scripts.upgrade import upgrade as u
 from helper_scripts.utilities.interface import clear, display_issues, display_prereq_passed, upgrade_details, \
-    upgrade_cr_details
+    upgrade_deployment_details
 from helper_scripts.utilities.utilities import prereq_checks, read_version_toml, create_deployment_info, \
     create_version_info, create_current_operator_info
 
-__version__ = "4.4.4"
+__version__ = "5.0.0"
 
 app = typer.Typer()
 
@@ -124,16 +124,19 @@ def deployment():
     clear(console)
     display_deployment_phases()
     state["upgrade"].prepare_upgrade_cr()
+    # If 5.7.0 upgrade, download the network policies
+    if state["version_details"]["version"] in ["5.7.0"]:
+        state["upgrade"].collect_network_policy_info()
 
     # Get CR update list
     update_list = state["upgrade"].updates_list
 
     # Get CR Folder Path
-    cr_folder_path = state["upgrade"].cr_template_save_location
+    folder_path = state["upgrade"].download_location
 
     clear(console)
-    cr_info = upgrade_cr_details(update_list, state["version_details"], cr_folder_path)
-    print(cr_info)
+    deployment_info = upgrade_deployment_details(update_list, state["version_details"], folder_path)
+    print(deployment_info)
     print()
 
     if not state["silent"]:
@@ -158,14 +161,21 @@ def deployment():
                 transient=False,
         ) as progress:
             task1 = progress.add_task("[yellow]Scaling Down Deployments", total=None)
-            task2 = progress.add_task("[purple]Applying Upgraded Custom Resource ", total=1)
+            if state["version_details"]["version"] in ["5.7.0"]:
+                task2 = progress.add_task("[yellow]Removing Owner Reference from Network Policies", total=None)
+            task3 = progress.add_task("[yellow]Patching Environment", total=1)
+            task4 = progress.add_task("[purple]Applying Upgraded Custom Resource ", total=1)
 
             while not progress.finished:
                 state["upgrade"].scale_pods(scale="down", progress=progress)
                 progress.update(task1, total=1, completed=1)
-
+                if state["version_details"]["version"] in ["5.7.0"]:
+                    state["upgrade"].update_network_policy(progress=progress)
+                    progress.update(task2, total=1, completed=1)
+                state["upgrade"].remove_custom_ssl_secrets(progress=progress)
+                progress.advance(task3)
                 state["upgrade"].apply_upgraded_cr(progress)
-                progress.advance(task2)
+                progress.advance(task4)
 
 
 def convert_private_catalog():
@@ -216,14 +226,14 @@ def display_deployment_phases():
     print()
     print("The FileNet Content Manager Deployment Upgrade is a multi-phase process.\n"
           "The upgrade process will be performed in the following phases:\n\n"
-          "1. Custom Resource - Prepare the CR for the upgrade\n"
-          "2. Environment Preparation - Scale down all deployments\n"
+          "1. Custom Resource - Prepare the Custom Resource and Deployment files for the upgrade\n"
+          "2. Environment Preparation - Scale down current FNCM Standalone Operator\n"
           "3. Upgrade Deployment - Apply the upgraded CR\n"
           "4. Upgrade Operator - Upgrade the FNCM Standalone Operator\n")
     print()
 
     if not state["silent"]:
-        proceed = Confirm.ask("Do you want to continue and prepare the upgraded custom resource?", default=True)
+        proceed = Confirm.ask("Do you want to continue and prepare the upgraded custom resource and deployment files?", default=True)
         if not proceed:
             exit(1)
 
@@ -246,23 +256,40 @@ def prereq_steps():
         f"To ensure a smooth upgrade, review and complete the following steps on the deployed system:\n\n"
         f"1. Backup your FileNet Content Manager data - {backup_link} \n"
         f"2. Disable the CBR Dispatcher - {cbr_link} \n")
-
+    if state["version_details"]["version"] in ["5.7.0"]:
+        print()
+        print(Panel.fit("Network Policy Changes"))
+        print()
+        print(f"FNCM Standalone 5.7.0 Operator will not create or manage Network Policies, which control ingress and egress traffic.\n"
+            f"The existing network policies will be backed up under FNCMUpgrade/NetworkPolicies\n"
+            f"If you have enabled sc_restricted_internet_access parameter then the\n"
+            f"script will enable sc_generate_sample_network_policies in the custom resource.\n"
+            f"Once the deployment is done use mustgather.py networkpolicy to grab\n"
+            f"the created network policy templates from the operator and use it to create your own\n")
+        print()
     print(Panel.fit(f"Important: If you have other FNCM Standalone Deployments on the same cluster, ensure that you\n"
                     f"have adjusted each custom resource to be compatible with the new version.\n"
                     f"Please see {upgrade_prep}", style="bold yellow"))
     print()
-
     tip_text = Panel.fit(Text(
         f"Tip: Run the FNCM Standalone MustGather to collect a backup of all your deployment files and configuration"),
                          style="cyan")
     code = Panel.fit(Syntax("python3 mustgather.py", "bash", theme="ansi_dark"))
     tip_group = Group(tip_text, code)
     print(tip_group)
-    print()
+    if state["version_details"]["version"] in ["5.7.0"]:
+        print()
 
-    print(
-        Panel.fit(f"Important: Proceeding will scale down all deployments and apply the upgraded CR", style="bold red"))
-    print()
+        print(
+            Panel.fit(f"Important: Proceeding will scale down the current FNCM Standalone Operator,\n"
+                      f"remove the owner references from existing network policies and apply the upgraded CR", style="bold red"))
+        print()
+    else:
+        print()
+
+        print(
+            Panel.fit(f"Important: Proceeding will scale down all deployments and apply the upgraded CR", style="bold red"))
+        print()
 
     if not state["silent"]:
         proceed = Confirm.ask("Have you completed the preparation steps and are ready to proceed with the upgrade?",

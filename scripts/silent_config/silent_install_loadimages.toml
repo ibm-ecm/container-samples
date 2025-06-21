@@ -14,7 +14,7 @@
 # ####################################################
 
 # Key used to authenticate with IBM Entitlement Registry
-# Check the link on how to obtain an IBM Entitlement key https://www.ibm.com/docs/SSNW2F_5.6.0/com.ibm.dba.install/op_topics/tsk_images_enterp_entitled.html
+# Check the link on how to obtain an IBM Entitlement key https://www.ibm.com/docs/SSNW2F_5.7.0/com.ibm.dba.install/op_topics/tsk_images_enterp_entitled.html
 ENTITLEMENT_KEY = "<IBMEntitlementKey>"
 
 # CNCF Only: Pull images from a pirvate registry
@@ -42,14 +42,15 @@ PRIVATE_REGISTRY_SSL_CRT_PATH = "/path/to/crt/certificate.pem"
 # ####################################################
 # ##     Filenet Content Manager Version            ##
 # ####################################################
-# Filenet Content Manager CASE Package version - Valid values: [1; 2; 3; 4; 5]
+# Filenet Content Manager CASE Package version - Valid values: [1; 2; 3; 4; 5, 6]
 # The latest CASE Package for that version will be pulled
 # 1. 5.5.9
 # 2. 5.5.10
 # 3. 5.5.11
 # 4. 5.5.12
 # 5. 5.6.0
-FNCM_VERSION = 5
+# 6. 5.7.0
+FNCM_VERSION = 6
 
 # ####################################################
 # ##       Airgap Channel Mirror Configuration      ##

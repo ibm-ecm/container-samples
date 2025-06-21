@@ -55,6 +55,7 @@ class Property:
         self._verify_properties = read_json(self._json_directory, "verify_property.json")
         self._deployment_properties = read_json(self._json_directory, "deployment_property.json")
         self._storage_properties = read_json(self._json_directory, "storage_property.json")
+        self._egress_properties = read_json(self._json_directory, "egress_property.json")
         self._component_properties = read_json(self._json_directory, "component_property.json")
         self._sendmail_custom_properties = read_json(self._json_directory, "sendmail_customproperty.json")
         self._icc_custom_properties = read_json(self._json_directory, "icc_customproperty.json")
@@ -226,9 +227,15 @@ class Property:
             if self._gather.fncm_version in ["5.5.8", "5.5.11"]:
                 deployment_dict.pop('FIPS_SUPPORT')
                 deployment_dict.pop('RESTRICTED_INTERNET_ACCESS')
+                deployment_dict.pop('GENERATE_NETWORK_POLICIES')
+            elif self._gather.fncm_version in ["5.7.0"]:
+                deployment_dict['FIPS_SUPPORT']['value'] = self._gather.fips_support
+                deployment_dict.pop('RESTRICTED_INTERNET_ACCESS')
+                deployment_dict['GENERATE_NETWORK_POLICIES']['value'] = self._gather.np_support
             else:
                 deployment_dict['FIPS_SUPPORT']['value'] = self._gather.fips_support
                 deployment_dict['RESTRICTED_INTERNET_ACCESS']['value'] = self._gather.egress_support
+                deployment_dict.pop('GENERATE_NETWORK_POLICIES')
             return deployment_dict
 
         except Exception as e:
@@ -323,6 +330,17 @@ class Property:
                                   key=key,
                                   value=value['value'],
                                   note=value['comment'])
+        if self._gather.platform != "OCP" and self._gather.np_support:
+            deployment_doc.add(nl())
+            deployment_doc.add(comment("####################################################"))
+            deployment_doc.add(comment("##                   Egress Property              ##"))
+            deployment_doc.add(comment("####################################################"))
+            
+            for key, value in self._egress_properties.items():
+                self.__write_property(doc=deployment_doc,
+                                    key=key,
+                                    value=value['value'],
+                                    note=value['comment'])
 
         # Create a file
         f = TOMLFile(os.path.join(self._property_folder, 'fncm_deployment.toml'))
@@ -640,6 +658,8 @@ class Property:
 
             database_port = {'db2': "50000",
                              'db2HADR': "50000",
+                             'db2rds': "50000",
+                             'db2rdsHADR': "50000",
                              'oracle': "1521",
                              'oracle_ssl': "2484",
                              'sqlserver': "1433",
@@ -649,6 +669,7 @@ class Property:
             if self._gather.db_type != 'oracle':
                 self._db_properties.pop('ORACLE_JDBC_URL')
 
+            # DB2 HADR both require the parameters HADR_STANDBY_SERVERNAME , HADR_STANDBY_PORT
             if self._gather.db_type != 'db2HADR':
                 self._db_properties.pop('HADR_STANDBY_SERVERNAME')
                 self._db_properties.pop('HADR_STANDBY_PORT')
@@ -905,8 +926,10 @@ class Property:
                 idp_prop['PROVIDER_NAME']['value'] = idp_dict['id']
                 idp_prop['DISPLAY_NAME']['value'] = "{} SSO Login".format(idp_dict['id'])
 
+
                 if idp_dict['discovery_enabled']:
                     idp_prop['DISCOVERY_ENDPOINT']['value'] = idp_dict["discovery_url"]
+                    idp_prop['IDP_SSL_ENABLED']['value'] = idp_dict["ssl_enabled"]
                 else:
                     idp_prop.pop('DISCOVERY_ENDPOINT')
 
@@ -926,6 +949,11 @@ class Property:
 
                 if idp_dict['revoke_url']:
                     idp_prop['REVOCATION_ENDPOINT']['value'] = idp_dict['revoke_url']
+                else:
+                    idp_prop.pop('REVOCATION_ENDPOINT')
+
+                if idp_dict['jwks_url']:
+                    idp_prop['JWKS_ENDPOINT']['value'] = idp_dict['jwks_url']
 
                 idp_prop['VALIDATION_METHOD']['value'] = idp_dict['validation_method']
                 idp_prop['USER_IDENTIFIER']['value'] = idp_dict['user_identifier']
@@ -979,7 +1007,7 @@ class Property:
 
             scim_prop['DISPLAY_NAME']['value'] = "SCIM"
             scim_prop['SCIM_SSL_ENABLED']['value'] = True
-            scim_prop['TOKEN_ENDPOINT']['value'] = idp_dict["token_url"]
+            scim_prop['TOKEN_ENDPOINT']['value'] = idp_dict.get("token_url", "<Required>")
 
             return scim_prop
 

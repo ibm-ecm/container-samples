@@ -39,7 +39,7 @@ from helper_scripts.utilities.interface import clear, display_issues, display_pr
 from helper_scripts.utilities.utilities import validate_image_details_file, prereq_checks, read_version_toml, \
     validate_airgap_details_file
 
-__version__ = "4.4.4"
+__version__ = "5.0.0"
 
 app = typer.Typer()
 
@@ -112,7 +112,7 @@ def push_airgap_images():
             exit(1)
 
     print()
-    print(Panel.fit(Text("Starting Airgap Mirror Manifest Generation", style="cyan")))
+    print(Panel.fit(Text("Starting Airgap Mirror Manifest Generation"), style="cyan"))
     print()
 
     with Progress(SpinnerColumn(),

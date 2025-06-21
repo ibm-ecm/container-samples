@@ -469,7 +469,7 @@ def generate_gather_results(property_folder: str, selection_summary: dict, moved
         "2. Fill the <Required> values\n"
         "3. If SSL is enabled, add the certificate to ./propertyFile/ssl-certs\n"
         "4. If ICC for email was enabled, then make sure masterkey.txt file has been added under ./propertyFile/icc\n"
-        "5. If trusted certificates are needed, add them to ./propertyFile/trusted-certs \n"
+        "5. If trusted certificates are needed, add them to ./propertyFile/ssl-certs/trusted-certs \n"
         "6. All SSL and trusted certificates need to be in PEM (Privacy Enhanced Mail) format\n"
         "7. Run the following command to generate SQL, secrets and CR file\n".strip()
     )
@@ -508,14 +508,24 @@ def generate_gather_results(property_folder: str, selection_summary: dict, moved
     return layout
 
 
-def upgrade_cr_details(update_list: list, version_details: dict, cr_folder_path: ""):
+def upgrade_deployment_details(update_list: list, version_details: dict, download_folder_path: ""):
     right_panels = []
-    msg = Text("FNCM Standalone Custom Resource Preparation", style="bold green")
+    msg = Text("FNCM Standalone Deployment Preparation", style="bold green")
     msg_panel = Panel.fit(msg)
 
-    summary_msg = Text("The FNCM Standalone Custom Resource (CR) has been upgraded.\n\n"
-                       "1. The current and upgraded CR have been copied to ./FNCMCustomResource folder\n"
-                       "2. Review the following tables for changes made to the current CR")
+    if version_details["version"] in ("5.7.0"):
+        msg = f"The FNCM Standalone Custom Resource (CR) has been upgraded.\n\n" \
+        "1. The current and upgraded CR have been copied to ./FNCMUpgrade/CustomResource folder\n" \
+        "2. Review the following tables for changes made to the current CR\n" \
+        "3. Network Policies have been formatted and copied to ./FNCMUpgrade/NetworkPolicies folder"
+    else:
+        msg = f"The FNCM Standalone Custom Resource (CR) has been upgraded.\n\n" \
+        "1. The current and upgraded CR have been copied to ./FNCMUpgrade/CustomResource folder\n" \
+        "2. Review the following tables for changes made to the current CR"
+
+
+    summary_msg = Text(msg)
+    
     summary_panel = Panel.fit(summary_msg)
 
     right_panels.append(msg_panel)
@@ -544,8 +554,8 @@ def upgrade_cr_details(update_list: list, version_details: dict, cr_folder_path:
 
         left_panels.append(version_table)
 
-    if cr_folder_path:
-        cr_tree = print_directory_tree("Custom Resource Folder", cr_folder_path)
+    if download_folder_path:
+        cr_tree = print_directory_tree("FNCMUpgrade", download_folder_path)
         left_panels.append(cr_tree)
 
     right_group = Group(*right_panels)
@@ -712,7 +722,7 @@ def display_issues(generate_folder=None, required_fields=None,
     left_panel_list = []
 
     message = Text("Issues Found", style="bold red", justify="center")
-    result_panel = Panel(message)
+    result_panel = Panel(message, style="bold red")
     layout["upper"].update(result_panel)
     # Create the left side panel
     # Create next steps panel
@@ -869,6 +879,8 @@ def display_issues(generate_folder=None, required_fields=None,
                 error_table.add_row("5.5.11", "Java 11")
             if deployment_prop["FNCM_Version"] == "5.5.12" or deployment_prop["FNCM_Version"] == "5.6.0":
                 error_table.add_row("5.5.12 & 5.6.0", "Java 17")
+            if deployment_prop["FNCM_Version"] == "5.7.0":
+                error_table.add_row("5.7.0", "Java 21")
             error_tables.append(error_table)
             tools.remove("java_version")
 
@@ -1120,6 +1132,62 @@ def generate_loadimage_results(summary: {}) -> Layout:
 
     return layout
 
+def mustgather_network_results(networkpolicy_folder: str, namespace='<namespace>') -> Layout:
+    # Build Layout for display
+    layout = Layout()
+    layout.split_column(
+        Layout(name="upper"),
+        Layout(name="lower"),
+    )
+
+    layout["upper"].size = 3
+
+    layout["lower"].split_row(
+        Layout(name="left"),
+        Layout(name="right"),
+    )
+
+    left_panel_list = []
+
+    right_panel_list = []
+
+    # Create the left side panel
+    # Create next steps panel
+    message = Text("Generated Network Policies Downloaded Successfully", style="bold cyan", justify="center")
+
+    result_panel = Panel(message)
+
+    layout["upper"].update(result_panel)
+
+    next_steps_panel = Panel.fit("Next Steps")
+    instructions = Panel.fit(
+        "1. Egress and Ingress Network Policies have been generated and downloaded to your current directory\n"
+        "2. Review the generated network policies files\n"
+        "3. You can use the following command to apply the network policies to your cluster"
+    )
+
+    code = f"python mustgather.py networkpolicy --apply"
+
+    command = Panel.fit(
+        Syntax(code, "bash", theme="ansi_dark")
+    )
+
+    left_panel_list.append(next_steps_panel)
+    left_panel_list.append(instructions)
+    left_panel_list.append(command)
+
+    left_panel = Group(*left_panel_list)
+
+    right_panel_list.append(Panel.fit("Network Policy Files Structure"))
+    right_panel_list.append(print_directory_tree("FNCMNetworkPolicies", networkpolicy_folder))
+
+    right_panel = Group(*right_panel_list)
+
+    layout["lower"]["right"].update(right_panel)
+    layout["lower"]["left"].update(left_panel)
+
+    return layout
+
 
 def generate_loadimages_results(imageDetailFolder: str, airgap=False) -> Layout:
     # Build Layout for display
@@ -1155,7 +1223,7 @@ def generate_loadimages_results(imageDetailFolder: str, airgap=False) -> Layout:
         instructions = Panel.fit(
             "1. Review the generated Airgap Environment Variables file\n"
             "2. The FNCM Standalone CASE Package has been downloaded to your current directory\n"
-            "2. Run the following command start the image mirror"
+            "3. Run the following command start the image mirror"
         )
 
         code = "python3 loadimages.py --airgap push"
@@ -1203,6 +1271,147 @@ class ldap_entry_types(Enum):
     USER = 0
     GROUP = 1
     USER_GROUP = 2
+
+class scim_entry_types(Enum):
+    USER = 0
+    GROUP = 1
+    USER_GROUP = 2
+    ADMIN = 3
+
+def idp_token_claim_results(claims, missing_claims):
+    """ Validates and displays final IDP token claims results """
+
+    panel_group = []
+
+    claim_table = Table(title="IDP Token Claims")
+    claim_table.add_column("Parameter", style="cyan")
+    claim_table.add_column("Claim", style="green")
+    claim_table.add_column("Value", style="magenta")
+
+    for key, value in claims.items():
+        claim_table.add_row(key, value[0], value[1])
+
+    panel_group.append(Panel.fit(claim_table))
+
+    if missing_claims:
+
+        missing_claims_table = Table(title="Missing Claims")
+        missing_claims_table.add_column("Claim", style="yellow")
+
+        for claim in missing_claims:
+            missing_claims_table.add_row(claim)
+
+        panel_group.append(Panel.fit(missing_claims_table))
+
+
+
+    return Group(*panel_group)
+
+def scim_admin_group_results(results, missing_claims):
+    """ Validates and displays final SCIM Admin Group results """
+
+    panel_group = []
+
+    if len(results) != 0:
+
+        claim_table = Table(title="User SCIM Mapping for Admin Groups")
+        claim_table.add_column("Parameter", style="blue")
+        claim_table.add_column("SCIM Key", style="cyan")
+        claim_table.add_column("SCIM Data", style="cyan")
+
+        for key, value in results.items():
+            claim_table.add_row(key, value['scim_key'], value['scim_value'])
+
+        if len(claim_table.rows) > 0:
+            panel_group.append(Panel.fit(claim_table))
+
+    if missing_claims:
+
+        missing_claims_table = Table(title="Unmapped Data")
+        missing_claims_table.add_column("Claim", style="yellow")
+
+        for claim in missing_claims:
+            missing_claims_table.add_row(claim)
+
+        panel_group.append(Panel.fit(missing_claims_table))
+
+
+
+    return Group(*panel_group)
+
+
+
+def scim_admin_user_results(user_role, results, missing_claims, groups=None, unmatched_claims=None):
+    """ Validates and displays final SCIM Admin results """
+
+    panel_group = []
+
+    if len(results) != 0:
+
+        claim_table = Table(title="User SCIM / Token Mapping for User Role: " + user_role)
+        claim_table.add_column("Parameter", style="blue")
+        claim_table.add_column("SCIM Key", style="cyan")
+        claim_table.add_column("SCIM Data", style="cyan")
+        claim_table.add_column("Token Claim", style="magenta")
+        claim_table.add_column("Token Value", style="magenta")
+
+        for key, value in results.items():
+            claim_table.add_row(key, value['scim_key'], value['scim_value'], value['token_key'], value['token_value'])
+
+        if len(claim_table.rows) > 0:
+            panel_group.append(Panel.fit(claim_table))
+
+        if len(unmatched_claims) > 0:
+            unmatched_table = Table(title="Unmatched Claims")
+            unmatched_table.add_column("Claim", style="red")
+
+            for claim in unmatched_claims:
+                unmatched_table.add_row(claim['claim'])
+
+            panel_group.append(Panel.fit(unmatched_table))
+
+    if groups:
+        group_panel = Table(title="User Group Membership")
+        group_panel.add_column("Group Name", style="cyan")
+        group_panel.add_column("Group ID", style="magenta")
+
+        for group in groups:
+            name = "Unknown Group"
+            id = "Unknown ID"
+            if 'displayName' in group:
+                name = group.get('displayName', '')
+
+            if 'id' in group:
+                id = group.get('id', '')
+
+            if 'value' in group:
+                id = group.get('value', '')
+
+            if 'display' in group:
+                name = group.get('display', '')
+
+            group_panel.add_row(name, id)
+
+        panel_group.append(group_panel)
+    else:
+        group_panel = Panel.fit("User is not part of any groups, but Group Membership data is present in SCIM data", title="Group Membership", style="bold yellow")
+        panel_group.append(group_panel)
+
+
+
+    if missing_claims:
+
+        missing_claims_table = Table(title="Unmapped Data")
+        missing_claims_table.add_column("Claim", style="yellow")
+
+        for claim in missing_claims:
+            missing_claims_table.add_row(claim)
+
+        panel_group.append(Panel.fit(missing_claims_table))
+
+
+
+    return Group(*panel_group)
 
 
 # Function to display ldap search results
@@ -1348,6 +1557,116 @@ def ldap_search_results(entries_result_dict):
 
     return result_group
 
+def scim_search_results(result_dict):
+
+    """ Validates and displays final SCIM search results """
+
+    user_table_list = []
+    group_table_list = []
+    user_group_table_list = []
+
+    # Build lists of users found, missing and duplicated
+    users_found = []
+    users_missing = []
+
+    # Build lists of groups found, missing and duplicated
+    groups_found = []
+    groups_missing = []
+
+    user_or_group_missing = []
+
+    missing = False
+    scim_results_validation = False
+
+    for entry, value in result_dict.items():
+        if value["type"] == scim_entry_types.USER:
+            if value["count"] == 1:
+                users_found.append(entry)
+            elif value["count"] == 0:
+                users_missing.append(entry)
+        elif value["type"] == scim_entry_types.GROUP:
+            if value["count"] == 1:
+                groups_found.append(entry)
+            elif value["count"] == 0:
+                groups_missing.append(entry)
+        else:
+            user_or_group_missing.append(entry)
+
+    # Build tables for users and groups
+    if len(users_found) > 0:
+        users_found_table = Table(title="Users Found")
+        users_found_table.add_column("User", style="green")
+        for user in users_found:
+            users_found_table.add_row(user)
+
+        user_table_list.append(users_found_table)
+
+    if len(users_missing) > 0:
+        user_missing_table = Table(title="Users Missing")
+        user_missing_table.add_column("User", style="yellow")
+        for user in users_missing:
+            user_missing_table.add_row(user)
+
+        user_table_list.append(user_missing_table)
+        missing = True
+
+    if len(groups_found) > 0:
+        groups_found_table = Table(title="Groups Found")
+        groups_found_table.add_column("Group", style="green")
+        for group in groups_found:
+            groups_found_table.add_row(group)
+
+        group_table_list.append(groups_found_table)
+
+    if len(groups_missing) > 0:
+        group_missing_table = Table(title="Groups Missing")
+        group_missing_table.add_column("Group", style="yellow")
+        for group in groups_missing:
+            group_missing_table.add_row(group)
+
+        group_table_list.append(group_missing_table)
+        missing = True
+
+    if len(user_or_group_missing) > 0:
+        user_group_missing_table = Table(title="Users or Groups Missing")
+        user_group_missing_table.add_column("Users or Groups", style="yellow")
+        for entry in user_or_group_missing:
+            user_group_missing_table.add_row(entry)
+
+        user_group_table_list.append(user_group_missing_table)
+        missing = True
+
+    panel_list = []
+
+    if len(user_table_list) != 0:
+        user_table_output = Group(*user_table_list)
+        user_panel = Panel.fit(user_table_output, title="Users Search Results")
+        panel_list.append(user_panel)
+
+    if len(group_table_list) != 0:
+        group_table_output = Group(*group_table_list)
+        group_panel = Panel.fit(group_table_output, title="Groups Search Results")
+        panel_list.append(group_panel)
+
+    if len(user_group_table_list) != 0:
+        user_group_table_output = Group(*user_group_table_list)
+        user_group_panel = Panel.fit(user_group_table_output, title="User or Groups Search Results")
+        panel_list.append(user_group_panel)
+
+    if missing:
+        panel_list.append(Panel.fit(":exclamation_mark: Some users and groups where not found!\n"
+                                    "Please review Property Files.", style="bold yellow"))
+
+
+    if not missing:
+        panel_list.append(Panel.fit(":white_heavy_check_mark: All users and groups where found!", style="bold green"))
+        scim_results_validation = True
+
+    result_group = Group(*panel_list)
+
+    return result_group, scim_results_validation
+
+    
 
 def display_deployment_resources(logger, deployment_resources=None, deployment_details=None, operator_details=None, version_details=None):
     # Build Layout for display

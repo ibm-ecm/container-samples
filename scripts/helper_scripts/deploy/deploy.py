@@ -88,6 +88,7 @@ class Deploy:
     def create_entitlement_key_secret(self, progress, task):
         try:
             if self._setup.private_registry_valid:
+                self._logger.info(f"Creating image pull secret for private registry: {self._setup.private_registry_server}")
                 progress.log(
                     f"Creating image pull secret for private registry: {self._setup.private_registry_server}")
                 progress.log()
@@ -104,6 +105,7 @@ class Deploy:
                 }
 
             else:
+                self._logger.info('Creating image pull secret for IBM Entitlement Registry')
                 progress.log(f"Creating image pull secret for IBM Entitlement Registry")
                 progress.log()
 
@@ -130,20 +132,24 @@ class Deploy:
         except client.ApiException as e:
             if e.status == 404:
                 self._core_v1_api.create_namespaced_secret(namespace=self._setup.namespace, body=secret)
+                self._logger.info("Secret 'ibm-entitlement-key' created successfully")
                 progress.log(Text(f"Secret 'ibm-entitlement-key' created successfully", style="bold green"))
                 progress.log()
                 return
 
         progress.log(Text(f"Secret 'ibm-entitlement-key' already exists", style="bold yellow"))
+        self._logger.info("Secret 'ibm-entitlement-key' already exists")
         progress.log()
         progress.advance(task, advance=1)
 
     def cluster_setup(self, progress, task):
         # Number of tasks = 1
         try:
+            self._logger.info("Starting Cluster Setup")
             progress.log(Panel.fit("Starting Cluster Setup", style="cyan"))
             progress.log()
 
+            self._logger.info("Creating namespace for the FileNet Content Manager Deployment")
             progress.log("Creating namespace for the FileNet Content Manager Deployment")
             progress.log()
 
@@ -152,11 +158,13 @@ class Deploy:
                 api_response = self._core_v1_api.read_namespace_status(self._setup.namespace)
 
                 if api_response.status.phase == "Active":
+                    self._logger.info(f"Namespace '{self._setup.namespace}' already exists")
                     progress.log(Text(f"Namespace '{self._setup.namespace}' already exists", style="bold yellow"))
                     progress.log()
             except ApiException as e:
                 if e.status == 404:
                     self._kube.create_namespace(self._setup.namespace)
+                    self._logger.info(f"Namespace '{self._setup.namespace}' created successfully")
                     progress.log(Text(f"Namespace '{self._setup.namespace}' created successfully", style="bold green"))
                     progress.log()
 
@@ -191,10 +199,12 @@ class Deploy:
     def apply_cncf(self, progress, task):
         try:
             # Number of Tasks = 4
+            self._logger.info("Starting CRD and Permission Setup")
             progress.log(Panel.fit("Starting CRD and Permission Setup", style="cyan"))
             progress.log()
 
             # Apply the CRD
+            self._logger.info("Applying/Patching Custom Resource Definition")
             progress.log(f"Applying/Patching Custom Resource Definition")
             progress.log()
             self._kube.apply_cluster_resource_files(
@@ -203,6 +213,7 @@ class Deploy:
             progress.update(task, advance=1)
 
             # Apply the Cluster Role
+            self._logger.info("Applying/Patching Cluster Role")
             progress.log(f"Applying/Patching Cluster Role")
             progress.log()
             self._kube.apply_cluster_resource_files(
@@ -211,6 +222,7 @@ class Deploy:
             progress.update(task, advance=1)
 
             # Apply the Role
+            self._logger.info("Applying/Patching Role")
             progress.log(f"Applying/Patching Role")
             progress.log()
             self._kube.apply_cluster_resource_files(
@@ -219,12 +231,14 @@ class Deploy:
             progress.update(task, advance=1)
 
             # Apply the Role Binding
+            self._logger.info("Applying/Patching Role Binding")
             progress.log(f"Applying/Patching Role Binding")
             progress.log()
             self._kube.apply_role_binding(
                 namespace=self._setup.namespace, resource_file=self.required_file_paths["role_binding.yaml"])
             progress.update(task, advance=1)
 
+            self._logger.info("CRD and Permission Setup Completed")
             progress.log(Panel.fit("CRD and Permission Setup Completed", style="bold green"))
             progress.log()
         except Exception as e:
@@ -234,14 +248,17 @@ class Deploy:
     def apply_olm(self, progress, task):
         # Number of tasks = 3
         try:
+            self._logger.info("Starting OLM Installation")
             progress.log(Panel.fit("Starting OLM Installation", style="cyan"))
             progress.log()
             if self._setup.private_catalog:
                 self._catalog_namespace = self._setup.namespace
+                self._logger.info(f"Using private catalog namespace: {self._catalog_namespace}")
                 progress.log(f"Using private catalog namespace: {self._catalog_namespace}")
                 progress.log()
 
             else:
+                self._logger.info(f"Using global catalog namespace (GCN): {self._catalog_namespace}")
                 progress.log(f"Using global catalog namespace (GCN): {self._catalog_namespace}")
                 progress.log()
             replace_namespace_in_file(project_name=self._catalog_namespace,
@@ -249,6 +266,7 @@ class Deploy:
                                       output_file=self.tmp_file_paths["catalogsource.yaml"],
                                       resource_type="catalog source")
 
+            self._logger.info("Applying/Patching Catalog Source")
             progress.log(f"Applying/Patching Catalog Source")
             progress.log()
 
@@ -277,6 +295,7 @@ class Deploy:
                     sleep(5)
 
             if retries == 20:
+                self._logger.debug("Timeout Waiting for IBM FileNet Content Manager Operator Catalog pod to start")
                 progress.log(Text("Timeout Waiting for IBM FileNet Content Manager Operator Catalog pod to start",
                                   style="bold red"))
                 progress.log()
@@ -287,6 +306,7 @@ class Deploy:
                     f"kubectl describe pod $(kubectl get pod -n {self._catalog_namespace} | grep ibm-fncm-operator-catalog | awk '{{print $1}}') -n ${self._catalog_namespace}",
                     "bash"))
 
+            self._logger.info("Applying/Patching Operator Group")
             progress.log("Applying/Patching Operator Group")
             progress.log()
             replace_namespace_in_file(project_name=self._setup.namespace,
@@ -300,9 +320,11 @@ class Deploy:
                 resource_type="Operator Group")
             progress.update(task, advance=1)
 
+            self._logger.info("OLM Installation Completed")
             progress.log(Panel.fit("OLM Installation Completed", style="bold green"))
             progress.log()
         except Exception as e:
+            self._logger.debug(f"Error occurred while applying the resources: {e}")
             progress.log(Text(f"Error occurred while applying the resources: {e}", style="bold red"))
 
     def wait_for_operator(self, progress, task):
@@ -311,6 +333,7 @@ class Deploy:
             # Number of tasks = 1
             attempts = 0
             retries = 0
+            self._logger.info("Checking rollout status of FileNet Content Management Operator deployment")
             progress.log(f"Checking rollout status of FileNet Content Management Operator deployment")
             progress.log()
             while retries < 40:
@@ -330,6 +353,7 @@ class Deploy:
                     sleep(15)
 
             if retries == 40:
+                self._logger.info("Timeout Waiting for IBM FileNet Content Manager Operator pod to start")
                 progress.log(Text("Timeout Waiting for IBM FileNet Content Manager Operator pod to start",
                                   style="bold red"))
                 progress.log()
@@ -341,18 +365,22 @@ class Deploy:
                     "bash"))
                 exit()
 
+            self._logger.info("IBM FileNet Content Manager Operator Deployment Completed")
             progress.log(Panel.fit("IBM FileNet Content Manager Operator Deployment Completed", style="bold green"))
             progress.update(task, advance=1)
         except Exception as e:
+            self._logger.debug(f"Error occurred while applying the resources: {e}")
             progress.log(Text(f"Error occurred while applying the resources: {e}", style="bold red"))
             progress.log()
 
     def apply_operator_olm(self, progress, task):
         # Number of tasks = 2
 
+        self._logger.info("Starting IBM FileNet Content Manager Operator Installation")
         progress.log(Panel.fit("Starting IBM FileNet Content Manager Operator Installation", style="cyan"))
         progress.log()
 
+        self._logger.info("Applying/Patching Subscription")
         progress.log(f"Applying/Patching Subscription")
         progress.log()
 
@@ -362,6 +390,7 @@ class Deploy:
                                       output_file=self.tmp_file_paths["subscription.yaml"],
                                       resource_type="subscription",
                                       private=True)
+            self._logger.info(f"Using private catalog namespace: {self._setup.namespace}")
             progress.log(f"Using private catalog namespace: {self._setup.namespace}")
             progress.log()
         else:
@@ -369,6 +398,7 @@ class Deploy:
                                       input_file=self.required_file_paths["subscription.yaml"],
                                       output_file=self.tmp_file_paths["subscription.yaml"],
                                       resource_type="subscription")
+            self._logger.info(f"Using global catalog namespace (GCN): {self._catalog_namespace}")
             progress.log(f"Using global catalog namespace (GCN): {self._catalog_namespace}")
 
         self._kube.apply_cluster_resource_files(
@@ -383,6 +413,7 @@ class Deploy:
     # Function to install operator on CNCF
     def apply_operator_cncf(self, progress, task):
         # Number of tasks = 2
+        self._logger.info("Starting IBM FileNet Content Manager Operator Installation")
         progress.log(Panel.fit("Starting IBM FileNet Content Manager Operator Installation", style="cyan"))
         progress.log()
 
@@ -390,6 +421,7 @@ class Deploy:
         with open(self.tmp_file_paths["operator.yaml"], 'r') as file:
             content = file.read()
 
+        self._logger.info("Setting license acceptance to 'accept' in the operator file")
         progress.log("Setting license acceptance to 'accept' in the operator file")
         progress.log()
 
@@ -405,6 +437,7 @@ class Deploy:
         registry_in_file = "icr.io"
 
         if self._setup.entitlement_key_valid:
+            self._logger.info("FileNet Content Management Operator is being installed using the IBM Entitlement Registry")
             progress.log("FileNet Content Management Operator is being installed using the IBM Entitlement Registry")
             progress.log()
             if self._setup.runtime_mode == "dev":
@@ -416,6 +449,7 @@ class Deploy:
                 with open(self.tmp_file_paths["operator.yaml"], 'w') as file:
                     file.write(content)
         else:
+            self._logger.info("FileNet Content Management Operator is being installed using a private registry")
             progress.log("FileNet Content Management Operator is being installed using a private registry")
             progress.log()
             pattern = re.compile(re.escape(registry_in_file) + r'\b')
@@ -426,6 +460,7 @@ class Deploy:
             with open(self.tmp_file_paths["operator.yaml"], 'w') as file:
                 file.write(content)
 
+        self._logger.info("Applying/Patching FileNet Operator Deployment")
         progress.log(f"Applying/Patching FileNet Operator Deployment")
         progress.log()
 

@@ -29,7 +29,7 @@ from helper_scripts.utilities.interface import clear, display_issues, display_pr
 from helper_scripts.utilities.utilities import prereq_checks, read_version_toml, create_deployment_info, \
     create_version_info
 
-__version__ = "4.4.4"
+__version__ = "5.0.0"
 
 app = typer.Typer()
 state = {
@@ -61,15 +61,20 @@ def display_mode_version(mode: str, description: str):
     msg = f"Version: {__version__}\n" \
           f"Mode: {mode}\n" \
           f"{description}"
+    
+    state["logger"].info(f"Script details: \n{msg}")
 
     if state["dryrun"]:
         msg += "\nDry Run Enabled"
+    state["logger"].info("Dry Run is enabled")
 
     if state["dev"]:
         msg += "\nDevelopment Mode Enabled"
+    state["logger"].info("Development Mode is enabled")
 
     if state["silent"]:
         msg += "\nSilent Mode Enabled"
+    state["logger"].info("Silent Mode is enabled")
 
     print(Panel.fit(msg, title="FileNet Content Manager Deploy Operator CLI", border_style="green"))
     print()
@@ -133,10 +138,12 @@ def deploy():
 
     # Print table of prerequisites that are missing
     if len(missing_tools) > 0 or len(files) > 0:
+        state["logger"].info("Prerequisites failed. Displaying missing tools and files.")
         layout = display_issues(tools=missing_tools, descriptors=files)
         print(layout)
         exit(1)
     else:
+        state["logger"].info("Prerequisites passed.")
         prereq_summary = display_prereq_passed(results)
         print(prereq_summary)
         print()
@@ -158,7 +165,9 @@ def deploy():
         state["setup"].silent_parse_deploy_operator_file(state["validate"])
 
     deployment_details = create_deployment_info(state["setup"], version_data)
+    state["logger"].info(f"Created deployment details: {deployment_details}")
     version_details = create_version_info(state["setup"], version_data)
+    state["logger"].info(f"Created version details: {version_details}")
 
     clear(console)
     layout = deploy_details(deployment_details, version_details)
