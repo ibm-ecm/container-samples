@@ -15,10 +15,10 @@ import os
 import platform
 import re
 import shutil
+import socket
 import struct
 import subprocess
 import time
-from socket import socket, gaierror, gethostbyname_ex
 
 import yaml
 from OpenSSL import SSL
@@ -45,6 +45,30 @@ def zip_folder(zip_file_name: str, folder_path: str) -> str:
     """Zip a folder and return the path to the zip file."""
     zip_file = shutil.make_archive(zip_file_name, "zip", folder_path, )
     return zip_file
+
+
+# Adding idp certificate to trusted certificates folder
+def add_idp_to_trusted_certs(ssl_cert_folder, trusted_certs_folder):
+    if os.path.exists(ssl_cert_folder):
+        ssl_folders = collect_visible_files(ssl_cert_folder)
+
+        # remove any hidden files that might be picked up and remove the trusted-certs folder
+        for folder in ssl_folders:
+            if folder.startswith(".") or folder == "trusted-certs":
+                ssl_folders.remove(folder)
+
+    idp_folders = list(filter(lambda x: "idp" in x, ssl_folders))
+
+    for item in idp_folders:
+        folderpath = os.path.join(ssl_cert_folder, item)
+        ssl_certs = collect_visible_files(folderpath)
+    
+        for cert in ssl_certs:
+            if any(ext in cert for ext in [".crt", ".cer", ".cert", ".pem", ".key", ".arm"]):
+                cert_file_path = os.path.join(folderpath, cert)
+                trusted_idp_cert_path = os.path.join(trusted_certs_folder, cert)
+                os.makedirs(trusted_certs_folder, exist_ok=True)
+                shutil.copy2(cert_file_path, trusted_idp_cert_path)
 
 
 # Create a method to create the generatedfiles folder structure and zip it up if it is present
@@ -121,7 +145,7 @@ def check_ssl_certs_postgres(folder_list, cert_path):
 
 
 # Function to check if ssl certs are added to the respective folders
-def check_ssl_folders(db_prop=None, ldap_prop=None, ssl_cert_folder=None, deploy_prop=None) -> tuple:
+def check_ssl_folders(db_prop=None, ldap_prop=None, ssl_cert_folder=None, deploy_prop=None, idp_prop=None, scim_prop=None) -> tuple:
     missing_cert = {}
     incorrect_cert = {}
     # if any ssl cert folders exists that means ssl was enabled for either ldap or DB
@@ -133,9 +157,12 @@ def check_ssl_folders(db_prop=None, ldap_prop=None, ssl_cert_folder=None, deploy
             if folder == "trusted-certs":
                 ssl_folders.remove(folder)
 
-        # checking to see if any changes to ssl value have been made after folders were created
+        # Creating list of different ssl folders: ldap, db, idp, scim
         ldap_folders = list(filter(lambda x: "ldap" in x, ssl_folders))
-        db_folders = list(filter(lambda x: "ldap" not in x, ssl_folders))
+        idp_folders = list(filter(lambda x: "idp" in x, ssl_folders))
+        scim_folders = list(filter(lambda x: "scim" in x, ssl_folders))
+        non_db_folders = ldap_folders+ idp_folders + scim_folders
+        db_folders = set(ssl_folders) - set(non_db_folders)
 
         # if db type is not postgres we have a standard folder structure of ssl certs
         if db_prop["DATABASE_SSL_ENABLE"]:
@@ -281,9 +308,52 @@ def check_ssl_folders(db_prop=None, ldap_prop=None, ssl_cert_folder=None, deploy
                                     else:
                                         missing_cert[folder].append("serverca")
 
+
         # base logic for ldap cert folder
         for folder in ldap_folders:
             if ldap_prop[folder.upper()]["LDAP_SSL_ENABLED"]:
+                ssl_certs = collect_visible_files(os.path.join(ssl_cert_folder, folder))
+                if not ssl_certs:
+                    if folder not in missing_cert:
+                        missing_cert[folder] = []
+                        missing_cert[folder].append("certificate")
+                    else:
+                        missing_cert[folder].append("certificate")
+                else:
+                    for cert in ssl_certs:
+                        if cert.startswith("."):
+                            os.remove(os.path.join(ssl_cert_folder, folder, cert))
+                        else:
+                            pem_cert_check = check_pem_cert_format(os.path.join(ssl_cert_folder, folder, cert))
+                            if not pem_cert_check:
+                                pem_key_check = check_pem_key_format(os.path.join(ssl_cert_folder, folder, cert))
+                                if not pem_key_check:
+                                    incorrect_cert[folder] = ["certificate"]
+
+        # for idp certs we have to check if the ssl is enabled and then check the certs
+        for folder in idp_folders:
+            if idp_prop[folder.upper()]["IDP_SSL_ENABLED"]:
+                ssl_certs = collect_visible_files(os.path.join(ssl_cert_folder, folder))
+                if not ssl_certs:
+                    if folder not in missing_cert:
+                        missing_cert[folder] = []
+                        missing_cert[folder].append("certificate")
+                    else:
+                        missing_cert[folder].append("certificate")
+                else:
+                    for cert in ssl_certs:
+                        if cert.startswith("."):
+                            os.remove(os.path.join(ssl_cert_folder, folder, cert))
+                        else:
+                            pem_cert_check = check_pem_cert_format(os.path.join(ssl_cert_folder, folder, cert))
+                            if not pem_cert_check:
+                                pem_key_check = check_pem_key_format(os.path.join(ssl_cert_folder, folder, cert))
+                                if not pem_key_check:
+                                    incorrect_cert[folder] = ["certificate"]
+
+        # for scim certs we have to check if the ssl is enabled and then check the certs
+        for folder in scim_folders:
+            if scim_prop[folder.upper()]["SCIM_SSL_ENABLED"]:
                 ssl_certs = collect_visible_files(os.path.join(ssl_cert_folder, folder))
                 if not ssl_certs:
                     if folder not in missing_cert:
@@ -330,13 +400,21 @@ def check_trusted_certs(trusted_certs_folder):
     invalid_certs = []
     if os.path.exists(trusted_certs_folder):
         file_lists = collect_visible_files(trusted_certs_folder)
+
         if len(file_lists) > 0:
             # some certs have been added
             for file in file_lists:
                 if file.startswith("."):
-                    continue
-                if not (file.endswith('.pem') or file.endswith('.crt') or file.endswith('.cert')):
-                    invalid_certs.append(file)
+                    os.remove(os.path.join(trusted_certs_folder, file))
+                else:
+                    # check if the cert is in the right format
+                    # if not then add it to the invalid certs list
+                    pem_cert_check = check_pem_cert_format(os.path.join(trusted_certs_folder, file))
+                    if not pem_cert_check:
+                        pem_key_check = check_pem_key_format(os.path.join(trusted_certs_folder, file))
+                        # if the cert is not in the right format then add it to the invalid certs list
+                        if not pem_key_check:
+                            invalid_certs.append(file)
             return True, invalid_certs
         else:
             return False, invalid_certs
@@ -439,32 +517,78 @@ def check_java_version(fncm_version):
             if fncm_version in ("5.5.12", "5.6.0"):
                 if int(java_version.split(".")[0]) != 17:
                     return False
+
+            if fncm_version in ("5.7.0"):
+                if int(java_version.split(".")[0]) != 21:
+                    return False
+
         return True
     except subprocess.CalledProcessError as e:
-        # If 'java -version' returns a non-zero exit code, print the error
         return False
 
+def create_ssl_context(client_cert_file=None) :
+    context = SSL.Context(SSL.SSLv23_METHOD)
+    context.set_cipher_list(_CIPHERS)
+    context.set_min_proto_version(SSL.TLS1_2_VERSION)
+    if client_cert_file:
+        context.use_certificate_file(client_cert_file)
+    return context
 
-def connect_to_server(host, port, ssl=False, client_cert_file=None, pg=False, progress=None, ip_check=True):
-    # If SSL is enabled, create an SSL socket
-    # Create an SSL context
-    if ssl:
-        context = SSL.Context(SSL.SSLv23_METHOD)
-        context.set_cipher_list(_CIPHERS)
-        context.set_min_proto_version(SSL.TLS1_2_VERSION)
-        if client_cert_file:
-            context.use_certificate_file(client_cert_file)
+def resolve_ip_addreses(host, progress):
+    try :
+        ip_addreses = []
+        for address in socket.getaddrinfo(host,None):
+            ip = address[4][0]
+            if ip not in ip_addreses:
+                ip_addreses.append(ip)
+        return ip_addreses
+    except socket.gaierror as e:
+        progress.log(Text(f"Failed to resolve IP for the host : {host} \nError : {e}",style="bold red"))
+        return []
 
-        # Create an SSL socket
-        sock = socket()
-        conn = SSL.Connection(context, sock)
-    else:
-        conn = socket()
+def connect_to_server(host, port, ssl=False, client_cert_file=None, pg=False, progress=None):
+    """
+    Method_name: connect_to_server
+    Description: Establishes a connection to a server.
 
-    connected = False
-    try:
+    Parameters:
+        host (str):                         The hostname or IP address of the server to connect to.
+        port (int):                         The port number to connect to on the server.
+        ssl (bool, optional):               Whether to use SSL encryption for the connection. Defaults to False.
+        client_cert_file (str, optional):   The path to the client certificate file, if SSL encryption
+                                            is enabled. Defaults to None.
+        pg (bool, optional):                Whether the connection is for PostgreSQL. Defaults to False.
+        progress (Any, optional):           An object that provides a logging method for progress updates. Defaults to None.
+
+    Returns:
+    Tuple[socket.socket, float, bool]:  A tuple containing the connection object, the round-trip time (RTT),
+                                        and a boolean indicating whether the connection was established.
+
+    Raises:
+        socket.gaierror: If the hostname is not known.
+        Exception: If any other error occurs during the connection process.
+    """
+    try :
+        hostname = host.strip("[]")
+        addr_info = socket.getaddrinfo(hostname, port, socket.AF_UNSPEC, socket.SOCK_STREAM)
+        # Sort addr_info to prefer IPv6 over IPv4
+        addr_info.sort(key=lambda x: 0 if x[0] == socket.AF_INET6 else 1)
+        # If SSL is enabled, create an SSL socket
+        # Create an SSL context
+        if ssl:
+            context = create_ssl_context(client_cert_file)
+            # Create an SSL socket
+            for family, socktype, proto, _, sockaddr in addr_info:
+                sock = socket.socket(family,socktype,proto)
+            conn = SSL.Connection(context, sock)
+        else:
+            for family, socktype, proto, _, sockaddr in addr_info:
+                conn = socket.socket(family,socktype,proto)
+
+        # Connection
+        connected = False
         start_time = time.time()
-        conn.connect((host, port))
+        conn.connect((sockaddr[0], port))
         end_time = time.time()
 
         if ssl:
@@ -480,7 +604,7 @@ def connect_to_server(host, port, ssl=False, client_cert_file=None, pg=False, pr
         connected = True
 
     # Now you can perform LDAP operations using 'conn' if needed
-    except gaierror as e:
+    except socket.gaierror as e:
         message = Text(
             f"Hostname \"{host}\" is not known.\n"
             f"Please review the Property Files for all SERVERNAME parameters", style="bold red")
@@ -499,7 +623,7 @@ def connect_to_server(host, port, ssl=False, client_cert_file=None, pg=False, pr
                     f" - \"TLSv1.2\"\n"
                     f" - \"TLSv1.3\"", style="bold red")
         else:
-            message = Text(f"Connection Error: {e}", style="bold red")
+            message = Text(f"Connection over SSL failed.", style="bold yellow")
 
         if progress:
             progress.log(message)
@@ -510,34 +634,37 @@ def connect_to_server(host, port, ssl=False, client_cert_file=None, pg=False, pr
 
     # Calculate RTT and format to milliseconds
     rtt = (end_time - start_time) * 1000
-    if ip_check:
-        ip_connected = connect_to_server_ip(host,port,ssl,client_cert_file,pg,progress)
-        if not ip_connected:
-            if progress:
-                progress.log(Text(f"Failed to connect over any one of the Resolved IP",style="bold red"))
-            else:
-                print(f"Failed to connect over any one of the Resolved IP")
-            return conn, rtt, ip_connected
+    IP_connected = connect_to_server_ip(host,port,ssl,client_cert_file,pg,progress)
+    if not IP_connected:
+        progress.log(Text(f"Failed to connect over any one of the Resolved IP",style="bold red"))
+        return conn, rtt, IP_connected
     return conn, rtt, connected
 
-#Verifying that able to establish connection with atleast 1 ip resolved by hostname
+#Verifying that able to establish connection with at least 1 ip resolved by hostname
 def connect_to_server_ip(host, port, ssl=False, client_cert_file=None, pg=False, progress=None):
     check_ip_connected = False
-    ip_addresses = gethostbyname_ex(host)[2]
+    host = host.strip('[]')
+    ip_addresses = resolve_ip_addreses(host, progress)
+    if progress:
+        progress.log("Testing all resolved IP addresses for connection...\n\n"
+                     "Only one IP address needs to be reachable for the connection to be successful.")
+
+    else:
+        print("\nTesting all resolved IP addresses for connection...\n\n"
+              "Only one IP address needs to be reachable for the connection to be successful.")
     for ip in ip_addresses :
         # If SSL is enabled, create an SSL socket
         # Create an SSL context
         if ssl:
-            context = SSL.Context(SSL.SSLv23_METHOD)
-            context.set_cipher_list(_CIPHERS)
-            context.set_min_proto_version(SSL.TLS1_2_VERSION)
-            if client_cert_file:
-                context.use_certificate_file(client_cert_file)
+            context = create_ssl_context(client_cert_file)
             # Create an SSL socket
-            sock = socket()
+            if ":" in ip:
+                sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+            else :
+                sock = socket.socket()
             ip_conn = SSL.Connection(context, sock)
         else:
-            ip_conn = socket()
+            ip_conn = socket.socket()
         try:
             ip_conn.settimeout(10)
             ip_conn.connect((ip, port))
@@ -554,15 +681,17 @@ def connect_to_server_ip(host, port, ssl=False, client_cert_file=None, pg=False,
                 ip_conn.do_handshake()
             check_ip_connected = True
             if progress:
-                progress.log(Text(f"Connection succeeded over IP: {ip} over port: {port}",style="bold green"))
+                progress.log()
+                progress.log(Text(f"Ping returned for IP: {ip} on port: {port}",style="bold green"))
             else:
-                print(f"Connection succeeded over IP: {ip} over port: {port}")
+                print(Text(f"\nPing returned for IP: {ip} on port: {port}", style="bold green"))
 
         except Exception as e:
             if progress:
-                progress.log(Text(f"Failed to connect over IP: {ip} over port: {port}\nError : {e}",style="bold red"))
+                progress.log()
+                progress.log(Text(f"Ping unanswered for IP: {ip} on port: {port}", style="bold yellow"))
             else:
-                print(f"Failed to connect over IP: {ip} over port: {port}\nError : {e}")
+                print(Text(f"\nPing unanswered for IP: {ip} on port: {port}", style="bold yellow"))
             continue
         finally:
             ip_conn.close()
@@ -608,7 +737,7 @@ def kubectl_log_in_check(logger):
         return False
     except subprocess.CalledProcessError as error:
         logger.info("Kubectl is not logged into any cluster and " \
-                    + f"will cause errors when checking storage classes; error")
+                    + f"will cause errors when checking storage classes; {error}")
         return False
 
 
@@ -766,3 +895,100 @@ def clear(console):
         os.system('cls')
     else:
         console.clear()
+
+
+# Assisted by watsonx Code Assistant 
+def split_pem(logger, cert_file_path, tmp_folder, output_prefix="cert"):
+    """
+    Splits a PEM file into multiple PEM files based on the BEGIN and END blocks.
+
+    Args:
+    logger (logging.Logger): A logger object for logging messages.
+    cert_file_path (str): The path to the PEM file to be split.
+    tmp_folder (str): The temporary folder where the split PEM files will be stored.
+    output_prefix (str, optional): The prefix for the output PEM file names. Defaults to "cert".
+
+    Returns:
+    list: A list of paths to the split PEM files. If an error occurs, an empty list is returned.
+    """
+    try:
+        with open(cert_file_path, 'r') as pem_file:
+            pem_content = pem_file.read()
+    except FileNotFoundError:
+        logger.exception(f"Error: File not found: {cert_file_path}")
+        return []
+
+    # Regex to find all PEM blocks
+    pem_blocks = re.findall(r"-----BEGIN [^-]+-----\n(?:.|\n)*?-----END [^-]+-----", pem_content)
+
+    if not pem_blocks:
+        logger.info("No PEM blocks found in the file.")
+        return []
+
+    cert_list = []
+
+    for i, pem_block in enumerate(pem_blocks):
+        file_name = f"{output_prefix}_{i + 1}.pem"
+        output_path = os.path.join(tmp_folder, file_name)
+        try:
+            with open(output_path, 'w') as f:
+                f.write(pem_block)
+            logger.info(f"Certificate {i + 1} written to {output_path}")
+            cert_list.append(output_path)
+        except Exception as e:
+            logger.exception(f"Error writing to {output_path}: {e}")
+    return cert_list
+
+# Function to clean up and combine PEM files
+def clean_and_combine_pem_files(logger, cert_folder, tmp_folder, output_prefix):
+    """
+    Cleans up the PEM files in the specified folder and combines them into a single PEM file.
+
+    Args:
+    logger (logging.Logger): A logger object for logging messages.
+    cert_folder (str): The folder containing the PEM files to be cleaned and combined.
+    output_file (str): The path to the output file where the combined PEM content will be written.
+
+    Returns:
+    cert_path: The path to the combined PEM file if successful, otherwise None.
+    """
+    try:
+        # Only collect visible files in the cert folder
+        # Hidden files are skipped
+        files = collect_visible_files(cert_folder)
+        if not files:
+            logger.info(f"No visible files found in {cert_folder}.")
+            return None
+
+        ssl_cert_list = []
+
+        for i, cert in enumerate(files):
+            # Only consider certificate files
+            if any(ext in cert for ext in [".crt", ".cer", ".pem", ".cert", ".key", ".arm"]):
+                cert_path = os.path.join(cert_folder, cert)
+                output_prefix_single = f"{output_prefix}_{i + 1}"
+                ssl_cert_list.extend(split_pem(logger, cert_path, tmp_folder, output_prefix_single))
+
+        # Recombine all the split PEM files into a single PEM file
+        combined_cert_path = os.path.join(tmp_folder, f"{output_prefix}_combined.pem")
+
+        with open(combined_cert_path, 'w') as combined_file:
+            for cert in ssl_cert_list:
+                with open(cert, 'r') as pem_file:
+                    combined_file.write(pem_file.read())
+                combined_file.write("\n")  # Add a newline between certificates
+        logger.info(f"Combined PEM file created at {combined_cert_path}")
+
+        return combined_cert_path
+    except Exception as e:
+        logger.exception(f"Error during PEM file cleanup and combination: {e}")
+        return None
+
+
+
+
+
+
+
+
+

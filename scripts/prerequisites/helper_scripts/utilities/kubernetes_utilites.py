@@ -35,6 +35,11 @@ class KubernetesUtilities:
         self._cr_details = {}
         self._operator_details = {}
         self._logger = logger
+        self._resource_type_dict = {}
+
+    @property
+    def resource_type_dict(self):
+        return self._resource_type_dict
 
     @property
     def custom_resource(self):
@@ -359,6 +364,7 @@ class KubernetesUtilities:
                 "23.0.2": "5.5.12",
                 "24.0.0": "5.6.0",
                 "24.0.1": "5.6.0",
+                "25.0.0": "5.7.0"
             }
 
             # Making sure there is always a version value
@@ -450,7 +456,8 @@ class KubernetesUtilities:
                                 resource_type_dict[resource_type].append(item.metadata.name)
                 except client.exceptions.ApiException as e:
                     self._logger.info(f"Error listing {resource_type}: {e}")
-
+            
+            self._resource_type_dict = resource_type_dict
             return resource_type_dict
         except Exception as e:
             self._logger.info(f"Error in listing resources in namespace function: {e}")
@@ -609,6 +616,16 @@ class KubernetesUtilities:
 
         except Exception as e:
             self._logger.info(f"Error in utilities.py from the delete_operator_deployment: {e}")
+
+    def delete_secret (self, namespace="", name=""):
+        try:
+            # Delete the Secret
+            self._core_v1.delete_namespaced_secret(name, namespace)
+            self._logger.info(f"Secret {name} deleted successfully")
+
+        except Exception as e: 
+            self._logger.info(f"Error in utilities.py from the delete_secret: {e}")
+            
 
     def delete_role_binding(self, namespace="", name=""):
         if not name:
@@ -881,6 +898,28 @@ class KubernetesUtilities:
                 name=network_policy_name, namespace=namespace,
             )
             return network_policy
+        except Exception as e:
+            self._logger.info(f"Error in utilities.py from the describe_network_policy: {e}")
+            return {}
+    
+    def remove_network_policy_owner_reference(self, progress, network_policy_name, namespace):
+        try:
+            policy = self.networking_v1.read_namespaced_network_policy(
+                name=network_policy_name, namespace=namespace,
+            )
+            if policy.metadata.owner_references:
+                body = {
+                    "metadata": {
+                        "ownerReferences": None
+                    }
+                }
+                self.networking_v1.patch_namespaced_network_policy(
+                    name=policy.metadata.name,
+                    namespace=namespace,
+                    body=body,
+                )
+                progress.log(f"Owner references has been removed in  {network_policy_name}")
+                progress.log()
         except Exception as e:
             self._logger.info(f"Error in utilities.py from the describe_network_policy: {e}")
             return {}

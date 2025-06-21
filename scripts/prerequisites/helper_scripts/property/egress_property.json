@@ -1,0 +1,28 @@
+{
+    "sc_api_namespace": {
+      "value": ["openshift-kube-apiserver", "openshift-apiserver"],
+      "comment": [
+        "Default are openshift-kube-apiserver, openshift-apiserver for OCP and ROKS.", 
+        "Possible values are kube-system, default, kube-public for other."
+      ]
+    },
+    "sc_api_port": {
+      "value": [443,6443],
+      "comment": [
+        "Default are 443,6443 for OCP, ROKS, other"
+      ]
+    },
+    "sc_dns_namespace": {
+      "value": "openshift-dns",
+      "comment": [
+        "Default is openshift-dns for OCP and ROKS.",
+        "Possible values are kube-system, default, kube-public for other."
+      ]
+    },
+    "sc_dns_port": {
+      "value": [53,5353],
+      "comment": [
+        "Default are 53,5353 for OCP, ROKS and other"
+      ]
+    }
+  }

@@ -5,6 +5,12 @@
       "Name used within the redirect URL."
     ]
   },
+  "IDP_SSL_ENABLED": {
+    "value": "<Required>",
+    "comment": [
+      "Enable SSL for IDP connection."
+    ]
+  },
   "DISPLAY_NAME": {
     "value": "<Required>",
     "comment": [
@@ -15,6 +21,13 @@
     "value": "<Required>",
     "comment": [
       "OIDC discovery endpoint."
+    ]
+  },
+  "JWKS_ENDPOINT": {
+    "value": "<Required>",
+    "comment": [
+      "Endpoint to retrieve JSON Web Key Set (JWKS).",
+      "This is used to decode and verify the signature of the ID token."
     ]
   },
   "CLIENT_ID": {
