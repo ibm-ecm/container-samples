@@ -79,12 +79,14 @@ class SilentGatherOptions(GatherOptions):
 
     # Function to read platform information from toml file
     def silent_platform(self):
+        self._logger.info("Gather platform details")
         try:
             platform = gather_var(key="PLATFORM", valid_values=[1, 2, 3], _logger=self._logger, _envfile=self._envfile,
                                   _error_list=self._error_list)
             if platform is not None:
                 if platform:
                     self._platform = self.Platform(platform).name
+                    self._logger.info(f"Platform selected: {self._platform}")
             else:
                 self.error_check()
         except Exception as e:

@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    fncm: validate-test
+  name: {{ sample_pvc_name }}
+spec:
+  accessModes:
+    - {{ values.sc_mode }}
+  resources:
+    requests:
+      storage: {{ values.size }}
+  storageClassName: {{ values.sc_name }}

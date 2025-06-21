@@ -60,7 +60,14 @@ class GenerateSql:
     # Load the SQL templates
     def load_templates(self):
         try:
-            dbtype_path = os.path.join(self._template_path, self._dbprop["DATABASE_TYPE"])
+            # Both DB2RDS and DB2RDS HADR can use the same sql templates
+            if self._dbprop["DATABASE_TYPE"].lower() == "db2rdshadr":
+                dbtype_path = os.path.join(self._template_path, "db2rds")
+            # Both DB2 and DB2HADR can use the same sql templates
+            elif self._dbprop["DATABASE_TYPE"].lower() == "db2hadr":
+                dbtype_path = os.path.join(self._template_path, "db2")
+            else:
+                dbtype_path = os.path.join(self._template_path, self._dbprop["DATABASE_TYPE"])
             with open(os.path.join(dbtype_path, "createGCDDB.sql"), encoding='UTF-8') as t:
                 self._gcd_template = string.Template(t.read())
             with open(os.path.join(dbtype_path, "createICNDB.sql"), encoding='UTF-8') as t:
@@ -93,7 +100,7 @@ class GenerateSql:
         try:
             path = os.path.join(self._dest_path, "createICN.sql")
             # we have tablespace and schema name that can be user filled for postgresql, sql,oracle
-            if self._dbprop["DATABASE_TYPE"] != "db2":
+            if self._dbprop["DATABASE_TYPE"].lower() not in ["db2", "db2hadr", "db2rds", "db2rdshadr"]:
                 finished_output = self._icn_template.safe_substitute(icn_name=self._dbprop['ICN']['DATABASE_NAME'],
                                                                      youruser1=parse_yaml_sql(
                                                                          self._dbprop['ICN']['DATABASE_USERNAME']),
@@ -123,7 +130,7 @@ class GenerateSql:
         try:
             for index, os_id in enumerate(self._dbprop["_os_ids"]):
                 path = os.path.join(self._dest_path, f"create{self._dbprop[os_id]['OS_LABEL']}.sql")
-                if self._dbprop["DATABASE_TYPE"] == "db2":
+                if self._dbprop["DATABASE_TYPE"].lower() in ["db2", "db2hadr", "db2rds", "db2rdshadr"]:
                     finished_output = self._os_template.safe_substitute(
                         os_name=self._dbprop[os_id.upper()]['DATABASE_NAME'],
                         youruser1=parse_yaml_sql(self._dbprop[os_id.upper()]['DATABASE_USERNAME']),
