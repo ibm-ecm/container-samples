@@ -80,13 +80,13 @@ class SilentGatherPrereqOptions(GatherPrereqOptions):
             self.platform = self.Platform(platform).name
             if self.platform == 'other' and gather_var(key="INGRESS", _logger=self._logger, _envfile=self._envfile,
                                                        _error_list=self._error_list) is not None and self.Version.FNCMVersion(
-                gather_var(key="FNCM_VERSION", valid_values=[1, 2, 3, 4], _logger=self._logger, _envfile=self._envfile,
+                gather_var(key="FNCM_VERSION", valid_values=[1, 2, 3, 4, 5], _logger=self._logger, _envfile=self._envfile,
                            _error_list=self._error_list)).name != "5.5.8":
                 self.ingress = gather_var(key="INGRESS", _logger=self._logger, _envfile=self._envfile,
                                           _error_list=self._error_list)
 
     def silent_version(self):
-        version = gather_var(key="FNCM_VERSION", valid_values=[1, 2, 3, 4], _logger=self._logger,
+        version = gather_var(key="FNCM_VERSION", valid_values=[1, 2, 3, 4, 5], _logger=self._logger,
                              _envfile=self._envfile,
                              _error_list=self._error_list)
         if version:
@@ -103,6 +103,14 @@ class SilentGatherPrereqOptions(GatherPrereqOptions):
             self._sendmail_support = False
 
     def silent_egress_support(self):
+        np_support = gather_var(key="GENERATE_NETWORK_POLICIES", _logger=self._logger, _envfile=self._envfile,
+                                    _error_list=self._error_list)
+        if np_support is not None:
+            self._np_support = np_support
+        else:
+            self._np_support = False
+
+    def silent_networkpolicy_support(self):
         egress_support = gather_var(key="RESTRICTED_INTERNET_ACCESS", _logger=self._logger, _envfile=self._envfile,
                                     _error_list=self._error_list)
         if egress_support is not None:
@@ -291,10 +299,20 @@ class SilentGatherPrereqOptions(GatherPrereqOptions):
 
     def silent_db(self):
         if self._fips_support:
-            db_type = gather_var(key="DATABASE_TYPE", valid_values=[1, 2, 3, 4], _logger=self._logger,
-                                 _envfile=self._envfile, _error_list=self._error_list)
+            # For 5.7.0 we now support DB2 RDS and DB2 RDS HADR DB type
+            if self._fncm_version == "5.7.0":
+                db_type = gather_var(key="DATABASE_TYPE", valid_values=[1, 2, 3, 4, 5, 6, 7], _logger=self._logger,
+                                     _envfile=self._envfile, _error_list=self._error_list)
+            else:
+                db_type = gather_var(key="DATABASE_TYPE", valid_values=[1, 2, 3, 4], _logger=self._logger,
+                                     _envfile=self._envfile, _error_list=self._error_list)
         else:
-            db_type = gather_var(key="DATABASE_TYPE", valid_values=[1, 2, 3, 4, 5], _logger=self._logger,
+            # For 5.7.0 we now support DB2 RDS and DB2 RDS HADR type
+            if self._fncm_version == "5.7.0":
+                db_type = gather_var(key="DATABASE_TYPE", valid_values=[1, 2, 3, 4, 5, 6, 7], _logger=self._logger,
+                                     _envfile=self._envfile, _error_list=self._error_list)
+            else:
+                db_type = gather_var(key="DATABASE_TYPE", valid_values=[1, 2, 3, 4, 5], _logger=self._logger,
                                  _envfile=self._envfile, _error_list=self._error_list)
         if db_type is not None:
             # self.db_type = self.__gather_var("DATABASE.TYPE",["db2", "db2HADR", "oracle", "sqlserver", "postgresql"])

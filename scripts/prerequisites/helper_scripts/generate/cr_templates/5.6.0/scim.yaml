@@ -32,7 +32,7 @@ spec:
         scim_secret_name: "<Required>"
 
         ## SCIM Directory provider Type. Possible Values:
-        ## - AUTO_DETECT (Recommended)
+        ## - AUTO_DETECT
         ## - SCIM_11
         ## - SCIM_20
         ## - IBM_IAM

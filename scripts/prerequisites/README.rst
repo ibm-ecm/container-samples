@@ -127,7 +127,33 @@ You can use the Deployment Preparation Script in the following modes:
 
        python3 prerequisites.py validate
 
-   - The script will validate the connections to external services such as the database services and directory services (LDAPs), as well as the usage of the provided storage classes.
+   - The script will validate all the connections to external services such as the database services and directory services (LDAPs), as well as the usage of the provided storage classes.
+   - To skip specific validations, you can use the following options:
+      - Skip storage class validation::
+      
+         python3 prerequisites.py validate --skip-storageclass
+
+      - Skip database validation::
+
+         python3 prerequisites.py validate --skip-database
+
+      - Skip LDAP validation::
+
+         python3 prerequisites.py validate --skip-ldap
+
+      - Skip IDP validation::
+
+         python3 prerequisites.py validate --skip-idp
+
+      - Skip SCIM  validation::
+
+         python3 prerequisites.py validate --skip-scim
+
+   - To apply all generated artifacts to the cluster automatically::
+
+       python3 prerequisites.py validate --apply
+
+   - By default, `--apply` is set to `no-apply`, meaning no changes will be made unless explicitly specified.
 
     .. note::
         The FileNet Deployment Preparation Script can also be run from the FileNet Standalone Operator.

@@ -1,0 +1,21 @@
+spec:
+  shared_configuration:
+    open_id_connect_providers:
+    # The section below is used to configure the OIDC provider for the FNCM.
+    - provider_name: ""
+      # Display name for the sign-in button
+      display_name: "Single Sign on"
+      issuer_identifier: ""
+      # OIDC secret names for the ECM and Navigator Components.
+      client_oidc_secret:
+        nav: ""
+        cpe: ""
+      validation_method: "introspect"
+      # Token Attributes to be used for the user identity.
+      user_identifier: "sub"
+      unique_user_identifier: "sub"
+      user_identity_to_create_subject: "sub"
+      # The following are the OIDC endpoints for the provider.
+      discovery_endpoint_url: ""
+      token_endpoint_url: ""
+
