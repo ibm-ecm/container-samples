@@ -109,7 +109,8 @@ class ReadPropDb(ReadProp):
                 os_name = self._toml_dict[os_id]["DATABASE_NAME"]
                 self._toml_dict[os_id]["DATA_TABLESPACE"] = f"{os_name}_tbs".lower()
                 self._toml_dict[os_id]["INDEX_TABLESPACE"] = f"{os_name}indexts".lower()
-        elif self._toml_dict["DATABASE_TYPE"].lower() == "db2":
+        # DB2 RDS HADR and DB2 RDS follow the same tablespace name format as DB2
+        elif self._toml_dict["DATABASE_TYPE"].lower() in ["db2", "db2hadr", "db2rds", "db2rdshadr"]:
             for os_id in self._toml_dict["_os_ids"]:
                 os_name = self._toml_dict[os_id]["DATABASE_NAME"]
                 self._toml_dict[os_id]["DATA_TABLESPACE"] = f"{os_name}DATA_TS"
@@ -192,6 +193,7 @@ class ReadPropSCIM(ReadProp):
                 scim_ids.append(key)
         self._toml_dict["_scim_ids"] = scim_ids
         self._toml_dict["scim_number"] = len(self._toml_dict["_scim_ids"])
+        # TODO Add validation logic for SCIM Types
 
     def __init__(self, propertyfile, logger):
         super().__init__(propertyfile, logger)

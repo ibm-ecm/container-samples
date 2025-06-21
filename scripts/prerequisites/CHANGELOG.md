@@ -1,3 +1,28 @@
+## 5.0.0 (2025-06-20)
+
+### Feat
+
+- added support for FNCM 5.7.0 deployment
+- added validation checks for IDP (Identity Provider) configuration
+- added validation checks for SCIM (System for Cross-domain Identity Management) configuration
+- added support for DB2RDS and DB2RDSHA databases
+- added flags to customize pvc size for validation 
+- added support for ipv6 addresses in prerequisite scripts
+- added support for multi-certificates and multi-certificates files 
+- switched all java connections to use pkcs12 truststore
+- added support for network policy gathering in MustGather
+- added oracle database fips support 
+
+### Refactor
+
+- refactored generation scripts to use jinja2 templates
+
+### Fix
+
+- fixed unknown ldap type when moving xml files
+- fixed k8s namespace check in deployment script
+- commented all tablespaces in generated CR 
+
 ## 4.4.4 (2025-04-30)
 
 ### Fix

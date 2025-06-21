@@ -126,6 +126,7 @@ def check_oc_plugins(logger, plugin):
 
 # Function to do the prerequisite checks before the script starts
 def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.6.0'):
+    logger.info(f"Checking prerequisites ...")
     if prereqs is None:
         prereqs = []
 
@@ -170,7 +171,9 @@ def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.6.0'):
                 prereq_summary["descriptor_files"] = False
 
         if any(x in prereqs for x in ["podman", "docker"]):
+            logger.info(f"Checking if the 'podman' is available.")
             podman = command_available("podman")
+            logger.info(f"Checking if the 'docker' is available.")
             docker = docker_available()
 
             # Either podman or docker needed
@@ -181,7 +184,7 @@ def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.6.0'):
                 prereq_summary["docker"] = True
 
             else:
-
+                logger.info("Docker Daemon is not available")
                 if podman:
 
                     logger.info("Podman available")
@@ -193,6 +196,7 @@ def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.6.0'):
                     missing_tools.append("Podman/Docker CLI")
 
         if "oc" in prereqs:
+            logger.info(f"Checking if the 'oc' command is available.")
             oc = command_available("oc")
             if not oc:
                 logger.info("Prerequisites failed -> OpenShift CLI not installed")
@@ -224,6 +228,7 @@ def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.6.0'):
 
 
                 if "ibm-pak" in prereqs:
+                    logger.info(f"Checking if the 'ibm-pak' plugin is available.")
                     ibm_pak = check_oc_plugins(logger, "ibm-pak")
                     if not ibm_pak:
                         logger.info("Prerequisites failed -> oc ibm-pak plugin not installed")
@@ -236,6 +241,8 @@ def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.6.0'):
 
         # Java Check
         if "java" in prereqs:
+            
+            logger.info(f"Checking if 'Java' is available.")
             java_present = command_available("java")
 
             if not java_present:
@@ -244,6 +251,7 @@ def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.6.0'):
             else:
                 logger.info("Java available")
                 prereq_summary["java"] = True
+                logger.info("Checking Java version")
                 java_version = check_java_version(fncm_version)
 
                 if not java_version:
@@ -255,6 +263,7 @@ def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.6.0'):
 
         # kubectl check
         if "kubectl" in prereqs:
+            logger.info(f"Checking if the 'kubectl' command is available")
             kubectl = command_available("kubectl")
             if not kubectl:
                 logger.info("Prerequisites failed -> kubectl not installed")
@@ -267,6 +276,7 @@ def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.6.0'):
 
         # check if cluster is logged in
         if "connection" in prereqs:
+            logger.info("Checking if user is logged into the OCP console")
             ocp_logged_in = kubectl_log_in_check(logger)
             if not ocp_logged_in:
                 logger.info("Prerequisites failed -> User is not logged into the OCP console")
@@ -276,6 +286,7 @@ def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.6.0'):
                 prereq_summary["connection"] = True
 
         if "skopeo" in prereqs:
+            logger.info("Checking if skopeo is available")
             if platform_type == "windows":
                 missing_tools.append("Windows OS")
                 logger.info("Prerequisites failed -> Windows Machine not supported")
@@ -299,7 +310,9 @@ def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.6.0'):
 # Function to read a version toml file
 def read_version_toml(file_path, logger):
     try:
+        logger.info(f"Reading version data from from file: {file_path}")
         version_data = toml.loads(open(file_path, encoding="utf-8").read())
+        logger.info(f"Version data read: {version_data}")
         return version_data
     except FileNotFoundError:
         logger.error(f"File not found: {file_path}")
@@ -418,9 +431,9 @@ def create_deployment_info(setup, version_data):
         csv = version_data["CSV"]
         channel = version_data["CHANNEL"]
     else:
-        version = "5.6.0"
-        csv = "56.0.0"
-        channel = "24.0.0"
+        version = "5.7.0"
+        csv = "57.0.0"
+        channel = "25.0.0"
 
     platform = setup.platform
     if platform == "other":
@@ -548,8 +561,8 @@ def create_version_info(setup, version_data):
         appVersion = version_data["APP_VERSION"]
         version = version_data["VERSION"]
     else:
-        appVersion = "24.0.0"
-        version = "5.6.0"
+        appVersion = "25.0.0"
+        version = "5.7.0"
 
     version_details = {
         "version": version,

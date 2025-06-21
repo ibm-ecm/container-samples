@@ -70,6 +70,8 @@ class GenerateCR:
                                           self._deployment_properties["FNCM_Version"], "idp.yaml")
         self._ingress_template = os.path.join(os.getcwd(), "helper_scripts", "generate", "cr_templates",
                                               self._deployment_properties["FNCM_Version"], "ingress.yaml")
+        self._egress_template = os.path.join(os.getcwd(), "helper_scripts", "generate", "cr_templates",
+                                              self._deployment_properties["FNCM_Version"], "egress.yaml")
         self._init_template = os.path.join(os.getcwd(), "helper_scripts", "generate", "cr_templates",
                                            self._deployment_properties["FNCM_Version"], "init.yaml")
         self._multi_ldap_template = os.path.join(os.getcwd(), "helper_scripts", "generate", "cr_templates",
@@ -93,6 +95,8 @@ class GenerateCR:
             self.populate_idp_section()
 
         self.populate_ingress_section()
+        if self._deployment_properties["PLATFORM"] != "OCP" and self._deployment_properties["FNCM_Version"] in ["5.7.0"]:
+            self.populate_egress_section() 
 
         if self._ldap_properties:
             ldap_dict = self.load_cr_template(self._ldap_template)
@@ -178,7 +182,7 @@ class GenerateCR:
                 scim_section["spec"]["initialize_configuration"]["scim_configuration"][idx][
                     "scim_secret_name"] = secret_name
                 scim_section["spec"]["initialize_configuration"]["scim_configuration"][idx][
-                    "service_type"] = "AUTO_DETECT"
+                    "service_type"] = self._scim_properties[key].get("SCIM_TYPE","AUTO_DETECT")
 
                 scim_section["spec"]["initialize_configuration"]["scim_configuration"][idx]["admin_users"] = \
                     self._usergroup_properties["GCD_ADMIN_USER_NAME"]
@@ -337,8 +341,9 @@ class GenerateCR:
                     parameter = "DELIM=;introspectEndpointUrl;" + self._idp_properties[key]["INTROSPECT_ENDPOINT"]
                     parameter_list.append(parameter)
 
-                parameter = "DELIM=;revokeEndpointUrl;" + self._idp_properties[key]["REVOCATION_ENDPOINT"]
-                parameter_list.append(parameter)
+                if "REVOCATION_ENDPOINT" in self._idp_properties[key]:
+                    parameter = "DELIM=;revokeEndpointUrl;" + self._idp_properties[key]["REVOCATION_ENDPOINT"]
+                    parameter_list.append(parameter)
 
                 # Add custom user-defined parameters to the OIDC section
                 idp_section["spec"]["shared_configuration"]["open_id_connect_providers"][idx][
@@ -406,14 +411,22 @@ class GenerateCR:
 
                     # removing hadr and oracle parameters if they aren't selected as DB type
                     for datasource_key in list(db_dict["spec"]["datasource_configuration"][cr_key].keys()):
-                        if self._db_properties["DATABASE_TYPE"].lower() != "db2hadr":
+                        # DB2 RDS HADR and DB2 HADR both require the parameters HADR_STANDBY_SERVERNAME , HADR_STANDBY_PORT
+                        if self._db_properties["DATABASE_TYPE"].lower() not in ["db2hadr","db2rdshadr"]:
                             if datasource_key.startswith("dc_hadr") and datasource_key != "dc_hadr_validation_timeout":
                                 db_dict["spec"]["datasource_configuration"][cr_key].pop(datasource_key)
                         else:
-                            db_dict["spec"]["datasource_configuration"][cr_key]["dc_hadr_standby_servername"] = \
-                                remove_protocol(self._db_properties[db_key]['HADR_STANDBY_SERVERNAME'])
-                            db_dict["spec"]["datasource_configuration"][cr_key]["dc_hadr_standby_port"] = \
-                                self._db_properties[db_key]['HADR_STANDBY_PORT']
+                            # DB2RDSHADR uses the same servername and port as primary server 
+                            if self._db_properties["DATABASE_TYPE"].lower() == "db2hadr":
+                                standby_server_name = remove_protocol(self._db_properties[db_key]['HADR_STANDBY_SERVERNAME'])
+                                standby_server_port = self._db_properties[db_key]['HADR_STANDBY_PORT']
+                            else:
+                                standby_server_name = remove_protocol(self._db_properties[db_key]['DATABASE_SERVERNAME'])
+                                standby_server_port = self._db_properties[db_key]['DATABASE_PORT']
+
+                            db_dict["spec"]["datasource_configuration"][cr_key]["dc_hadr_standby_servername"] = standby_server_name
+                            db_dict["spec"]["datasource_configuration"][cr_key]["dc_hadr_standby_port"] = standby_server_port
+                            
                         if self._db_properties["DATABASE_TYPE"].lower() != "oracle":
                             if "oracle" in datasource_key:
                                 db_dict["spec"]["datasource_configuration"][cr_key].pop(datasource_key)
@@ -467,17 +480,26 @@ class GenerateCR:
                         # removing hadr and oracle parameters if they aren't selected as DB type
                         for datasource_key in list(
                                 db_dict["spec"]["datasource_configuration"]["dc_os_datasources"][os_number].keys()):
-                            if self._db_properties["DATABASE_TYPE"].lower() != "db2hadr":
+                            # DB2 RDS HADR and DB2 HADR both require the parameters HADR_STANDBY_SERVERNAME , HADR_STANDBY_PORT
+                            if self._db_properties["DATABASE_TYPE"].lower() not in ["db2hadr","db2rdshadr"]:
                                 if datasource_key.startswith(
                                         "dc_hadr") and datasource_key != "dc_hadr_validation_timeout":
                                     db_dict["spec"]["datasource_configuration"]["dc_os_datasources"][os_number].pop(
                                         datasource_key)
                             else:
+                                # DB2RDSHADR uses the same servername and port as primary server 
+                                if self._db_properties["DATABASE_TYPE"].lower() == "db2hadr":
+                                    standby_server_name = remove_protocol(self._db_properties[prop_key]['HADR_STANDBY_SERVERNAME'])
+                                    standby_server_port = self._db_properties[prop_key]['HADR_STANDBY_PORT']
+                                else:
+                                    standby_server_name = remove_protocol(self._db_properties[prop_key]['DATABASE_SERVERNAME'])
+                                    standby_server_port = self._db_properties[prop_key]['DATABASE_PORT']
+
                                 db_dict["spec"]["datasource_configuration"]["dc_os_datasources"][os_number][
-                                    "dc_hadr_standby_servername"] = remove_protocol(self._db_properties[prop_key][
-                                                                                        'HADR_STANDBY_SERVERNAME'])
+                                    "dc_hadr_standby_servername"] = standby_server_name
                                 db_dict["spec"]["datasource_configuration"]["dc_os_datasources"][os_number][
-                                    "dc_hadr_standby_port"] = self._db_properties[prop_key]['HADR_STANDBY_PORT']
+                                    "dc_hadr_standby_port"] = standby_server_port
+                                
                             if self._db_properties["DATABASE_TYPE"].lower() != "oracle":
                                 if "oracle" in datasource_key:
                                     db_dict["spec"]["datasource_configuration"]["dc_os_datasources"][os_number].pop(
@@ -553,6 +575,20 @@ class GenerateCR:
                     base_dict["spec"]["shared_configuration"]["trusted_certificate_list"].append(
                         secret_name)
 
+            # Add the certs for IDP and SCIM
+            # These secrets are added generated ssl folder
+
+            if os.path.exists(os.path.join(self._generate_folder, "ssl")):
+                ssl_cert_secrets = collect_visible_files(
+                    os.path.join(self._generate_folder, "ssl"))
+                for secret in ssl_cert_secrets:
+                    # check if the secret is related to idp or scim
+                    # check if the secret name contains idp or oidc
+                    if "idp" in secret.lower()  or "scim" in secret.lower():
+                        secret_name = secret.split(".")[0]
+                        base_dict["spec"]["shared_configuration"]["trusted_certificate_list"].append(
+                            secret_name)
+
             # when roks is enabled we need to have an ingress parameter set to false
             if self._deployment_properties["PLATFORM"].lower() == "roks":
                 base_dict["spec"]["shared_configuration"]["sc_ingress_enable"] = False
@@ -577,10 +613,16 @@ class GenerateCR:
             if self._deployment_properties["FNCM_Version"] not in ["5.5.8", "5.5.11"]:
                 base_dict["spec"]["shared_configuration"]["enable_fips"] = self._deployment_properties[
                     "FIPS_SUPPORT"]
-                base_dict["spec"]["shared_configuration"]["sc_egress_configuration"][
-                    "sc_restricted_internet_access"] = \
-                    self._deployment_properties[
-                        "RESTRICTED_INTERNET_ACCESS"]
+                if self._deployment_properties["FNCM_Version"] not in ["5.7.0"]:
+                    base_dict["spec"]["shared_configuration"]["sc_egress_configuration"][
+                        "sc_restricted_internet_access"] = \
+                        self._deployment_properties[
+                            "RESTRICTED_INTERNET_ACCESS"]
+                else:
+                    base_dict["spec"]["shared_configuration"][
+                        "sc_generate_sample_network_policies"] = \
+                        self._deployment_properties[
+                            "GENERATE_NETWORK_POLICIES"]
 
             self._merged_data.update(base_dict)
 
@@ -630,6 +672,33 @@ class GenerateCR:
             for param in ingress_params:
                 if param in self._merged_data["spec"]["shared_configuration"].keys():
                     self._merged_data["spec"]["shared_configuration"].pop(param)
+    
+    # function to generate the egress section
+    def populate_egress_section(self):        
+        egress_dict = self.load_cr_template(self._egress_template)
+        if "sc_api_namespace" in self._deployment_properties.keys():
+            egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"]["sc_api_namespace"] = self._deployment_properties[
+                "sc_api_namespace"]
+        else:
+            egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"].pop("sc_api_namespace")
+        if "sc_api_port" in self._deployment_properties.keys():
+            egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"]["sc_api_port"] = \
+                self._deployment_properties["sc_api_port"]
+        else:
+            egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"].pop("sc_api_port")
+        if "sc_dns_namespace" in self._deployment_properties.keys():
+            egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"]["sc_dns_namespace"] = \
+                self._deployment_properties["sc_dns_namespace"]
+        else:
+            egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"].pop("sc_dns_namespace")
+        if "sc_dns_port" in self._deployment_properties.keys():
+            egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"]["sc_dns_port"] = \
+                self._deployment_properties["sc_dns_port"]
+        else:
+            egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"].pop("sc_dns_port")
+        
+        if egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"].keys():
+            self._merged_data["spec"]["shared_configuration"].update(egress_dict["spec"]["shared_configuration"])
 
     # function to generate the additional ldap section (multi ldap case)
     def populate_multi_ldap_section(self):
@@ -736,6 +805,24 @@ class GenerateCR:
                         os_list_element["oc_cpe_obj_store_admin_user_groups"]:
                     os_list_element["oc_cpe_obj_store_admin_user_groups"].append(
                         self._usergroup_properties["FNCM_LOGIN_USER"])
+                    
+                if self._deployment_properties["FNCM_Version"] not in ["5.5.8", "5.5.9", "5.5.11", "5.5.12"]:
+                    if "LOB_TABLESPACE" in self._db_properties[ele].keys():
+                        if self._db_properties["DATABASE_TYPE"] != "postgresql":
+                            os_list_element.yaml_set_comment_before_after_key(
+                                key="oc_cpe_obj_store_symb_name",
+                                before="oc_cpe_obj_store_lob_storage_location: " +
+                                       self._db_properties[ele]["LOB_TABLESPACE"], indent=8)
+                    if "INDEX_TABLESPACE" in self._db_properties[ele].keys():
+                        os_list_element.yaml_set_comment_before_after_key(
+                            key="oc_cpe_obj_store_symb_name",
+                            before="oc_cpe_obj_store_index_storage_location: " +
+                                   self._db_properties[ele]["INDEX_TABLESPACE"], indent=8)
+                    if "DATA_TABLESPACE" in self._db_properties[ele].keys():
+                        os_list_element.yaml_set_comment_before_after_key(
+                            key="oc_cpe_obj_store_symb_name",
+                            before="oc_cpe_obj_store_table_storage_location: " + 
+                                    self._db_properties[ele]["DATA_TABLESPACE"], indent=8)
 
                 # Populating the PE WorkFlow Section if required
                 if ele in self._usergroup_properties.keys():
@@ -759,29 +846,7 @@ class GenerateCR:
 
                             os_list_element.update(pe_workflow_dict)
 
-                # Populating the OS Table Storage Location
-                if self._deployment_properties["FNCM_Version"] not in ["5.5.8", "5.5.9", "5.5.11", "5.5.12"]:
-                    if ele in self._usergroup_properties.keys():
-                        os_tablespace_dict = CommentedMap()
-                        # TODO: Issue with MSSQL Primary Tablespace
-                        # if "DATA_TABLESPACE" in self._db_properties[ele].keys():
-                        #     os_tablespace_dict["oc_cpe_obj_store_table_storage_location"] = self._db_properties[ele][
-                        #         "DATA_TABLESPACE"]
-                        if "INDEX_TABLESPACE" in self._db_properties[ele].keys():
-                            os_tablespace_dict["oc_cpe_obj_store_index_storage_location"] = self._db_properties[ele][
-                                "INDEX_TABLESPACE"]
-
-                        os_list_element.update(os_tablespace_dict)
-
                 os_list_section.append(os_list_element.copy())
-
-                if ele in self._usergroup_properties.keys():
-                    if "LOB_TABLESPACE" in self._db_properties[ele].keys():
-                        if self._db_properties["DATABASE_TYPE"] != "postgresql":
-                            os_list_section[count].yaml_set_comment_before_after_key(
-                                key="oc_cpe_obj_store_index_storage_location",
-                                before="oc_cpe_obj_store_lob_storage_location: " +
-                                       self._db_properties[ele]["LOB_TABLESPACE"], indent=8)
 
             init_dict["spec"]["initialize_configuration"]["ic_obj_store_creation"]["object_stores"] = os_list_section
             self._merged_data["spec"].update(init_dict["spec"])

@@ -23,6 +23,12 @@
       "Support for Restricted Internet Access"
     ]
   },
+  "GENERATE_NETWORK_POLICIES": {
+    "value": false,
+    "comment": [
+      "Use this parameter to make operator generate Network Policy Templates"
+    ]
+  },
   "FIPS_SUPPORT": {
     "value": false,
     "comment": [

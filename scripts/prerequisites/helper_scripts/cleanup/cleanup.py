@@ -149,7 +149,7 @@ class CleanDeployment:
             self._logger.info("Error in logic for checking when resources are deleted -", e)
 
         progress.log()
-        progress.log(Panel(Text("All resources have been deleted successfully...", style="bold green")))
+        progress.log(Panel(Text("All resources have been deleted successfully..."), style="bold green"))
         progress.advance(task1)
 
     def collect_operator_details(self):

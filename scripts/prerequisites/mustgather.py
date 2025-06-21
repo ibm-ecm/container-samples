@@ -18,6 +18,7 @@ import tarfile
 from datetime import datetime
 
 import typer
+import click
 from rich import print
 from rich.console import Console
 from rich.logging import RichHandler
@@ -26,6 +27,7 @@ from rich.progress import (BarColumn, Progress,
                            SpinnerColumn, TaskProgressColumn, TextColumn,
                            TimeElapsedColumn)
 from rich.prompt import Confirm
+from rich.text import Text
 from typing_extensions import Annotated
 
 from helper_scripts.gather import gather as g
@@ -35,12 +37,13 @@ from helper_scripts.utilities import kubernetes_utilites as k
 from helper_scripts.utilities.interface import (
     clear,
     display_issues,
-    display_prereq_passed, mustgather_details)
+    display_prereq_passed, mustgather_details, mustgather_network_results)
 from helper_scripts.utilities.utilities import prereq_checks
+from pathlib import Path
 
-__version__ = "4.4.4"
+__version__ = "5.0.0"
 
-# app = typer.Typer()
+app = typer.Typer()
 
 state = {
     "verbose": False,
@@ -84,7 +87,6 @@ def version_callback(value: bool):
     if value:
         print(f"FileNet Content Manager MustGather CLI: {__version__}")
         raise typer.Exit()
-
 
 def display_mode_version(mode: str, description: str):
     """
@@ -184,7 +186,7 @@ def tar_mustgather_folder(mustgather_folder, progress, namespace):
     except Exception as e:
         state["logger"].exception("Unable to tar logs, caught %s Exiting...", e)
 
-
+@app.callback(invoke_without_command=True)
 def main(
         version: Annotated[bool, typer.Option(
             "--version", help="Show version and exit.",
@@ -198,6 +200,9 @@ def main(
         dryrun: Annotated[bool, typer.Option(
             help="Perform Dry Run of the mustgather script",
             rich_help_panel="Customization and Utils")] = False):
+
+    if click.get_current_context().invoked_subcommand == "networkpolicy":
+        return
     """
     FileNet Content Manager MustGather
     """
@@ -546,6 +551,128 @@ def main(
             progress.advance(task5)
             progress.stop()
 
+@app.command()
+def networkpolicy(apply: bool = typer.Option(False, help="Apply all generated network policies to the cluster")):
+    """
+    Collect the Network policy templates from the FNCM Standalone Operator
+    """
+    clear(console)
+    display_mode_version("Gather Network Policies",
+                        "FileNet Content Manager MustGather for Container Deployment")
+
+    checks = ["kubectl", "connection"]
+
+    missing_tools, results, files = prereq_checks(logger=state["logger"], prereqs=checks)
+    if len(missing_tools) > 0 or len(files) > 0:
+        layout = display_issues(tools=missing_tools, descriptors=files)
+        print(layout)
+        exit(1)
+    else:
+        prereq_summary = display_prereq_passed(results)
+        print(prereq_summary)
+        print()
+    if apply:
+        setup = g.GatherOptions(state["logger"], console, script_type="must_gather")
+        setup.collect_namespace()
+        kube = k.KubernetesUtilities(state["logger"])
+        deployment_details = {}
+
+        # Collect Operator details
+        operator_deployment = "ibm-fncm-operator"
+        namespace = setup.namespace
+        operator_details = kube.get_operator_details(namespace, operator_deployment)
+        if operator_details['release'] not in ['5.7.0']:
+            print(Text(f"Current operator release is {operator_details['release']}\n"
+                    f"Only operators from 5.7.0 and later releases will generate network policy templates", style="red"))
+            raise typer.Exit()
+        np_folder = os.path.join(os.getcwd(), "FNCMNetworkPolicies")
+        must_gather = mg.MustGather(console, namespace, state["logger"], np_folder, deployment_details, operator_details, kube)
+        if os.path.exists(np_folder):
+            print()
+            print(Panel.fit(Text(f"Found {os.path.basename(np_folder)} Folder. Applying existing network policies"), style="cyan"))
+            print()
+            must_gather.auto_apply_networkpolicy()
+        else:
+            print()
+            print(Panel.fit(Text(f"{os.path.basename(np_folder)} Folder not found. Starting Copying Network policy Templates"), style="cyan"))
+            print()
+            with Progress(SpinnerColumn(),
+                        TextColumn("[progress.description]{task.description}"),
+                        BarColumn(),
+                        transient=True,
+                        console=console) as progress:
+                if operator_details:
+                    task1 = progress.add_task("[cyan]Collect Network Policies", total=None)
+                    must_gather.collect_network_policy_templates(progress,operator_details) 
+                    progress.update(task1, total=1, completed=1)
+                else:
+                    print(Panel.fit(Text("FNCM Standalone Operator not found in namespace."),style="bold red"))
+                    raise typer.Exit()
+
+            # Output Network Policy Template folder
+            print()
+            print(Panel.fit(Text("Applying downloaded network policies"), style="cyan"))
+            print()
+            must_gather.auto_apply_networkpolicy()
+        raise typer.Exit()
+
+    else:        
+        setup = g.GatherOptions(state["logger"], console, script_type="must_gather")
+        setup.collect_namespace()
+        kube = k.KubernetesUtilities(state["logger"])
+
+        deployment_details = {}
+
+        # Collect Operator details
+        operator_deployment = "ibm-fncm-operator"
+        namespace = setup.namespace
+        operator_details = kube.get_operator_details(namespace, operator_deployment)
+        if operator_details['release'] not in ['5.7.0']:
+            print(Text(f"Current operator release is {operator_details['release']}\n"
+                    f"Only operators from 5.7.0 and later releases will generate network policy templates", style="red"))
+            raise typer.Exit()
+        np_folder = os.path.join(os.getcwd(), "FNCMNetworkPolicies")
+
+        must_gather = mg.MustGather(console, namespace, state["logger"], np_folder, deployment_details,operator_details, kube)
+        if os.path.exists(np_folder):
+            namespace_no_spaces = re.sub(r"\s+", "", namespace)
+            now = datetime.now()
+            dt_string = now.strftime("%Y-%m-%d_%H-%M")
+            tar_file_name = os.getcwd() + "/backups/" + "FNCMNetworkPolicies" + "_"  + namespace_no_spaces + "_" + dt_string + ".tar.gz"
+            if not os.path.exists(os.path.join(os.getcwd(), "backups")):
+                os.mkdir(os.path.join(os.getcwd(), "backups"))
+            try:
+                with tarfile.open(tar_file_name, "w:gz") as tar:
+                    tar.add(np_folder, arcname=os.path.basename(np_folder))
+                    shutil.rmtree(np_folder)
+            except Exception as e:
+                 state["logger"].exception("Unable to tar network policies, caught %s Exiting...", e)
+
+        print()
+        print(Panel.fit(Text("Starting Copying Network policy Templates"), style="cyan"))
+        print()
+        with Progress(SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    BarColumn(),
+                    transient=True,
+                    console=console) as progress:
+            if operator_details:
+                task1 = progress.add_task("[cyan]Collect Network Policies", total=None)
+                must_gather.collect_network_policy_templates(progress,operator_details) 
+                progress.update(task1, total=1, completed=1)
+            else:
+                print(Panel.fit(Text("FNCM Standalone Operator not found in namespace."),style="bold red"))
+                raise typer.Exit()
+
+
+        results = mustgather_network_results(np_folder, namespace)
+        print(results)
+        print()
+
+        apply_networkpolicy = Confirm.ask("Do you want to apply the retrieved network policies to your cluster?", default=False)
+        if apply_networkpolicy:
+            must_gather.auto_apply_networkpolicy()
+        raise typer.Exit()
 
 if __name__ == "__main__":
-    typer.run(main)
+    app()
