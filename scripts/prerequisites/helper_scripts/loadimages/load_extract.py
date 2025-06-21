@@ -41,7 +41,7 @@ class LoadExtract:
     class AirgapChannel:
         Channel = Enum(
             value='Channel',
-            names=[("v22.1", "5.5.9"), ("v22.2", "5.5.10"), ("v23.1", "5.5.11"), ("v23.2", "5.5.12"), ("v24.0", "5.6.0")]
+            names=[("v22.1", "5.5.9"), ("v22.2", "5.5.10"), ("v23.1", "5.5.11"), ("v23.2", "5.5.12"), ("v24.0", "5.6.0"), ("v25.0", "5.7.0")]
         )
 
         def __init__(self, channel: Channel):
@@ -60,7 +60,7 @@ class LoadExtract:
         if 'VERSION' in version_data:
             self._fncm_version = version_data['VERSION']
         else:
-            self._fncm_version = '5.6.0'
+            self._fncm_version = '5.7.0'
 
         if 'ALL_CHANNELS' in version_data:
             self._all_channel = version_data['ALL_CHANNELS']
@@ -110,7 +110,7 @@ class LoadExtract:
         self._case_versions = {}
         self._case_versions_parsed = {}
 
-        self._casepackage_version = "5.6.0"
+        self._casepackage_version = "5.7.0"
         self._casename = "ibm-cp-fncm-case"
 
         self._airgap_vars = {}

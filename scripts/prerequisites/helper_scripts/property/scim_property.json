@@ -5,6 +5,13 @@
       "Display name of SCIM provider."
     ]
   },
+  "SCIM_TYPE": {
+    "value": "AUTO_DETECT",
+    "comment": [
+      "Type of SCIM provider.",
+      "Valid values are 'AUTO_DETECT', 'SCIM_11', 'SCIM_20', 'IBM_IAM' or 'IBM_Verify'."
+    ]
+  },
   "SCIM_SSL_ENABLED": {
     "value": "<Required>",
     "comment": [

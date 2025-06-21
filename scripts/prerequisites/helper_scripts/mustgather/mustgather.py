@@ -16,7 +16,7 @@ from rich.panel import Panel
 from rich.text import Text
 
 from ..utilities.prerequisites_utilites import write_yaml_to_file, write_log_to_file
-
+from pathlib import Path
 
 # Create a MustGather Class
 
@@ -30,7 +30,7 @@ class MustGather:
         self._kube = kube
         self._mustgather_folder = mustgather_folder
         self._namespace = namespace
-        self._version = "5.6.0"
+        self._version = "5.7.0"
         self._cr_name = ""
         if "name" in self._deployment_details.keys():
             self._cr_name = deployment_details["name"]
@@ -451,6 +451,64 @@ class MustGather:
             self._logger.info("Unable to retrieve storage classes, caught %s Skipping...", e)
             progress.log(Text(f"Unable to retrieve storage classes", style="bold red"))
             progress.log()
+    def collect_network_policy_templates(self,progress, operator_details):
+        policies_folder_path = os.path.join(self._mustgather_folder, "templates")
+        if not os.path.exists(policies_folder_path):
+            os.makedirs(policies_folder_path)
+            progress.log()
+            progress.log("Creating Network Policy Templates folder")
+        else:
+            progress.log()
+            progress.log("Using existing Network Policy Templates folder")
+
+        operator_pods = operator_details["pods"]
+        try:
+            if len(operator_pods) == 0:
+                progress.log()
+                progress.log(Text(f"No Operator pods found", style="bold red"))
+                return
+            progress.log()
+            progress.log("Collecting Egress Network Policy Templates")
+            progress.log()
+            progress.log("Collecting Ingress Network Policy Templates")
+            command = f'kubectl exec -n {self._namespace} {operator_pods[0]} -- bash -c "cd /tmp && [ -d {self._namespace} ] && tar -zcf - {self._namespace}/" | tar xzf - -C {policies_folder_path}'
+            subprocess.run(command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+            progress.log()
+            progress.log(Panel.fit("Network Policy Templates Collection Completed", style="bold green"))
+        except Exception as e:
+            progress.log()
+            progress.log(Text(f"Network Policy from Templates not found in Operator\n\n"
+                              f"Make sure shared_configuration.sc_generate_sample_network_policies: true is present in CR\n"
+                              f"If the parameter is enabled in CR, wait for a reconcile for the operator to generate the templates", style="bold red"))
+            progress.log()
+    
+    def auto_apply_networkpolicy(self):
+        content_egress_folder_path=os.path.join(self._mustgather_folder, "templates",self._namespace,"network-policies","Content","egress")
+        content_ingress_folder_path=os.path.join(self._mustgather_folder, "templates",self._namespace,"network-policies","Content","ingress")
+        ier_egress_folder_path=os.path.join(self._mustgather_folder, "templates",self._namespace,"network-policies","IER","egress")
+        ier_ingress_folder_path=os.path.join(self._mustgather_folder, "templates",self._namespace,"network-policies","IER","ingress")
+        iccsap_egress_folder_path=os.path.join(self._mustgather_folder, "templates",self._namespace,"network-policies","ICCSAP","egress")
+        iccsap_ingress_folder_path=os.path.join(self._mustgather_folder, "templates",self._namespace,"FNCMNetworkPolicies","ICCSAP","ingress")
+        egress_files = list(Path(content_egress_folder_path).glob("*.yaml")) + list(Path(content_egress_folder_path).glob("*.yml")) + list(Path(ier_egress_folder_path).glob("*.yaml")) + list(Path(ier_egress_folder_path).glob("*.yml")) + list(Path(iccsap_egress_folder_path).glob("*.yaml")) + list(Path(iccsap_egress_folder_path).glob("*.yml"))
+        ingress_files = list(Path(content_ingress_folder_path).glob("*.yaml")) + list(Path(content_ingress_folder_path).glob("*.yml")) + list(Path(ier_ingress_folder_path).glob("*.yaml")) + list(Path(ier_ingress_folder_path).glob("*.yml")) + list(Path(iccsap_ingress_folder_path).glob("*.yaml")) + list(Path(iccsap_ingress_folder_path).glob("*.yml"))
+        if len(egress_files) == 0:
+            self._logger.error(f"No egress network policy files found in FNCMNetworkPolicies/")
+        if len(ingress_files) == 0:
+            self._logger.error(f"No ingress network policy files found in FNCMNetworkPolicies/")
+        for file in egress_files + ingress_files :
+            kubectl_cmd = "kubectl apply -f \"" + str(file) + "\""
+            response = None
+            try:
+                response = subprocess.check_output(kubectl_cmd, shell=True, stderr=subprocess.PIPE, universal_newlines=True)
+            except subprocess.CalledProcessError as error:
+                if "metadata.resourceVersion" in str(error.stderr):
+                    kubectl_cmd = "kubectl replace -f \"" + str(file) + "\""
+                    response = subprocess.check_output(kubectl_cmd, shell=True, stderr=subprocess.PIPE,
+                                                    universal_newlines=True)
+                else:
+                    self._logger.exception(
+                        f"Exception applying '{str(file)}' -  {str(error.stderr)}")
+            self._console.print(Panel.fit(Text(response.strip(), style="bold cyan")))
 
     # Function to collect CPE information
     def collect_cpe_info(self, progress, collect_sensitive, pods=list, init_containers=list):

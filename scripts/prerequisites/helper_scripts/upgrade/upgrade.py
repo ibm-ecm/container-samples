@@ -19,6 +19,7 @@ from rich import print
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.text import Text
+from pathlib import Path
 
 from ..utilities import kubernetes_utilites as k
 from ..utilities.prerequisites_utilites import zip_folder, write_yaml_to_file
@@ -86,9 +87,13 @@ class Upgrade:
         for file in modified_files:
             self.tmp_file_paths[file] = os.path.join(os.getcwd(), ".tmp", file)
 
-        self._cr_template_save_location = os.path.join(os.getcwd(), "FNCMCustomResource")
+        self._download_location = os.path.join(os.getcwd(), "FNCMUpgrade")
+        self._cr_template_save_location = os.path.join(os.getcwd(), "FNCMUpgrade", "CustomResources")
         self._current_cr_template_save_location = ""
         self._updated_cr_template_save_location = ""
+        self._networkwork_policy_save_location = os.path.join(os.getcwd(), "FNCMUpgrade", "NetworkPolicies")
+        self._networkwork_policy_ingress_save_location= os.path.join(self._networkwork_policy_save_location, "Ingress")
+        self._networkwork_policy_egress_save_location = os.path.join(self._networkwork_policy_save_location, "Egress")
 
         if "catalogType" in self._operator_details:
             self._catalog_type = self._operator_details["catalogType"]
@@ -105,7 +110,7 @@ class Upgrade:
             self._deployment_type = "olm"
             self._task_numbers = {
                 "UpgradeSetup": 3,
-                "Upgrade": 3,
+                "Upgrade": 4,
             }
             if "type" in self._operator_details:
                 if self._operator_details["type"] == "YAML":
@@ -125,6 +130,10 @@ class Upgrade:
             }
 
         self._updates_list = []
+
+    @property
+    def download_location(self):
+        return self._download_location
 
     @property
     def cr_template_save_location(self):
@@ -334,7 +343,7 @@ class Upgrade:
             retries = 0
             progress.log(f"Waiting for IBM FileNet Content Manager Operator Catalog Pod to start")
             progress.log()
-            while retries < 20:
+            while retries < 40:
                 pods = self._core_v1_api.list_namespaced_pod(self._catalog_namespace)
                 running_pods = [pod.metadata.name for pod in pods.items if
                                 "ibm-fncm-operator-catalog" in pod.metadata.name and pod.status.phase == "Running"]
@@ -346,11 +355,11 @@ class Upgrade:
                     break
                 else:
                     retries = retries + 1
-                    progress.log(f"FileNet Content Management Catalog deployment in progress ({retries + 1}/20) ")
+                    progress.log(f"FileNet Content Management Catalog deployment in progress ({retries + 1}/40) ")
                     progress.log()
                     sleep(5)
 
-            if retries == 20:
+            if retries == 40:
                 progress.log(Text("Timeout Waiting for IBM FileNet Content Manager Operator Catalog pod to start",
                                   style="bold red"))
                 progress.log()
@@ -393,7 +402,7 @@ class Upgrade:
             retries = 0
             progress.log(f"Checking rollout status of FileNet Content Management Operator deployment")
             progress.log()
-            while retries < 20:
+            while retries < 40:
                 pods = self._core_v1_api.list_namespaced_pod(self._namespace)
                 running_pods = [pod.metadata.name for pod in pods.items if
                                 "ibm-fncm-operator" in pod.metadata.name and "catalog" not in pod.metadata.name and pod.status.phase == "Running" and
@@ -406,11 +415,11 @@ class Upgrade:
                     break
                 else:
                     retries = retries + 1
-                    progress.log(f"FileNet Content Management Operator upgrade in progress ({retries + 1}/20) ")
+                    progress.log(f"FileNet Content Management Operator upgrade in progress ({retries + 1}/40) ")
                     progress.log()
                     sleep(15)
 
-            if retries == 20:
+            if retries == 40:
                 progress.log(Text("Timeout Waiting for IBM FileNet Content Manager Operator pod to start",
                                   style="bold red"))
                 progress.log()
@@ -418,7 +427,7 @@ class Upgrade:
                 progress.log("Please check the status of Pod by issuing the below command:")
                 progress.log()
                 progress.log(Syntax(
-                    f"kubectl describe pod $(kubectl get pod -n {self._namespace} | grep ibm-fncm-operator | awk '{{print $1}}') -n ${self._namespace}",
+                    f"kubectl describe pod $(kubectl get pods -n {self._namespace} -l 'name=ibm-fncm-operator' | awk '{{print $1}}') -n ${self._namespace}",
                     "bash"))
                 exit()
 
@@ -532,8 +541,168 @@ class Upgrade:
 
         self.wait_for_operator(progress, task)
 
+    def convert_keys_to_camel_case(self, obj):
+        KEYS_TO_REMOVE = {
+            "status",
+            "managedFields",
+            "creationTimestamp",
+            "ownerReferences",
+        }
+
+        def snake_to_camel(snake_str):
+            components = snake_str.lstrip('_').split('_') 
+            return components[0] + ''.join(x.title() for x in components[1:])
+
+        if isinstance(obj, dict):
+            new_dict = {}
+            for k, v in obj.items():
+                key_no_underscore = k.lstrip('_')
+                camel_key = snake_to_camel(key_no_underscore)
+
+                if camel_key in KEYS_TO_REMOVE or v is None:
+                    continue
+
+                new_dict[camel_key] = self.convert_keys_to_camel_case(v)
+            return new_dict
+        elif isinstance(obj, list):
+            return [self.convert_keys_to_camel_case(i) for i in obj if i is not None]
+        else:
+            return obj
+
+    def clean_networkpolicies(self, network_policy_path):
+        np_files = list(Path(network_policy_path).glob("*.yaml")) + list(Path(network_policy_path).glob("*.yml"))
+        for file in np_files:
+            with open(file, 'r') as f:
+                data = yaml.safe_load(f)
+            np_case_converted = self.convert_keys_to_camel_case(data)
+                            # Remove unused sections from the CR
+            remove_fields = ["creationTimestamp",
+                                "generation",
+                                "resourceVersion",
+                                "uid",
+                                "managedFields"]
+            for field in remove_fields:
+                if field in np_case_converted["metadata"].keys():
+                    del np_case_converted["metadata"][field]
+            if "annotations" in np_case_converted["metadata"].keys():
+                if 'kubectl.kubernetes.io/last-applied-configuration' in np_case_converted["metadata"]["annotations"]:
+                    del np_case_converted["metadata"]["annotations"]['kubectl.kubernetes.io/last-applied-configuration']
+                if not np_case_converted["metadata"]["annotations"]:
+                    del np_case_converted["metadata"]["annotations"]
+            with open(file, 'w') as f:
+                yaml.safe_dump(np_case_converted, f, default_flow_style=False, sort_keys=False)
+
+    def collect_network_policy_info(self):
+        resource_type_dict = self._kube.list_namespace_resources(console=self._console,
+                                                               namespace=self._namespace,
+                                                               platform=self._setup.platform,
+                                                               filter=self._cr_details["name"])
+        
+        if len(resource_type_dict["network_policy"]) == 0:
+            self._logger.info("There exists no network policy managed by the operator")
+            return False
+        
+        # Create folder for network policies if it does not exist
+        self._networkwork_policy_save_location = os.path.join(os.getcwd(), "FNCMUpgrade", "NetworkPolicies")
+        if not os.path.exists(self._networkwork_policy_save_location):
+            os.makedirs(self._networkwork_policy_save_location)
+
+        if not os.path.exists(self._networkwork_policy_ingress_save_location):
+            os.makedirs(self._networkwork_policy_ingress_save_location)
+
+        if not os.path.exists(self._networkwork_policy_egress_save_location):
+            os.makedirs(self._networkwork_policy_egress_save_location)
+
+        try:
+            self._logger.info("Starting Network Policy Information Collection")
+            for network_policy in resource_type_dict["network_policy"]:
+                self._logger.info(f"Collecting network policy {network_policy}")
+                if "ingress" in network_policy:
+                    path = os.path.join(
+                    f"{self._networkwork_policy_ingress_save_location}",
+                    f"{network_policy}.yaml")
+                else:
+                    path = os.path.join(
+                        f"{self._networkwork_policy_egress_save_location}",
+                        f"{network_policy}.yaml")
+                if os.path.isfile(path):
+                    self._logger.info("Network Policy file already exists.")
+                else:
+                    network_policy_response = self._kube.describe_network_policy(network_policy, self._namespace)
+                    write_yaml_to_file(network_policy_response, path)
+            self.clean_networkpolicies(self._networkwork_policy_ingress_save_location)
+            self.clean_networkpolicies(self._networkwork_policy_egress_save_location)
+
+            self._logger.info("Network Policies have been downloaded")
+            self._updates_list.append("Network Policies downloaded")
+            return True
+                
+        except Exception as e:
+            self._logger.info("Unable to retrieve network policies, caught %s Skipping...", e)
+
+    def update_network_policy(self, progress):
+        resource_type_dict = self._kube.resource_type_dict
+        try:
+            progress.log()
+            progress.log(Panel.fit("Starting Network Policy Patch", style="cyan"))
+            progress.log()
+            for network_policy in resource_type_dict["network_policy"]:
+                self._kube.remove_network_policy_owner_reference(progress= progress,network_policy_name= network_policy,namespace= self._namespace)
+            if resource_type_dict["network_policy"] :
+                progress.log(Panel.fit("Network Policy Information Collection Completed", style="bold green"))
+                progress.log(Panel.fit("Owner references for existing Network policy has been removed", style="bold green"))
+                progress.log()
+            else:
+                progress.log(Panel.fit("There exists no network policy managed by the FNCM Standalone Operator", style="bold green"))
+                progress.log()
+        except Exception as e:
+            self._logger.info("Unable to retrieve network policies, caught %s Skipping...", e)
+
+    def remove_custom_ssl_secrets(self, progress):
+        resource_type_dict = self._kube.resource_type_dict
+        try:
+
+            cr_name = self._cr_details["name"]
+
+            secrets = [
+                f"{cr_name}-fncm-custom-ssl-secret",
+                f"{cr_name}-ban-custom-ssl-secret"
+            ]
+
+            if 'secret' in resource_type_dict:
+                progress.log()
+                progress.log(Panel.fit("Starting Custom SSL Certificates Patch", style="cyan"))
+                progress.log()
+                for secret in secrets:
+                    if secret in resource_type_dict["secret"]:
+                        self._kube.delete_secret(namespace=self._namespace, name=secret )
+                        progress.log(f"Secret '{secret}' patched successfully.")
+                        progress.log()
+                
+                progress.log(Panel.fit("Custom SSL Certificates Patch Completed", style="bold green"))
+                progress.log()
+        
+        except Exception as e:
+            self._logger.info(f"Unable to retrieve secrets: {e}")
+        
+
+
+
     # Function to update certain CR parameters , used in the upgrade script
     def update_cr_values(self):
+        """
+        Updates the current Custom Resource (CR) values based on the Full Custom Resource Template.
+
+        This function reads the Full Custom Resource Template and updates the current CR with the latest values.
+        It handles various aspects such as release, appVersion, image tags, resource requests and limits,
+        and initialization/verification fields.
+
+        Parameters:
+        self (object): An instance of the class containing necessary attributes and methods.
+
+        Returns:
+        tuple: A tuple containing the updated CR details and a list of updates made.
+        """
         try:
             cr_details = self._current_cr.copy()
             fc_template_cr = self.required_file_paths["ibm_fncm_cr_production_FC_content.yaml"]
@@ -577,6 +746,42 @@ class Upgrade:
                                                      dictionary2=fc_template_cr_details, logger=self._logger)
                             except KeyError as e:
                                 self._logger.info(e)
+            
+            # Check if component boolean list exists 
+            if not is_key_present(cr_details, key="content_optional_components"):
+                self._logger.info("No content_optional_components found in custom resource file")
+                # Copy entire component boolean structure 
+                component_boolean = fc_template_cr_details['spec']["content_optional_components"].copy()
+                self._logger.info("Add new structure and updating all components to false")
+                # Update boolean list to false
+                component_list = ['cpe', 'graphql', "cmis", "css", "es", "tm", "ban", "iccsap", "ier"]
+                for component in component_list:
+                    component_boolean[component] = False
+
+                cr_details["spec"]["content_optional_components"] = component_boolean
+
+            # Convert pattern into boolean list
+            if is_key_present(cr_details, key="sc_deployment_patterns"):
+                self._logger.info("Converting deployment pattern")
+                if cr_details["spec"]["shared_configuration"]["sc_deployment_patterns"].lower() == "content":
+                    component_list = ['cpe', 'graphql', "ban"]
+                    for component in component_list:
+                        cr_details["spec"]["content_optional_components"][component] = True
+                    cr_details["spec"]["shared_configuration"].pop("sc_deployment_patterns")
+                update_list.append("Updated content pattern to new format")
+            
+            # Convert optional component list to boolean list 
+            if is_key_present(cr_details, key="sc_optional_components"):
+                self._logger.info("Converting optional component list")
+                component_string = cr_details["spec"]["shared_configuration"]["sc_optional_components"]
+                # Split string into list 
+                component_list = component_string.split(",")
+                for component in component_list:
+                    if component in cr_details["spec"]["content_optional_components"]:
+                        cr_details["spec"]["content_optional_components"][component] = True
+                cr_details["spec"]["shared_configuration"].pop("sc_optional_components")
+                update_list.append("Updated optional components to new format")
+                
 
             # Update resource requests and limits
             # TODO: Make sure limits are higher than currently listed
@@ -601,6 +806,14 @@ class Upgrade:
                                              limits=True, logger=self._logger)
                     except KeyError as e:
                         self._logger.info(e)
+            try:
+                if self._version_details["version"] == "5.7.0" and is_key_present(cr_details, key="sc_restricted_internet_access"):
+                    if cr_details["spec"]["shared_configuration"]["sc_egress_configuration"]["sc_restricted_internet_access"]:
+                        update_list.append("Enabled sc_generate_sample_network_policies")
+                        cr_details["spec"]["shared_configuration"]["sc_generate_sample_network_policies"] = True
+            except Exception as e:
+                self._logger.exception(
+                    f"Exception while enabling sc_generate_sample_network_policies", e)
 
             # Disable init and verify
             # Takes into account the OLM and script format
@@ -619,9 +832,10 @@ class Upgrade:
                     cr_details["spec"]["shared_configuration"]["sc_content_verification"] = False
                     update_list.append("Disabled Content Verification")
 
-                if is_key_present(cr_details, key="initialize_configuration"):
-                    cr_details["spec"].pop("initialize_configuration")
-                    update_list.append("Removed initialize_configuration section")
+                if not is_key_present(cr_details, key="scim_configuration"):
+                    if is_key_present(cr_details, key="initialize_configuration"):
+                        cr_details["spec"].pop("initialize_configuration")
+                        update_list.append("Removed initialize_configuration section")
                 if is_key_present(cr_details, key="verify_configuration"):
                     cr_details["spec"].pop("verify_configuration")
                     update_list.append("Removed verify_configuration section")
@@ -643,6 +857,16 @@ class Upgrade:
 
     # Function to prepare the upgrade CR and save it in the .tmp folder
     def prepare_upgrade_cr(self):
+        """
+        This function prepares for an upgrade of the Custom Resource (CR) by retrieving the current CR,
+        backing up the existing CR folder, and generating an updated CR file.
+
+        Parameters:
+        self (object): An instance of the class containing this method.
+
+        Returns:
+        None
+        """
 
         self._current_cr = self._kube.get_deployment_cr(
             namespace=self._namespace, logger=self._logger)
@@ -659,19 +883,21 @@ class Upgrade:
         self._cr_details = cr_details
 
         # Backup existing Custom Resource folder
-        if os.path.exists(self._cr_template_save_location):
-            self._logger.info("Backup existing Custom Resource folder")
+        if os.path.exists(self._download_location):
+            self._logger.info("Backup existing Upgrade folder")
             if not os.path.exists(os.path.join(os.getcwd(), "backups")):
                 os.mkdir(os.path.join(os.getcwd(), "backups"))
             now = datetime.now()
             dt_string = now.strftime("%Y-%m-%d_%H-%M")
-            zip_folder(os.path.join(os.getcwd(), "backups", "FNCMCustomResource" + dt_string),
-                       os.path.join(os.getcwd(), "FNCMCustomResource"))
-            shutil.rmtree(self._cr_template_save_location)
-            os.mkdir(self._cr_template_save_location)
+            zip_folder(os.path.join(os.getcwd(), "backups", "FNCMUpgrade" + dt_string),
+                       os.path.join(os.getcwd(), "FNCMUpgrade"))
+            shutil.rmtree(self._download_location)
+            os.makedirs(self._download_location)
+            os.makedirs(self._cr_template_save_location)
         else:
-            self._logger.info("Creating FNCMCustomResource folder")
-            os.mkdir(self._cr_template_save_location)
+            self._logger.info("Creating FNCMUpgrade folder")
+            os.makedirs(self._download_location)
+            os.makedirs(self._cr_template_save_location)
 
         # Get Version info
         current_version = cr_details["version"]
@@ -700,8 +926,11 @@ class Upgrade:
     # additional logic is there to scale up the pods if required which can be done using scale="up"
     def scale_pods(self, scale="down", progress=None):
         try:
+
+            upgrade_version = self._version_details["version"]
+
             progress.log()
-            progress.log(Panel.fit("Scaling down IBM FileNet Content Manager Deployment pods", style="green"))
+            progress.log(Panel.fit("Scaling down IBM FileNet Content Manager Deployments", style="green"))
 
             cr_name = self._cr_details["name"]
             deployments = self._kube.get_deployments_by_owner_reference(
@@ -709,72 +938,74 @@ class Upgrade:
                 owner_reference_name=cr_name)
 
             progress.log()
-            progress.log(f"Scaling down older operator pod before upgrading")
+            progress.log(f"Scaling down current FNCM Standalone Operator pod before upgrading")
 
             # Scale down older operator pod before upgrading
             operator_deployment = self._operator_details["deployment"]
             self._kube.scale_operator_deployment(namespace=self._namespace,
                                                  deployment_name=operator_deployment,
                                                  scale="down")
+            
+            if upgrade_version in ["5.6.0"]:
 
-            progress.log()
-            progress.log("Collecting IBM FileNet Content Manager Deployment pods to scale down")
-            if deployments:
-                pods_to_scale = []
-                for deployment in deployments:
-                    deploymemt_name = deployment.metadata.name
+                progress.log()
+                progress.log("Collecting IBM FileNet Content Manager Deployment pods to scale down")
+                if deployments:
+                    pods_to_scale = []
+                    for deployment in deployments:
+                        deploymemt_name = deployment.metadata.name
+                        progress.log()
+                        progress.log(Panel.fit(f"Scaling down pods for deployment: {deploymemt_name}"), style="cyan")
+                        pods = self._kube.get_pods_for_deployment(
+                            namespace=self._namespace,
+                            deployment_name=deploymemt_name)
+                        if pods:
+                            for pod in pods:
+                                pod_name = pod.metadata.name
+                                progress.log()
+                                progress.log(f"Scaling down pod: {pod_name}")
+                                pods_to_scale.append(pod_name)
+                        else:
+                            continue
+
+                else:
+                    pods_to_scale = []
                     progress.log()
-                    progress.log(Panel.fit(f"Scaling down pods for deployment: {deploymemt_name}"), style="cyan")
-                    pods = self._kube.get_pods_for_deployment(
-                        namespace=self._namespace,
-                        deployment_name=deploymemt_name)
-                    if pods:
-                        for pod in pods:
-                            pod_name = pod.metadata.name
+                    progress.log(
+                        Text("No deployment related pods are running which means no pods need to be scaled down",
+                            style="bold green"))
+                if pods_to_scale:
+                    self._kube.scale_pods_in_namespace(
+                        namespace=self._namespace, deployments=deployments, scale=scale)
+                    retries = 0
+                    progress.log()
+                    progress.log(f"Waiting for pods to gracefully shutdown - {retries + 1}/40")
+                    while retries < 40:
+                        pods_present = []
+                        pods = self._core_v1_api.list_namespaced_pod(self._namespace)
+                        for pod in pods.items:
+                            pods_present.append(pod.metadata.name)
+                        all_pods_deleted = any(item in pods_present for item in pods_to_scale)
+                        if all_pods_deleted:
+                            sleep(30)
+                            retries = retries + 1
                             progress.log()
-                            progress.log(f"Scaling down pod: {pod_name}")
-                            pods_to_scale.append(pod_name)
-                    else:
-                        continue
-
-            else:
-                pods_to_scale = []
-                progress.log()
-                progress.log(
-                    Text("No deployment related pods are running which means no pods need to be scaled down",
-                         style="bold green"))
-            if pods_to_scale:
-                self._kube.scale_pods_in_namespace(
-                    namespace=self._namespace, deployments=deployments, scale=scale)
-                retries = 0
-                progress.log()
-                progress.log(f"Waiting for pods to gracefully shutdown - {retries + 1}/40")
-                while retries < 40:
-                    pods_present = []
-                    pods = self._core_v1_api.list_namespaced_pod(self._namespace)
-                    for pod in pods.items:
-                        pods_present.append(pod.metadata.name)
-                    all_pods_deleted = any(item in pods_present for item in pods_to_scale)
-                    if all_pods_deleted:
-                        sleep(30)
-                        retries = retries + 1
+                            progress.log(f"Waiting for pods to gracefully shutdown - {retries + 1}/40")
+                        else:
+                            progress.log()
+                            progress.log(Text("All FNCM pods have been scaled down", style="bold green"))
+                            break
+                    if retries == 40:
                         progress.log()
-                        progress.log(f"Waiting for pods to gracefully shutdown - {retries + 1}/40")
-                    else:
-                        progress.log()
-                        progress.log(Text("All FNCM pods have been scaled down", style="bold green"))
-                        break
-                if retries == 40:
+                        progress.log(Text("Timeout waiting for all FNCM pods to scale down", style="bold red"))
+                        progress.log("Please check the status of the Pods by issuing the below command")
+                        progress.log(Syntax(f"kubectl get pods -n {self._namespace} ", "bash"))
+                        exit(1)
+                else:
                     progress.log()
-                    progress.log(Text("Timeout waiting for all FNCM pods to scale down", style="bold red"))
-                    progress.log("Please check the status of the Pods by issuing the below command")
-                    progress.log(Syntax(f"kubectl get pods -n {self._namespace} ", "bash"))
-                    exit(1)
-            else:
-                progress.log()
-                progress.log(
-                    Text("No deployment related pods are running which means no pods need to be scaled down",
-                         style="bold green"))
+                    progress.log(
+                        Text("No deployment related pods are running which means no pods need to be scaled down",
+                            style="bold green"))
         except Exception as e:
             progress.log()
             progress.log(

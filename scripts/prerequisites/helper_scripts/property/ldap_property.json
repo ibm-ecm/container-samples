@@ -14,7 +14,7 @@
   "LDAP_SERVER": {
     "value": "<Required>",
     "comment": [
-      "The host of the LDAP server."
+      "The host of the LDAP server. If using IPv6, enclose the addresses in square brackets ([...])"
     ]
   },
   "LDAP_PORT": {

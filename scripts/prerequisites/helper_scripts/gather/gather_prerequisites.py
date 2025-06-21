@@ -22,6 +22,8 @@ from rich import print
 from rich.panel import Panel
 from rich.prompt import Confirm, IntPrompt, Prompt
 from rich.text import Text
+from urllib.parse import urlparse
+
 
 
 # create a class to gather all deployment options from the user for the prerequisite scripts
@@ -30,7 +32,7 @@ class GatherPrereqOptions:
     class Version:
         FNCMVersion = Enum(
             value='FNCMVersion',
-            names=[("5.5.8", 1), ("5.5.11", 2), ("5.5.12", 3), ("5.6.0", 4)]
+            names=[("5.5.8", 1), ("5.5.11", 2), ("5.5.12", 3), ("5.6.0", 4), ("5.7.0", 5)]
         )
 
         def __init__(self, fncm_version: FNCMVersion):
@@ -77,16 +79,18 @@ class GatherPrereqOptions:
             self._discovery_enabled = discovery_enabled
             self._idp_id = idp_id
             self._validation_method = "introspect"
-            self._introspect_url = None
-            self._userinfo_url = None
-            self._token_url = None
-            self._revoke_url = None
-            self._issuer = None
-            self._client_id = None
-            self._client_secret = None
+            self._introspect_url = "<Required>"
+            self._userinfo_url = "<Required>"
+            self._token_url = "<Required>"
+            self._revoke_url = "<Required>"
+            self._issuer = "<Required>"
+            self._client_id = "<Required>"
+            self._client_secret = "<Required>"
+            self._jwks_url = "<Required>"
             self._user_identifier = "sub"
             self._unique_user_identifier = "sub"
             self._user_identifier_to_sub = "sub"
+            self._ssl_enabled = True
 
         # Create a function to parse the json return from discovery url
         def parse_discovery_url(self):
@@ -133,6 +137,15 @@ class GatherPrereqOptions:
                             if "issuer" in json:
                                 self._issuer = json["issuer"]
 
+                            if "jwks_uri" in json:
+                                self._jwks_url = json["jwks_uri"]
+
+                            # Check if the discovery url is https scheme
+                            if urlparse(url).scheme == "https":
+                                self._ssl_enabled = True
+                            else:
+                                self._ssl_enabled = False
+
                             return True
 
                     else:
@@ -156,6 +169,7 @@ class GatherPrereqOptions:
                 "validation_method": self._validation_method,
                 "introspect_url": self._introspect_url,
                 "userinfo_url": self._userinfo_url,
+                "jwks_url": self._jwks_url,
                 "token_url": self._token_url,
                 "revoke_url": self._revoke_url,
                 "issuer": self._issuer,
@@ -163,7 +177,8 @@ class GatherPrereqOptions:
                 "client_secret": self._client_secret,
                 "user_identifier": self._user_identifier,
                 "unique_user_identifier": self._unique_user_identifier,
-                "user_identifier_to_sub": self._user_identifier_to_sub
+                "user_identifier_to_sub": self._user_identifier_to_sub,
+                "ssl_enabled": self._ssl_enabled
             }
 
     # Create an enum for all the database types
@@ -173,6 +188,9 @@ class GatherPrereqOptions:
         oracle = 5
         sqlserver = 3
         postgresql = 4
+        # Adding DB2 RDS and DB2 RDS HADR to the list of database types the user can select from ( only from 5.7.0)
+        db2rds = 6
+        db2rdsHADR = 7
 
     class AuthType(Enum):
         LDAP = 1
@@ -232,11 +250,12 @@ class GatherPrereqOptions:
         self._logger = logger
         self._console = console
         self._ssl_directory_list = []
-        self._fncm_version = "5.6.0"
+        self._fncm_version = "5.7.0"
         self._sendmail_support = False
         self._icc_support = False
         self._tm_custom_groups = False
         self._egress_support = False
+        self._np_support = False
         self._fips_support = False
         self._auth_type = self.AuthType(1).name
 
@@ -252,6 +271,10 @@ class GatherPrereqOptions:
     @property
     def egress_support(self):
         return self._egress_support
+
+    @property
+    def np_support(self):
+        return self._np_support
 
     @property
     def fips_support(self):
@@ -425,9 +448,8 @@ class GatherPrereqOptions:
                     xml_type = ldap_dict['configuration']['@implementorid']
                     if "tivoli" in xml_type:
                         result = 2
-                    elif "adam" in xml_type:
-                        result = 1
-                    elif "activedirectory" in xml_type:
+                    # Need to search the string for .ad to support federated.ad and standalone.ad
+                    elif any(x in xml_type for x in ["adam", "activedirectory", ".ad"]):
                         result = 1
                     elif "ca" in xml_type:
                         result = 7
@@ -435,10 +457,11 @@ class GatherPrereqOptions:
                         result = 3
                     elif "oid" in xml_type:
                         result = 4
-                    elif "oracledirectoryse" in xml_type:
+                    elif any(x in xml_type for x in ["oracledirectoryse","sunjavads"]):
                         result = 5
                     else:
-                        print("Unknown LDAP type")
+                        print(Text(f"Unable to parse XML file: {ldap_file}\n"
+                                   f"Unknown LDAP type", style='bold red'))
 
                     # Determine if SSL is enabled
                     for prop in ldap_dict['configuration']['property']:
@@ -483,7 +506,7 @@ class GatherPrereqOptions:
     # Function to collect Egress related info
     def collect_egress_info(self):
         try:
-            if self.fncm_version == "5.5.12" or self.fncm_version == "5.6.0":
+            if self.fncm_version in ["5.5.12", "5.6.0"]:
                 print(Panel.fit("Restricted Internet Access"))
                 print()
                 print("Restricted Internet Access is a security feature that restricts outbound network access.")
@@ -491,6 +514,24 @@ class GatherPrereqOptions:
                 result = Confirm.ask("Do you want to enable Restricted Internet Access")
                 if result:
                     self._egress_support = True
+
+        except Exception as e:
+            self._logger.exception(
+                f"Exception from gather script in FNCM S collect version function -  {str(e)}")
+    
+    def collect_networkpolicy_info(self):
+        try:
+            if self.fncm_version in ["5.7.0"]:
+                print(Panel.fit("Generate Network Policies Templates"))
+                print()
+                print("Network Policies are used to control the network traffic to and from the pods in your cluster.")
+                print("Network Policies are not installed automatically by the operator, but can be generated.")
+                print("The operator can generate network policy templates for both egress and ingress that can be applied manually.")
+                print()
+                print()
+                result = Confirm.ask("Do you want to generate Network Policies templates for your deployment?")
+                if result:
+                    self._np_support = True
 
         except Exception as e:
             self._logger.exception(
@@ -840,13 +881,14 @@ class GatherPrereqOptions:
                 print("2. 5.5.11")
                 print("3. 5.5.12")
                 print("4. 5.6.0")
-                result = IntPrompt.ask('Enter a valid option [[b]1[/b] and [b]4[/b]]')
+                print("5. 5.7.0")
+                result = IntPrompt.ask('Enter a valid option [[b]1[/b] and [b]5[/b]]')
 
-                if 1 <= result <= 4:
+                if 1 <= result <= 5:
                     self._fncm_version = self.Version.FNCMVersion(result).name
                     break
 
-                print("[prompt.invalid] Number must be between [[b]1[/b] and [b]4[/b]]")
+                print("[prompt.invalid] Number must be between [[b]1[/b] and [b]5[/b]]")
 
 
         except Exception as e:
@@ -856,7 +898,7 @@ class GatherPrereqOptions:
     # Function to collect FIPS related info
     def collect_fips_info(self):
         try:
-            if self.fncm_version == "5.5.12" or self.fncm_version == "5.6.0":
+            if self.fncm_version in ["5.5.12", "5.6.0", "5.7.0"]:
                 print(Panel.fit("FIPS (Federal Information Processing Standard)"))
                 print()
                 print("FIPS is a U.S. government computer security standard.")
@@ -918,7 +960,7 @@ class GatherPrereqOptions:
                     f"IBM Content Foundation license information here: {icf_license_url}\n"
                     f"IBM Content Platform Engine Software Notices here: {cpe_notices_url}\n"
                     f"IBM Cloud Pak for Business Automation license information here: {cp4ba_license_url}"))
-            else:
+            elif self._fncm_version == "5.6.0":
                 fncm_license_url = Text("https://ibm.biz/CPE_FNCM_License_5_6_0",
                                         style="link https://ibm.biz/CPE_FNCM_License_5_6_0")
                 icf_license_url = Text("https://ibm.biz/CPE_ICF_License_5_6_0",
@@ -931,6 +973,28 @@ class GatherPrereqOptions:
                                           style="link https://ibm.biz/iccsap_license_4002")
                 cp4ba_license_url = Text("https://ibm.biz/cp4ba_license_2400",
                                          style="link https://ibm.biz/cp4ba_license_2400")
+
+                print(Panel.fit(
+                    f"IMPORTANT: Review the license information for the product bundle you are deploying.\n\n"
+                    f"IBM FileNet Content Manager license information here: {fncm_license_url}\n"
+                    f"IBM Content Foundation license information here: {icf_license_url}\n"
+                    f"IBM Content Platform Engine Software Notices here: {cpe_notices_url}\n"
+                    f"IBM Enterprise Records information here: {ier_license_url}\n"
+                    f"IBM Content Collector for SAP license information here: {iccsap_license_url}\n"
+                    f"IBM Cloud Pak for Business Automation license information here: {cp4ba_license_url}"))
+            else:
+                fncm_license_url = Text("https://ibm.biz/CPE_FNCM_License_5_7_0",
+                                        style="link https://ibm.biz/CPE_FNCM_License_5_7_0")
+                icf_license_url = Text("https://ibm.biz/CPE_ICF_License_5_7_0",
+                                       style="link https://ibm.biz/CPE_ICF_License_5_7_0")
+                cpe_notices_url = Text("https://ibm.biz/CPE_FNCM_ICF_Notices_5_7_0",
+                                       style="link https://ibm.biz/CPE_FNCM_ICF_Notices_5_7_0")
+                ier_license_url = Text("https://ibm.biz/ier_license_521",
+                                       style="link https://ibm.biz/ier_license_521")
+                iccsap_license_url = Text("https://ibm.biz/iccsap_license_4002",
+                                          style="link https://ibm.biz/iccsap_license_4002")
+                cp4ba_license_url = Text("https://ibm.biz/cp4ba_license_2500",
+                                         style="link https://ibm.biz/cp4ba_license_2500")
 
                 print(Panel.fit(
                     f"IMPORTANT: Review the license information for the product bundle you are deploying.\n\n"
@@ -1008,13 +1072,29 @@ class GatherPrereqOptions:
                     print("2. IBM Db2 HADR")
                     print("3. Microsoft SQL Server")
                     print("4. PostgreSQL")
-                    result = IntPrompt.ask('Enter a valid option [[b]1[/b] and [b]4[/b]]')
+                    # Adding DB2 RDS and DB2 RDS HADR to the list of database types the user can select from ( only from 5.7.0)
+                    if self.fncm_version in ["5.7.0"]:
+                        # Adding Oracle SSL for FIPS in 5.7.0
+                        print("5. Oracle")
+                        print("6. IBM Db2 RDS")
+                        print("7. IBM Db2 RDS HADR")
+                        result = IntPrompt.ask('Enter a valid option [[b]1[/b] and [b]7[/b]]')
+                    else:
+                        result = IntPrompt.ask('Enter a valid option [[b]1[/b] and [b]4[/b]]')
 
-                    if 1 <= result <= 4:
-                        self._db_type = self.DatabaseType(result).name
-                        break
+                    if self.fncm_version in ["5.7.0"]:
+                        if 1 <= result <= 7:
+                            self._db_type = self.DatabaseType(result).name
+                            break
+                    else:
+                        if 1 <= result <= 4:
+                            self._db_type = self.DatabaseType(result).name
+                            break
 
-                    print("\n[prompt.invalid]Number must be between [[b]1[/b] and [b]4[/b]]")
+                    if self.fncm_version in ["5.7.0"]:
+                        print("\n[prompt.invalid]Number must be between [[b]1[/b] and [b]6[/b]]")
+                    else:
+                        print("\n[prompt.invalid]Number must be between [[b]1[/b] and [b]4[/b]]")
                 else:
                     print()
                     print("Select a Database Type")
@@ -1023,13 +1103,25 @@ class GatherPrereqOptions:
                     print("3. Microsoft SQL Server")
                     print("4. PostgreSQL")
                     print("5. Oracle")
-                    result = IntPrompt.ask('Enter a valid option [[b]1[/b] and [b]5[/b]]')
+                    if self.fncm_version in ["5.7.0"]:
+                        print("6. IBM Db2 RDS")
+                        print("7. IBM Db2 RDS HADR")
+                        result = IntPrompt.ask('Enter a valid option [[b]1[/b] and [b]7[/b]]')
+                    else:
+                        result = IntPrompt.ask('Enter a valid option [[b]1[/b] and [b]5[/b]]')
 
-                    if 1 <= result <= 5:
-                        self._db_type = self.DatabaseType(result).name
-                        break
-
-                    print("\n[prompt.invalid]Number must be between [[b]1[/b] and [b]5[/b]]")
+                    if self.fncm_version in ["5.7.0"]:
+                        if 1 <= result <= 7:
+                            self._db_type = self.DatabaseType(result).name
+                            break
+                    else:
+                        if 1 <= result <= 5:
+                            self._db_type = self.DatabaseType(result).name
+                            break
+                    if self.fncm_version in ["5.7.0"]:
+                        print("\n[prompt.invalid]Number must be between [[b]1[/b] and [b]7[/b]]")
+                    else:
+                        print("\n[prompt.invalid]Number must be between [[b]1[/b] and [b]5[/b]]")
 
 
         except Exception as e:
@@ -1068,6 +1160,8 @@ class GatherPrereqOptions:
         try:
             if self._auth_type == "SCIM_IDP":
                 self._idp_number = 1
+                self._scim_number = 1
+                self._ssl_directory_list.append("scim")
             else:
                 print(Panel.fit("Identity Provider (IDP)"))
                 while True:
@@ -1088,24 +1182,26 @@ class GatherPrereqOptions:
         try:
             for i in range(self._idp_number):
                 if i == 0:
-                    idp_id = "Idp"
+                    idp_id = "idp"
                 else:
-                    idp_id = f"Idp{i + 1}"
+                    idp_id = f"idp{i + 1}"
+
+                self._ssl_directory_list.append(idp_id)
 
                 print()
                 print(Panel.fit(f"IDP ID: {idp_id}"))
 
                 while True:
                     print()
-                    print(
-                        "Most IDP's support a discovery endpoint. Discovery Endpoints are used to retrieve the IDP configuration.")
+                    print("Discovery Endpoints can used to retrieve the IDP configuration.\n"
+                          "If you do not have a discovery endpoint, you can still configure the IDP manually.\n"
+                          "Discovery endpoints URLs typically end with '/.well-known/openid-configuration'")
                     print()
                     discovery_enabled = Confirm.ask("Does this IDP support discovery?")
 
                     if discovery_enabled:
                         print()
-                        url = Prompt.ask('Enter a valid URL for the IDP discovery endpoint\n'
-                                         'Example: https://verify.ibm.com/.well-known/openid-configuration')
+                        url = Prompt.ask("Enter a valid URL for the IDP discovery endpoint")
 
                         if self.check_discovery_url(url):
                             idp = self.Idp(discovery_enabled, idp_id, url)
