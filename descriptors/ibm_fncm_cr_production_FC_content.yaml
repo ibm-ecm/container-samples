@@ -23,12 +23,12 @@ spec:
   ##########################################################################
   appVersion: 23.0.2
 
-  ## MUST exist, used to accept ibm license, valid value only can be "true"
+  ## MUST exist, used to accept ibm license; valid value only can be "true"
   license:
     accept:
   
   ## Operator used to have a required PVC before 5.5.9 release, named operator-shared-pvc by default.
-  ## If your deployment set a different name, you need to uncomment this and set your PVC name here in order to reuse the ICCSAP and JDBC drivers in it.
+  ## If your deployment set a different name, you need to uncomment this and set your PVC name here to reuse the ICCSAP and JDBC drivers in it.
   ## var_operator_pvc: operator-shared-pvc
   
   ## The optional components to be installed if listed here.  The user can choose what components to be installed.
@@ -43,7 +43,7 @@ spec:
     ban: false 
 
   shared_configuration:
-    ## This is the deployment context is FNCM. No update it required.
+    ## This is the deployment context for FNCM Standalone. No update is required.
     sc_deployment_context: FNCM
 
     ## All FNCM components must use/share the image_pull_secrets to pull images.
@@ -86,7 +86,7 @@ spec:
       ## Default are "openshift-kube-apiserver", "openshift-apiserver" for OCP and ROKS.
       ## Possible values are "kube-system", "default", "kube-public" for other.
       sc_api_namespace:
-      ## Optional.  Kubernetes API server port(s) (comma separated) to be used for egress network policy when `sc_restricted_internet_access: true` and `sc_deployment_platform: "other"`. 
+      ## Optional.  Kubernetes API server port(s) (comma separated) to be used for egress network policy when `sc_restricted_internet_access: true` and `sc_deployment_platform: "other"`.
       ## Default are 443,6443 for OCP, ROKS, other
       sc_api_port:
       ## Optional.  Kubernetes DNS service namespace(s) (comma separated) to be used for egress network policy when `sc_restricted_internet_access: true` and `sc_deployment_platform: "other"`.
@@ -94,7 +94,7 @@ spec:
       ## Default is "openshift-dns" for OCP and ROKS.
       ## Possible values are "kube-system", "default", "kube-public" for other.
       sc_dns_namespace:
-      ## Optional.  Kubernetes DNS service port(s) (comma separated) to be used for egress network policy when `sc_restricted_internet_access: true` and `sc_deployment_platform: "other"`. 
+      ## Optional.  Kubernetes DNS service port(s) (comma separated) to be used for egress network policy when `sc_restricted_internet_access: true` and `sc_deployment_platform: "other"`.
       ## Default are 53,5353 for OCP, ROKS and other
       sc_dns_port:
 
@@ -119,8 +119,12 @@ spec:
     sc_deployment_profile_size: "small"
     
     ## Specify the RunAsUser for the security context of the pod.  This is usually a numeric value that corresponds to a user ID.
-    ## For non-OCP (e.g., CNCF platforms such as AWS, GKE, etc), this parameter is optional. It is not supported on OCP and ROKS.
+    ## For non-OCP (e.g., CNCF platforms such as EKS, AKS, GKE, etc.), this parameter is optional. It is not supported on OCP and ROKS.
     sc_run_as_user:
+
+    ## Specify the fsGroup for the security context of the pod.  This is usually a numeric value that corresponds to a group ID.
+    ## For non-OCP (e.g., CNCF platforms such as EKS, AKS, GKE, etc.), this parameter is optional. It is not supported on OCP and ROKS.
+    sc_fs_group:
 
     ## The platform to be deployed specified by the user.  Possible values are: OCP, ROKS, and other.
     sc_deployment_platform: "<Required>"
@@ -153,7 +157,7 @@ spec:
     images:
       keytool_init_container:
         repository: cp.icr.io/cp/cp4a/common/dba-keytool-initcontainer
-        tag: "5.5.12-IF004"
+        tag: "5.5.12-IF005"
     
     ## This is necessary if you want to use your own JDBC drivers and/or need to provide ICCSAP drivers.  If you are providing multiple JDBC drivers and ICCSAP drivers, 
     ## all the files must be compressed in a single file.
@@ -195,9 +199,9 @@ spec:
     # css: false
     # ban: false
 
-    ## On OCP 3.x and 4.x, these three (3) parameters  for "enterprise" deployment.
-    ## when deploying you would provide the different storage classes for the slow, medium
-    ## and fast storage parameters below.  If you only have 1 storage class defined, then you can use that 1 storage class for all 3 parameters.
+
+   ## Provide the storage class names for the storage. It can be one storage class for all storage classes or can provide different one for each.
+   ## Operator will use the provided storage classes to provision required PVC volumes.
     storage_configuration:
       sc_slow_file_storage_classname: "<Required>"
       sc_medium_file_storage_classname: "<Required>"
@@ -226,7 +230,7 @@ spec:
       #inbound_propagation: "supported"
       #https_required: "true"
       #validation_method: "introspect"
-      #disable_ltpa_cookie: "false"
+      #disable_ltpa_cookie: "true"
       #signature_algorithm: "RS256"
       #user_identifier: "sub"
       #unique_user_identifier: "sub"
@@ -284,7 +288,7 @@ spec:
     lc_ldap_port: "<Required>"
 
     ## The LDAP bind secret for LDAP authentication.  The secret is expected to have ldapUsername and ldapPassword keys.  Refer to IBM Documentation for more info.
-    lc_bind_secret: ldap-bind-secret 
+    lc_bind_secret: ldap-bind-secret
 
     ## The LDAP base DN.  For example, "dc=example,dc=com", "dc=abc,dc=com", etc
     lc_ldap_base_dn: "<Required>"
@@ -361,9 +365,6 @@ spec:
 
     ## The port of the LDAP server to connect.  Some possible values are: 389, 636, etc.
     #lc_ldap_port: "<Required>"
-
-    ## The LDAP bind secret for LDAP authentication.  The secret is expected to have ldap<id_name>Username and ldap<id_name>Password keys.  Refer to IBM Documentation for more info.
-    #lc_bind_secret: ldap-bind-secret
 
     ## The LDAP base DN.  For example, "dc=example,dc=com", "dc=abc,dc=com", etc
     #lc_ldap_base_dn: "<Required>"
@@ -616,6 +617,7 @@ spec:
       dc_database_type: "<Required>"
       ## Provide the ICN datasource name.  The default value is "ECMClientDS".
       dc_common_icn_datasource_name: "ECMClientDS"
+      ## Provide the database server name or IP address of the database server, not applicable to Oracle which requires a JDBC URL.  If using an IPv6 literal, enclose it in square brackets [].
       database_servername: "<Required>"
       ## Provide the database server port.  For Db2, the default is "50000". Not applicable to Oracle which requires a JDBC URL.
       database_port: "<Required>"
@@ -732,7 +734,7 @@ spec:
     ####################################
     cpe:
       ## To connect to the spectrum storage, provide the TLS certificate.
-      # spectrum_certificate_list: []
+      #spectrum_certificate_list: []
 
       ## The architecture of the cluster.  This is the default for Linux on x86 and should not be changed.
       arch:
@@ -746,7 +748,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cpe
-        tag: ga-5512-p8cpe-if004
+        tag: ga-5512-p8cpe-if005
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -814,9 +816,9 @@ spec:
         ##  -Dmy.test.jvm.arg2=abc
         ##  -XX:+SomeJVMSettings
         ##  -XshowSettings:vm"
-        ## Then set the following: jvm_customize_options="-Dmy.test.jvm.arg1=123,-Dmy.test.jvm.arg2=abc,-XX:+SomeJVMSettings,-XshowSettings:vm"
-        ## If your JVM option contains comma then you have to include 'DELIM=;' to use a different separator, for example jvm_customize_options="DELIM=;-Dmy.test.jvm.arg1=123;-Dcom.filenet.authentication.wsi.AuthTokenOrder=oauth,oidc,ltpa". Semicolon can be replaced with any other char.
-        ## If your JVM option contains double quotes then you need to escape it like this: jvm_customize_options="-Dsettings.navigator.default=logging.level={\"_value\":\"4\",\"_mergeOption\":\"replace\"}"
+        ## Then set the following: jvm_customize_options: "-Dmy.test.jvm.arg1=123,-Dmy.test.jvm.arg2=abc,-XX:+SomeJVMSettings,-XshowSettings:vm"
+        ## If your JVM option contains comma then you have to include 'DELIM=;' to use a different separator, for example jvm_customize_options: "DELIM=;-Dmy.test.jvm.arg1=123;-Dcom.filenet.authentication.wsi.AuthTokenOrder=oauth,oidc,ltpa". Semicolon can be replaced with any other char.
+        ## If your JVM option contains double quotes then you need to escape it like this: jvm_customize_options: "-Dsettings.navigator.default=logging.level={\"_value\":\"4\",\"_mergeOption\":\"replace\"}"
 
         jvm_customize_options:
 
@@ -917,7 +919,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/css
-        tag: ga-5512-p8css-if004
+        tag: ga-5512-p8css-if005
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1015,7 +1017,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cmis
-        tag: ga-307-cmis-la805
+        tag: ga-307-cmis-la901
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1064,9 +1066,9 @@ spec:
         ##  -Dmy.test.jvm.arg2=abc
         ##  -XX:+SomeJVMSettings
         ##  -XshowSettings:vm"
-        ## Then set the following: jvm_customize_options="-Dmy.test.jvm.arg1=123,-Dmy.test.jvm.arg2=abc,-XX:+SomeJVMSettings,-XshowSettings:vm"
-        ## If your JVM option contains comma then you have to include 'DELIM=;' to use a different separator, for example jvm_customize_options="DELIM=;-Dmy.test.jvm.arg1=123;-Dcom.filenet.authentication.wsi.AuthTokenOrder=oauth,oidc,ltpa". Semicolon can be replaced with any other char.
-        ## If your JVM option contains double quotes then you need to escape it like this: jvm_customize_options="-Dsettings.navigator.default=logging.level={\"_value\":\"4\",\"_mergeOption\":\"replace\"}"
+        ## Then set the following: jvm_customize_options: "-Dmy.test.jvm.arg1=123,-Dmy.test.jvm.arg2=abc,-XX:+SomeJVMSettings,-XshowSettings:vm"
+        ## If your JVM option contains comma then you have to include 'DELIM=;' to use a different separator, for example jvm_customize_options: "DELIM=;-Dmy.test.jvm.arg1=123;-Dcom.filenet.authentication.wsi.AuthTokenOrder=oauth,oidc,ltpa". Semicolon can be replaced with any other char.
+        ## If your JVM option contains double quotes then you need to escape it like this: jvm_customize_options: "-Dsettings.navigator.default=logging.level={\"_value\":\"4\",\"_mergeOption\":\"replace\"}"
         jvm_customize_options:
 
         ## Enable/disable Web Services Security
@@ -1176,7 +1178,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/graphql
-        tag: ga-5512-p8cgql-if004
+        tag: ga-5512-p8cgql-if005
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1220,9 +1222,9 @@ spec:
         ##  -Dmy.test.jvm.arg2=abc
         ##  -XX:+SomeJVMSettings
         ##  -XshowSettings:vm"
-        ## Then set the following: jvm_customize_options="-Dmy.test.jvm.arg1=123,-Dmy.test.jvm.arg2=abc,-XX:+SomeJVMSettings,-XshowSettings:vm"
-        ## If your JVM option contains comma then you have to include 'DELIM=;' to use a different separator, for example jvm_customize_options="DELIM=;-Dmy.test.jvm.arg1=123;-Dcom.filenet.authentication.wsi.AuthTokenOrder=oauth,oidc,ltpa". Semicolon can be replaced with any other char.
-        ## If your JVM option contains double quotes then you need to escape it like this: jvm_customize_options="-Dsettings.navigator.default=logging.level={\"_value\":\"4\",\"_mergeOption\":\"replace\"}"
+        ## Then set the following: jvm_customize_options: "-Dmy.test.jvm.arg1=123,-Dmy.test.jvm.arg2=abc,-XX:+SomeJVMSettings,-XshowSettings:vm"
+        ## If your JVM option contains comma then you have to include 'DELIM=;' to use a different separator, for example jvm_customize_options: "DELIM=;-Dmy.test.jvm.arg1=123;-Dcom.filenet.authentication.wsi.AuthTokenOrder=oauth,oidc,ltpa". Semicolon can be replaced with any other char.
+        ## If your JVM option contains double quotes then you need to escape it like this: jvm_customize_options: "-Dsettings.navigator.default=logging.level={\"_value\":\"4\",\"_mergeOption\":\"replace\"}"
         jvm_customize_options:
 
         license_model: FNCM.PVUNonProd
@@ -1297,7 +1299,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/extshare
-        tag: ga-3015-es-if006
+        tag: ga-3015-es-if007
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1405,7 +1407,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/taskmgr
-        tag: ga-3015-tm-if006
+        tag: ga-3015-tm-if007
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1445,9 +1447,9 @@ spec:
         ##  -Dmy.test.jvm.arg2=abc
         ##  -XX:+SomeJVMSettings
         ##  -XshowSettings:vm"
-        ## Then set the following: jvm_customize_options="-Dmy.test.jvm.arg1=123,-Dmy.test.jvm.arg2=abc,-XX:+SomeJVMSettings,-XshowSettings:vm"
-        ## If your JVM option contains comma then you have to include 'DELIM=;' to use a different separator, for example jvm_customize_options="DELIM=;-Dmy.test.jvm.arg1=123;-Dcom.filenet.authentication.wsi.AuthTokenOrder=oauth,oidc,ltpa". Semicolon can be replaced with any other char.
-        ## If your JVM option contains double quotes then you need to escape it like this: jvm_customize_options="-Dsettings.navigator.default=logging.level={\"_value\":\"4\",\"_mergeOption\":\"replace\"}"
+        ## Then set the following: jvm_customize_options: "-Dmy.test.jvm.arg1=123,-Dmy.test.jvm.arg2=abc,-XX:+SomeJVMSettings,-XshowSettings:vm"
+        ## If your JVM option contains comma then you have to include 'DELIM=;' to use a different separator, for example jvm_customize_options: "DELIM=;-Dmy.test.jvm.arg1=123;-Dcom.filenet.authentication.wsi.AuthTokenOrder=oauth,oidc,ltpa". Semicolon can be replaced with any other char.
+        ## If your JVM option contains double quotes then you need to escape it like this: jvm_customize_options: "-Dsettings.navigator.default=logging.level={\"_value\":\"4\",\"_mergeOption\":\"replace\"}"
         jvm_customize_options: "-Dcom.ibm.ecm.task.StartUpListener.defaultLogLevel=FINE"
         license: accept
 
@@ -1552,7 +1554,7 @@ spec:
     image:
       ## The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/ban/navigator
-      tag: ga-3015-icn-if006
+      tag: ga-3015-icn-if007
 
       ## This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
@@ -1646,9 +1648,9 @@ spec:
       ##  -Dmy.test.jvm.arg2=abc
       ##  -XX:+SomeJVMSettings
       ##  -XshowSettings:vm"
-      ## Then set the following: jvm_customize_options="-Dmy.test.jvm.arg1=123,-Dmy.test.jvm.arg2=abc,-XX:+SomeJVMSettings,-XshowSettings:vm"
-      ## If your JVM option contains comma then you have to include 'DELIM=;' to use a different separator, for example jvm_customize_options="DELIM=;-Dmy.test.jvm.arg1=123;-Dcom.filenet.authentication.wsi.AuthTokenOrder=oauth,oidc,ltpa". Semicolon can be replaced with any other char.
-      ## If your JVM option contains double quotes then you need to escape it like this: jvm_customize_options="-Dsettings.navigator.default=logging.level={\"_value\":\"4\",\"_mergeOption\":\"replace\"}"
+      ## Then set the following: jvm_customize_options: "-Dmy.test.jvm.arg1=123,-Dmy.test.jvm.arg2=abc,-XX:+SomeJVMSettings,-XshowSettings:vm"
+      ## If your JVM option contains comma then you have to include 'DELIM=;' to use a different separator, for example jvm_customize_options: "DELIM=;-Dmy.test.jvm.arg1=123;-Dcom.filenet.authentication.wsi.AuthTokenOrder=oauth,oidc,ltpa". Semicolon can be replaced with any other char.
+      ## If your JVM option contains double quotes then you need to escape it like this: jvm_customize_options: "-Dsettings.navigator.default=logging.level={\"_value\":\"4\",\"_mergeOption\":\"replace\"}"
       jvm_customize_options:
 
       icn_jndids_name: ECMClientDS
@@ -1679,6 +1681,9 @@ spec:
     monitor_enabled: false
     ## Default settings for logging
     logging_enabled: false
+
+    ## By default, the plugin for Graphite is enable to emit container metrics.
+    collectd_enable_plugin_write_graphite: false
 
     ## Persistent Volume Claims for ICN.  If the storage_configuration in the shared_configuration is configured,
     ## the Operator will create the PVC using the names below.
@@ -1781,7 +1786,7 @@ spec:
 ##        scim_secret_name: "<Required>"
 ##
 ##        ## SCIM Directory provider Type. Possible Values:
-##        ## - AUTO_DETECT (Recommended)
+##        ## - AUTO_DETECT
 ##        ## - SCIM_11
 ##        ## - SCIM_20
 ##        ## - IBM_IAM
@@ -1820,6 +1825,8 @@ spec:
 #      # Set to "ADAM" only when initializing Microsoft Active Directory Lightweight Directory Services (called AD LDS or ADAM).
 #      # Operator can set other values according to lc_selected_ldap_type.
 #      ic_ldap_type: ""
+#      # Enable users to sign in with their email address or user principle name (UPN).
+#      ic_allow_email_or_upn_short_names: false
 #    ic_obj_store_creation:
 #      object_stores:
 #        - oc_cpe_obj_store_display_name: "OS01" # Required display name of the object store, for example, "OS01"

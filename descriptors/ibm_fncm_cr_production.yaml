@@ -41,11 +41,10 @@ spec:
     ban: true
 
   shared_configuration:
-
-    ## The deployment context as selected.
+    ## This is the deployment context for FNCM Standalone. No update is required.
     sc_deployment_context: FNCM
 
-    ## All FNCM components must use/share the image_pull_secrets to pull images
+    ## All FNCM components must use/share the image_pull_secrets to pull images.
     image_pull_secrets:
     - ibm-entitlement-key
 
@@ -62,7 +61,7 @@ spec:
 
     ## The deployment type as selected.
     sc_deployment_type: production
-    
+
     ## Choose the licensing model for the Product you are installing.
     ## IBM Content Foundation:
     ## - ICF.PVUNonProd
@@ -80,20 +79,30 @@ spec:
     ## - CP4BA.User
     sc_fncm_license_model: "<Required>"
 
-    ## Optional: You can specify a profile size for CloudPak - valid values are small,medium,large - default is small.
+    ## Optional: You can specify a profile size for CloudPak - valid values are small,medium, large - default is small.
     sc_deployment_profile_size: "small"
 
     ## Specify the RunAsUser for the security context of the pod.  This is usually a numeric value that corresponds to a user ID.
-    ## For non-OCP (e.g., CNCF platforms such as AWS, GKE, etc), this parameter is optional. It is not supported on OCP and ROKS.
+    ## For non-OCP (e.g., CNCF platforms such as EKS, AKS, GKE, etc.), this parameter is optional. It is not supported on OCP and ROKS.
     sc_run_as_user:
 
-    ## The platform to be deployed specified by the user.  Possible values are: OCP, ROKS and other.
-    ## based on input from the user.
+    ## Specify the fsGroup for the security context of the pod.  This is usually a numeric value that corresponds to a group ID.
+    ## For non-OCP (e.g., CNCF platforms such as EKS, AKS, GKE, etc.), this parameter is optional. It is not supported on OCP and ROKS.
+    sc_fs_group:
+
+    ## The platform to be deployed specified by the user.  Possible values are: OCP, ROKS, and other.
     sc_deployment_platform: "<Required>"
 
-    ## OCP: Hostname suffix added to the default ingress hostname, this is optional and the default hostname suffix will be {meta.namespace}.
+    ## OCP: Hostname suffix added to the default ingress hostname, this is optional, and the default hostname suffix will be {meta.namespace}.
     ## CNCF: Hostname used to access your deployment. This is required for ingress creation.
-    # sc_deployment_hostname_suffix: "{{ meta.namespace }}.<Required>"
+    #sc_deployment_hostname_suffix: "{{ meta.namespace }}"
+
+    ## Used for single Ingress creation for both ECM and BAN.
+    ## In case any custom annotation is needed for the environment provide below.
+    ##  sc_ingress_annotations:
+    ##   - kubernetes.io/ingress.class: nginx
+    ## To include '{{ }}' in annotation like '{{example}}', add a backward slash before curly brace like '\{\{example\}\}'.
+    #sc_ingress_annotations:
 
     ## If the root certificate authority (CA) key of the external service is not signed by the operator root CA key, provide the TLS certificate of
     ## the external service to the component's truststore.
@@ -112,7 +121,7 @@ spec:
     ## Then you need to put the compressed package on an anonymously accessible web server and provide the link here.
     ## The CR can handle .zip files using unzip as well as .tar, .tar.gz, .tar.bz2, .tar.xz. Does not handle .gz files, .bz2 files, .xz, or .zst files that do not contain a .tar archive.    
     #sc_drivers_url:
-    
+
     ## Enable/disable ECM (FNCM) / BAN initialization (e.g., creation of P8 domain, creation/configuration of object stores,
     ## creation/configuration of CSS servers, and initialization of Navigator (ICN)).  If the "initialize_configuration" section
     ## is defined with the required parameters in the CR (below) and sc_content_initialization is set to "true" (or the parameter doesn't exist), then the initialization will occur.
@@ -121,11 +130,10 @@ spec:
     ## OR
     ## If you want to enable the initialize for a specific product for ECM (FNCM) / BAN, you will need to use
     ## these fields instead.  Otherwise, use the default sc_content_initialization: false
-    # sc_content_initialization:
-    #  cpe: false
-    #  css: false
-    #  ban: false
-
+    #sc_content_initialization:
+    # cpe: false
+    # css: false
+    # ban: false
 
     ## Enable/disable the ECM (FNCM) / BAN verification (e.g., creation of test folder, creation of test document,
     ## execution of CBR search, and creation of Navigator demo repository and desktop).  If the "verify_configuration"
@@ -135,10 +143,10 @@ spec:
     ## OR
     ## If you want to enable the verification for a specific product for ECM (FNCM) / BAN, you will need to use
     ## these fields instead.  Otherwise, use the default sc_content_verification: false
-    # sc_content_verification:
-    #  cpe: false
-    #  css: false
-    #  ban: false
+    #sc_content_verification:
+    # cpe: false
+    # css: false
+    # ban: false
 
 
    ## Provide the storage class names for the storage. It can be one storage class for all storage classes or can provide different one for each.
@@ -147,7 +155,7 @@ spec:
       sc_slow_file_storage_classname: "<Required>"
       sc_medium_file_storage_classname: "<Required>"
       sc_fast_file_storage_classname: "<Required>"
-      
+
     # Enable/disable FIPS mode for the deployment (default value is "false")
     enable_fips: false
     
@@ -162,50 +170,14 @@ spec:
          #nav: "" # Points to a secret with client_id and client_secret in that format.
          #cpe: "" # Points to a secret with client_id and client_secret in that format.
       #issuer_identifier: ""
-      ## COMMON REQUIRED PROPERTIES AND VALUES
-      ## If no value is set, the default value is taken. Uncomment or add new parameters as applicable for your provider.
-      #response_type: "code"
-      #scope: "openid email profile"
-      #map_identity_to_registry_user: "false"
-      #authn_session_disabled: "false"
-      #inbound_propagation: "supported"
-      #https_required: "true"
       #validation_method: "introspect"
-      #disable_ltpa_cookie: "true"
-      #signature_algorithm: "RS256"
+      ### Token Attributes to be used for the user identity.
       #user_identifier: "sub"
       #unique_user_identifier: "sub"
       #user_identity_to_create_subject: "sub"
       ### Uncomment out discovery_endpoint_url
-      ##discovery_endpoint_url:
-      ###
-      ### Optional parameters
-      ###
-      ##authorization_endpoint_url: ""
-      ##token_endpoint_url: ""
-      ##validation_endpoint_url: ""
-      ##trust_alias_name: "secret name you created"
-      ##disables_iss_checking: "true"
-      ##jwk_client_oidc_secret:
-      ##  nav: "" # Points to a secret with client_id and client_secret in that format.
-      ##  cpe: "" # Points to a secret with client_id and client_secret in that format.
-      ##token_reuse: "true"
+      #discovery_endpoint_url: ""
 
-      ###
-      ### User defined parameters.
-      ### If you do not see a parameter that is needed for your OpenId Connect identity provider,
-      ### you can use this section to define key value pairs separated by the delimiter `:`.
-      ### If you want to change the default delimiter, add `DELIM=<NEW_DELIMITER>` in-front of your
-      ### key value pair. Ex: 'DELIM=;myKey;myValue'.  In this example, the new delimiter is `;` and
-      ### the key value pair is set to `myKey;myValue` instead of `myKey:myValue`.
-      ####
-      ##oidc_ud_param:
-      ##- "DELIM=;revokeEndpointUrl;https://xxx/yyy"
-      ##- "DELIM=;introspectEndpointUrl;https:/xxx/zzz"
-      ##- 'DELIM=;myKey;myValue'
-      ##- "myKey2:myValue2"
-      ##- "myKey3:myValue3"
-      
   ## The beginning section of LDAP configuration for FNCM
   ldap_configuration:
     ## The possible values are: "IBM Security Directory Server" 
@@ -443,7 +415,7 @@ spec:
     ## The database_precheck parameter is used to enable or disable CPE/Navigator database connection check.
     ## If set to "true", then CPE/Navigator database connection check will be enabled.
     ## if set to "false", then CPE/Navigator database connection check will not be enabled.
-   # database_precheck: true
+    #database_precheck: true
     ## The database configuration for the GCD datasource for CPE
     dc_gcd_datasource:
       ## Provide the database type from your infrastructure.  The possible values are "db2" or "db2HADR" or "oracle" or "sqlserver" or "postgresql".
@@ -469,8 +441,8 @@ spec:
       dc_hadr_validation_timeout: 15
       ######################################################################################
       ## If the database type is "Db2HADR", then complete the rest of the parameters below.
-      ## Otherwise, remove or comment out the rest of the parameters below.
-      ######################################################################################.
+      ## Provide the database server name or IP address of the standby database server.
+      ######################################################################################
       dc_hadr_standby_servername: "<Required>"
       ## Provide the standby database server port.  For Db2, the default is "50000".
       dc_hadr_standby_port: "<Required>"
@@ -532,6 +504,7 @@ spec:
       dc_database_type: "<Required>"
       ## Provide the ICN datasource name.  The default value is "ECMClientDS".
       dc_common_icn_datasource_name: "ECMClientDS"
+      ## Provide the database server name or IP address of the database server, not applicable to Oracle which requires a JDBC URL.  If using an IPv6 literal, enclose it in square brackets [].
       database_servername: "<Required>"
       ## Provide the database server port.  For Db2, the default is "50000". Not applicable to Oracle which requires a JDBC URL.
       database_port: "<Required>"
@@ -561,8 +534,15 @@ spec:
 #  ########################################################################
 #  ######## IBM FileNet Content Manager Initialization configuration ######
 #  ########################################################################
-#  ## This section is required when initializing the P8 domain and object store
-#  ## Please fill out the "<Required>" parameters
+#  ## The deployment of FNCM will be initialized with the default values assigned to the parameters below.
+#  ## The initialization process includes the creation of the P8 domain, the creation of the directory services,
+#  ## the assignments of users/groups to the P8 domain and object store(s), the creation of the object store(s),
+#  ## the creation/addition of add-ons for each object store, the enablement of workflow for each object store, the
+#  ## creation of Content Search Services servers, index areas, and the enabling of Content-based Retrieval (CBR) for each object store.
+#  ## In addition, the creation of Navigator desktop will also occur.
+#  ## If any of the values below does not fit your infrastructure, then change the value to correspond to your configuration
+#  ## (e.g., "CEAdmin" is the default user for ic_ldap_admin_user_name parameter and if you do not have "CEAdmin" user in your directory
+#  ## server and have a different user, then replace "CEAdmin" with your own user).  Otherwise, the rest of the values should remain as default.
 #  initialize_configuration:
 #    ic_ldap_creation:
 #      ic_ldap_admin_user_name:
@@ -596,7 +576,7 @@ spec:
 #        - doc_cpe_obj_store_name: "OS01"
 #          doc_cpe_folder_name: "/TESTFOLDER"
 #          doc_cpe_doc_title: "test_title"
-#          DOC_CPE_class_name: "Document"
+#          doc_cpe_class_name: "Document"
 #          doc_cpe_doc_content: "This is a simple document test"
 #          doc_cpe_doc_content_name: "doc_content_name"
 #      vc_cpe_cbr:
