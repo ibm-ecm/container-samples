@@ -76,6 +76,11 @@ def display_mode_version(mode: str, description: str):
         msg += "\nSilent Mode Enabled"
     state["logger"].info("Silent Mode is enabled")
 
+    if not state["validate"]:
+        msg += "\nValidation of entitlement key and private registry is disabled"
+    state["logger"].info("Validation of entitlement key and private registry is disabled")
+
+
     print(Panel.fit(msg, title="FileNet Content Manager Deploy Operator CLI", border_style="green"))
     print()
 
@@ -231,8 +236,11 @@ def main(version: Annotated[bool, typer.Option(
          dryrun: Annotated[bool, typer.Option(
              help="Perform a dry run",
              rich_help_panel="Customization and Utils")] = False,
+         validate: Annotated[bool, typer.Option(
+                help="Disable validation of entitlement key or private registry.",
+                rich_help_panel="Customization and Utils")] = True,
          dev: Annotated[bool, typer.Option(hidden=True)] = False,
-         validate: Annotated[bool, typer.Option(hidden=True)] = True):
+         ):
     """
     FileNet Content Manager Operator Deployment CLI.
     """
@@ -253,12 +261,12 @@ def main(version: Annotated[bool, typer.Option(
     if dryrun:
         state["dryrun"] = True
 
-    if validate:
+    if not validate:
         state["validate"] = False
 
     clear(console)
-    display_mode_version("Deploy FNCM Operator",
-                         "Install FNCM Operator")
+    display_mode_version("Deploy FileNet Operator",
+                         "Install FileNet Operator")
     deploy()
 
 
