@@ -486,12 +486,12 @@ class KubernetesUtilities:
                 return {}
             # Extract the important information from the Subscription
             subscription_details = {
-                "subscription": subscription["metadata"]["name"],
-                "namespace": subscription["metadata"]["namespace"],
-                "installedCSV": subscription["status"]["installedCSV"],
-                "catalogSource": subscription["spec"]["source"],
-                "channel": subscription["spec"]["channel"],
-                "sourceNamespace": subscription["spec"]["sourceNamespace"],
+                "subscription": subscription["metadata"].get("name", ""),
+                "namespace": subscription["metadata"].get("namespace", ""),
+                "installedCSV": subscription["status"].get("installedCSV", ""),
+                "catalogSource": subscription["spec"].get("source", ""),
+                "channel": subscription["spec"].get("channel", ""),
+                "sourceNamespace": subscription["spec"].get("sourceNamespace",),
             }
 
             gnc_namespace = "openshift-marketplace"
