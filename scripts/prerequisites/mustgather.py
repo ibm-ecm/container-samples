@@ -41,7 +41,7 @@ from helper_scripts.utilities.interface import (
 from helper_scripts.utilities.utilities import prereq_checks
 from pathlib import Path
 
-__version__ = "5.0.0"
+__version__ = "5.1.0"
 
 app = typer.Typer()
 
