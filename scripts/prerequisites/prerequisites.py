@@ -25,6 +25,7 @@ import os
 import shutil
 from datetime import datetime
 from typing import Optional
+import re
 
 import typer
 from rich import print
@@ -53,10 +54,11 @@ from helper_scripts.property.read_prop import *
 from helper_scripts.utilities.interface import clear, generate_gather_results, generate_generate_results, display_issues
 from helper_scripts.utilities.prerequisites_utilites import zip_folder, \
     create_generate_folder, check_ssl_folders, check_icc_masterkey, check_trusted_certs, check_dbname, \
-    check_keystore_password_length, collect_visible_files, check_db_password_length, check_db_ssl_mode
+    check_keystore_password_length, collect_visible_files, check_db_password_length, check_db_ssl_mode, \
+    add_idp_to_trusted_certs
 from helper_scripts.validate import validate as v
 
-__version__ = "4.4.4"
+__version__ = "5.1.0"
 
 app = typer.Typer()
 state = {
@@ -135,7 +137,7 @@ def display_mode_version(mode: str, description: str):
     if state["silent"]:
         msg += "\nSilent Mode Enabled"
 
-    print(Panel.fit(msg, title="FileNet Content Manager Deploy Operator CLI", border_style="green"))
+    print(Panel.fit(msg, title="FileNet Content Manager Deployment Prerequisites CLI", border_style="green"))
     print()
 
 
@@ -181,6 +183,9 @@ def gather(
 
             clear(console)
             deploy1.collect_egress_info()
+
+            clear(console)
+            deploy1.collect_networkpolicy_info()
 
             clear(console)
             deploy1.collect_optional_components()
@@ -306,6 +311,7 @@ def gather(
         deploy1.silent_license_model()
         deploy1.silent_initverify()
         deploy1.error_check()
+        deploy1.silent_networkpolicy_support()
 
     # Zip up previous propertyFile if it exists
     # Remove the propertyFile folder
@@ -377,7 +383,7 @@ def generate():
     if not os.path.exists(prop_folder):
         state["logger"].info("Property files are missing. Please run the gather command first.")
         print(Panel.fit(Text("Property files are missing.\n"
-                             "Please run the python3 prerequisites.py gather command first.", style="bold red")))
+                             "Please run the python3 prerequisites.py gather command first."), style="bold red"))
         raise typer.Exit()
 
     ssl_cert_folder = os.path.join(os.getcwd(), "propertyFile", "ssl-certs")
@@ -490,7 +496,9 @@ def generate():
     missing_certs, incorrect_certs = check_ssl_folders(db_prop=db_prop_dict,
                                                        ldap_prop=ldap_prop_dict,
                                                        ssl_cert_folder=ssl_cert_folder,
-                                                       deploy_prop=deployment_prop_dict)
+                                                       deploy_prop=deployment_prop_dict,
+                                                       idp_prop=idp_prop_dict,
+                                                       scim_prop=scim_prop_dict)
     masterkey_present = check_icc_masterkey(customcomponent_prop_dict, icc_folder)
     trusted_certs_present, invalid_trusted_certs = check_trusted_certs(trusted_certs_folder)
     keystore_password_valid = check_keystore_password_length(usergroup_prop_dict, deployment_prop_dict)
@@ -570,19 +578,21 @@ def generate():
             generate_secrets.create_ban_secret()
         if ldap_prop:
             generate_secrets.create_ldap_secret()
+            generate_secrets.create_ldap_ssl_secrets()
         if idp_prop:
             generate_secrets.create_idp_secret()
+            generate_secrets.create_idp_ssl_secrets()
+
         if scim_prop:
             generate_secrets.create_scim_secret()
-        # if icc for email set up is supported then we create icc related secrets
+            generate_secrets.create_scim_ssl_secrets()
+
+        # if icc for email set up is supported, then we create icc related secrets
         if customcomponent_prop_dict:
             if "ICC" in customcomponent_prop_dict.keys():
                 generate_secrets.create_icc_secrets()
         if cpe_present:
             generate_secrets.create_fncm_secret()
-
-        if ldap_prop:
-            generate_secrets.create_ldap_ssl_secrets()
 
         if db_prop:
             if db_prop_dict["DATABASE_SSL_ENABLE"]:
@@ -623,6 +633,9 @@ def validate(
         skip_storage_class: bool = typer.Option(False, "--skip-storageclass", "-sc", help="Skip storage class validation"),
         skip_database: bool = typer.Option(False, "--skip-database", "-db", help="Skip database validation"),
         skip_ldap: bool = typer.Option(False, "--skip-ldap", "-l", help="Skip LDAP validation"),
+        skip_idp: bool = typer.Option(False, "--skip-idp", "-idp", help="Skip IDP validation"),
+        skip_scim: bool = typer.Option(False, "--skip-scim", "-scim", help="Skip SCIM validation"),
+        pvc_size: str = typer.Option('10Mi', "--pvc-size", "-pvc", help="Set size for sample persitant volume validation"),
 ):
     """
     Validate the prerequisites for FileNet Content Manager Deployment.
@@ -632,7 +645,9 @@ def validate(
     validate_storage_class = not skip_storage_class
     validate_database = not skip_database
     validate_ldap = not skip_ldap
-
+    validate_idp = not skip_idp
+    validate_scim = not skip_scim
+    
     clear(console)
     display_mode_version("Validate",
                          "FileNet Content Manager Deployment Prerequisites CLI")
@@ -671,7 +686,16 @@ def validate(
     if not os.path.exists(prop_folder):
         state["logger"].info("Property files are missing. Please run the gather command first.")
         print(Panel.fit(Text("Property files are missing.\n"
-                             "Please run the python3 prerequisites.py gather command first.", style="bold red")))
+                             "Please run the python3 prerequisites.py gather command first."), style="bold red"))
+        raise typer.Exit()
+    
+    # Validate passed pvc_size 
+    # Write a regex match for pvc_size 
+    pvc_pattern = re.compile(r'^[0-9]+(mi|gi)$')
+    if not re.match(pvc_pattern, pvc_size.lower()):
+        print(Panel.fit(Text("Invalid pvc_size.\n"
+                             "Size needs to be either ending in Mi or Gi"), style="bold red"))
+        state["logger"].info("The passed pvc_size is not valid. Size needs to be either ending in Mi or Gi")
         raise typer.Exit()
 
     ssl_cert_folder = os.path.join(os.getcwd(), "propertyFile", "ssl-certs")
@@ -686,6 +710,7 @@ def validate(
     db_prop_file = os.path.join(prop_folder, "fncm_db_server.toml")
     ldap_prop_file = os.path.join(prop_folder, "fncm_ldap_server.toml")
     idp_prop_file = os.path.join(prop_folder, "fncm_identity_provider.toml")
+    scim_prop_file = os.path.join(prop_folder, "fncm_scim_server.toml")
     usergroup_prop_file = os.path.join(prop_folder, "fncm_user_group.toml")
     deployment_prop_file = os.path.join(prop_folder, "fncm_deployment.toml")
     ingress_prop_file = os.path.join(prop_folder, "fncm_ingress.toml")
@@ -695,6 +720,7 @@ def validate(
     db_prop = None
     ldap_prop = None
     idp_prop = None
+    scim_prop = None
     usergroup_prop = None
     deployment_prop = None
     ingress_prop = None
@@ -709,6 +735,9 @@ def validate(
 
         if os.path.exists(idp_prop_file):
             idp_prop = ReadPropIdp(os.path.join(prop_folder, "fncm_identity_provider.toml"), state["logger"])
+
+        if os.path.exists(scim_prop_file):
+            scim_prop = ReadPropSCIM(os.path.join(prop_folder, "fncm_scim_server.toml"), state["logger"])
 
         if os.path.exists(usergroup_prop_file):
             usergroup_prop = ReadPropUsergroup(os.path.join(prop_folder, "fncm_user_group.toml"), state["logger"])
@@ -738,6 +767,11 @@ def validate(
             idp_prop_dict = idp_prop.to_dict()
         else:
             idp_prop_dict = {}
+
+        if scim_prop:
+            scim_prop_dict = scim_prop.to_dict()
+        else:
+            scim_prop_dict = {}
 
         if usergroup_prop:
             usergroup_prop_dict = usergroup_prop.to_dict()
@@ -776,8 +810,10 @@ def validate(
                          ldap_prop=ldap_prop_dict,
                          deploy_prop=deployment_prop_dict,
                          idp_prop=idp_prop_dict,
+                         scim_prop=scim_prop_dict,
                          component_prop=customcomponent_prop_dict,
-                         user_group_prop=usergroup_prop_dict)
+                         user_group_prop=usergroup_prop_dict, 
+                         pvc_size=pvc_size)
 
     db_number = 0
     if deployment_prop_dict["FNCM_Version"] == "5.5.8":
@@ -798,7 +834,9 @@ def validate(
 
     missing_certs, incorrect_certs = check_ssl_folders(db_prop=db_prop_dict, ldap_prop=ldap_prop_dict,
                                                        ssl_cert_folder=ssl_cert_folder,
-                                                       deploy_prop=deployment_prop_dict)
+                                                       deploy_prop=deployment_prop_dict,
+                                                       idp_prop=idp_prop_dict,
+                                                       scim_prop=scim_prop_dict)
     # Collect missing fields
     # All missing required fields are collected in each instance
     required_fields = {}
@@ -812,8 +850,7 @@ def validate(
         print(layout)
         exit(1)
     else:
-        vobject.cleanup_tmp()
-        # TODO: Add SCIM + IDP Validation
+
         with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
@@ -826,43 +863,58 @@ def validate(
         ) as progress:
 
             # Adding storage classes validation task only if storageclass flag is True
-            if validate_storage_class :
+            if validate_storage_class:
                 task3 = progress.add_task("[green]Validate Storage Class", total=storageclass_number)
             # Adding databases validation task only if database flag is True
-            if validate_database :
+            if validate_database:
                 if db_number > 0:
                     task4 = progress.add_task("[yellow]Validate Database", total=db_number)
             # Adding ldaps validation task only if ldap flag is True
-            if validate_ldap :
+            if validate_ldap:
                 if ldap_prop:
                     task1 = progress.add_task("[cyan]Validate LDAP", total=ldap_prop_dict["ldap_number"])
-            # if idp_prop:
-            #     task4 = progress.add_task("[blue]Validate IDP", total=idp_prop_dict["idp_number"])
+            # Adding idp validation task only if idp flag is True
+            if validate_idp:
+                if idp_prop:
+                    task5 = progress.add_task("[blue]Validate IDP", total=(idp_prop_dict["idp_number"]+1))
+            # Adding scim validation task only if scim flag is True
+            if validate_scim:
+                if scim_prop:
+                    task6 = progress.add_task("[slate_blue1]Validate SCIM", total=scim_prop_dict["scim_number"])
 
             while not progress.finished:
                 if (deployment_prop_dict["FNCM_Version"] not in ["5.5.8", "5.5.11"])  and deployment_prop_dict["FIPS_SUPPORT"]:
                     progress.log(Panel.fit(Text("Validating all connections with FIPS protocol.\n"
-                                            "These tests will only pass on FIPS enabled platforms.", style="bold purple")))
+                                            "These tests will only pass on FIPS enabled platforms."), style="bold purple"))
+                if validate_database or validate_ldap:
+                    vobject.create_truststore(progress)
                 # Validating storage classes only if storageclass flag is True
-                if validate_storage_class :
+                if validate_storage_class:
                     vobject.validate_all_storage_classes(task3, progress)
                 # Validating databases only if database flag is True
-                if validate_database :
+                if validate_database:
                     if db_number > 0:
                         vobject.validate_all_db(task4, progress)
                 # Validating ldaps only if ldap flag is True
-                if validate_ldap :
+                if validate_ldap:
                     if ldap_prop:
                         ldaps_validated = vobject.validate_all_ldap(task1, progress)
                         if ldaps_validated:
                             task2 = progress.add_task("[purple]Validate LDAP Users and Groups", total=1)
                             vobject.validate_ldap_users_groups(task2, progress)
-                # if idp_prop:
-                #     vobject.validate_scim(task4, progress)
+                # # Validating IDP using LDAP bind DN credentials
+                if validate_idp:
+                    if idp_prop:
+                        vobject.validate_all_idps(task5, progress)
+
+                # Validating SCIM using IDP token
+                if validate_scim:
+                    if scim_prop:
+                        vobject.validate_scim(task6, progress)
 
         if all(vobject.is_validated.values()):
             print()
-            print(Panel.fit(Text("All prerequisites are validated", style="bold green")))
+            print(Panel.fit(Text("All prerequisites are validated"), style="bold green"))
             print()
             if apply:
                 vobject.auto_apply_secrets_ssl()
@@ -876,7 +928,7 @@ def validate(
                     vobject.auto_apply_cr()
         else:
             print()
-            print(Panel.fit(Text("All prerequisites checks have not passed!", style="bold red")))
+            print(Panel.fit(Text("All prerequisites checks have not passed!"), style="bold red"))
             print()
             if apply:
                 vobject.auto_apply_secrets_ssl()
