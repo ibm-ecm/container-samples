@@ -1,3 +1,10 @@
+## 5.1.0 (2025-06-30)
+
+### Fix
+
+- fixed invalid operator image for silent deployment
+- fixed missing variable when operator install is in pending state
+
 ## 5.0.0 (2025-06-20)
 
 ### Feat
