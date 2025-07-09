@@ -552,8 +552,8 @@ spec:
       database_ssl_secret_name: "<Required>"
       ## If the database type is Oracle, provide the Oracle DB connection string.
       ## For example:
-      ## SSL URL: "jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCPS)(HOST={host})(PORT={port}))('CONNECT_DATA=(SERVICE_NAME={dbname})))"
-      ## Non-SSL URL: "jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={host})(PORT={port}))('CONNECT_DATA=(SERVICE_NAME={dbname})))"
+      ## SSL URL: "jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCPS)(HOST={host})(PORT={port}))(CONNECT_DATA=(SERVICE_NAME={dbname})))"
+      ## Non-SSL URL: "jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={host})(PORT={port}))(CONNECT_DATA=(SERVICE_NAME={dbname})))"
       dc_oracle_gcd_jdbc_url: "<Required>"
       ## Provide the validation timeout.  If not preference, keep the default value.
       dc_hadr_validation_timeout: 15
