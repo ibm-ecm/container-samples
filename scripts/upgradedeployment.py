@@ -33,7 +33,7 @@ from helper_scripts.utilities.interface import clear, display_issues, display_pr
 from helper_scripts.utilities.utilities import prereq_checks, read_version_toml, create_deployment_info, \
     create_version_info, create_current_operator_info
 
-__version__ = "5.1.0"
+__version__ = "5.1.1"
 
 app = typer.Typer()
 
@@ -116,8 +116,8 @@ def deployment():
     if not state["upgrade"]._cr_present:
         print()
         print(Panel.fit(
-            "FNCM Standalone Deployment not found in {namespace}.\n"
-            "A valid FNCM Standalone Deployment is required for this mode".format(
+            "FNCM Deployment not found in {namespace}.\n"
+            "A valid FNCM Deployment is required for this mode".format(
                 namespace=state["setup"]._namespace),
             border_style="red"))
         exit(1)
@@ -149,7 +149,7 @@ def deployment():
 
     if not state["dryrun"]:
         clear(console)
-        print(Panel.fit("Starting FNCM Standalone Deployment Upgrade", style="cyan"))
+        print(Panel.fit("Starting FNCM Deployment Upgrade", style="cyan"))
         with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
@@ -227,9 +227,9 @@ def display_deployment_phases():
     print("The FileNet Content Manager Deployment Upgrade is a multi-phase process.\n"
           "The upgrade process will be performed in the following phases:\n\n"
           "1. Custom Resource - Prepare the Custom Resource and Deployment files for the upgrade\n"
-          "2. Environment Preparation - Scale down current FNCM Standalone Operator\n"
+          "2. Environment Preparation - Scale down current FNCM Operator\n"
           "3. Upgrade Deployment - Apply the upgraded CR\n"
-          "4. Upgrade Operator - Upgrade the FNCM Standalone Operator\n")
+          "4. Upgrade Operator - Upgrade the FNCM Operator\n")
     print()
 
     if not state["silent"]:
@@ -260,19 +260,19 @@ def prereq_steps():
         print()
         print(Panel.fit("Network Policy Changes"))
         print()
-        print(f"FNCM Standalone 5.7.0 Operator will not create or manage Network Policies, which control ingress and egress traffic.\n"
+        print(f"FNCM 5.7.0 Operator will not create or manage Network Policies, which control ingress and egress traffic.\n"
             f"The existing network policies will be backed up under FNCMUpgrade/NetworkPolicies\n"
             f"If you have enabled sc_restricted_internet_access parameter then the\n"
             f"script will enable sc_generate_sample_network_policies in the custom resource.\n"
             f"Once the deployment is done use mustgather.py networkpolicy to grab\n"
             f"the created network policy templates from the operator and use it to create your own\n")
         print()
-    print(Panel.fit(f"Important: If you have other FNCM Standalone Deployments on the same cluster, ensure that you\n"
+    print(Panel.fit(f"Important: If you have other FNCM Deployments on the same cluster, ensure that you\n"
                     f"have adjusted each custom resource to be compatible with the new version.\n"
                     f"Please see {upgrade_prep}", style="bold yellow"))
     print()
     tip_text = Panel.fit(Text(
-        f"Tip: Run the FNCM Standalone MustGather to collect a backup of all your deployment files and configuration"),
+        f"Tip: Run the FNCM MustGather to collect a backup of all your deployment files and configuration"),
                          style="cyan")
     code = Panel.fit(Syntax("python3 mustgather.py", "bash", theme="ansi_dark"))
     tip_group = Group(tip_text, code)
@@ -281,14 +281,14 @@ def prereq_steps():
         print()
 
         print(
-            Panel.fit(f"Important: Proceeding will scale down the current FNCM Standalone Operator,\n"
+            Panel.fit(f"Important: Proceeding will scale down the current FNCM Operator,\n"
                       f"remove the owner references from existing network policies and apply the upgraded CR", style="bold red"))
         print()
     else:
         print()
 
         print(
-            Panel.fit(f"Important: Proceeding will scale down all deployments and apply the upgraded CR", style="bold red"))
+            Panel.fit(f"Important: Proceeding will scale down the current FNCM Operator and apply the upgraded CR", style="bold red"))
         print()
 
     if not state["silent"]:
@@ -306,8 +306,8 @@ def operator():
     if not state["upgrade"]._operator_present:
         print()
         print(Panel.fit(
-            "FNCM Standalone Operator not found in {namespace}.\n"
-            "A valid FNCM Standalone Operator is required for this mode".format(
+            "FNCM Operator not found in {namespace}.\n"
+            "A valid FNCM Operator is required for this mode".format(
                 namespace=state["setup"]._namespace),
             border_style="red"))
         exit(1)
@@ -351,7 +351,7 @@ def operator():
     if state["dryrun"]:
         exit()
 
-    print(Panel.fit("Starting FNCM Standalone Operator Upgrade", style="cyan"))
+    print(Panel.fit("Starting FNCM Operator Upgrade", style="cyan"))
     with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -500,8 +500,8 @@ def main(ctx: typer.Context,
         if not state["upgrade"]._operator_present and not state["upgrade"]._cr_present:
             print()
             print(Panel.fit(
-                "FNCM Standalone Operator or FNCM Standalone Deployment not found in {namespace}.\n"
-                "A valid FNCM Standalone Operator or FNCM Standalone Deployment is required for this mode".format(
+                "FNCM Operator or FNCM Deployment not found in {namespace}.\n"
+                "A valid FNCM Operator or FNCM Deployment is required for this mode".format(
                     namespace=state["setup"]._namespace),
                 border_style="red"))
             exit(1)
