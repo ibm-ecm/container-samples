@@ -38,7 +38,7 @@ from helper_scripts.utilities.interface import display_prereq_passed, display_is
     display_deployment_resources
 from helper_scripts.utilities.utilities import prereq_checks, create_version_info, read_version_toml
 
-__version__ = "5.1.0"
+__version__ = "5.1.1"
 
 app = typer.Typer()
 
