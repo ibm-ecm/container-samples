@@ -945,67 +945,68 @@ class Upgrade:
             self._kube.scale_operator_deployment(namespace=self._namespace,
                                                  deployment_name=operator_deployment,
                                                  scale="down")
-            
-            if upgrade_version in ["5.6.0"]:
 
-                progress.log()
-                progress.log("Collecting IBM FileNet Content Manager Deployment pods to scale down")
-                if deployments:
-                    pods_to_scale = []
-                    for deployment in deployments:
-                        deploymemt_name = deployment.metadata.name
-                        progress.log()
-                        progress.log(Panel.fit(f"Scaling down pods for deployment: {deploymemt_name}"), style="cyan")
-                        pods = self._kube.get_pods_for_deployment(
-                            namespace=self._namespace,
-                            deployment_name=deploymemt_name)
-                        if pods:
-                            for pod in pods:
-                                pod_name = pod.metadata.name
-                                progress.log()
-                                progress.log(f"Scaling down pod: {pod_name}")
-                                pods_to_scale.append(pod_name)
-                        else:
-                            continue
-
-                else:
-                    pods_to_scale = []
-                    progress.log()
-                    progress.log(
-                        Text("No deployment related pods are running which means no pods need to be scaled down",
-                            style="bold green"))
-                if pods_to_scale:
-                    self._kube.scale_pods_in_namespace(
-                        namespace=self._namespace, deployments=deployments, scale=scale)
-                    retries = 0
-                    progress.log()
-                    progress.log(f"Waiting for pods to gracefully shutdown - {retries + 1}/40")
-                    while retries < 40:
-                        pods_present = []
-                        pods = self._core_v1_api.list_namespaced_pod(self._namespace)
-                        for pod in pods.items:
-                            pods_present.append(pod.metadata.name)
-                        all_pods_deleted = any(item in pods_present for item in pods_to_scale)
-                        if all_pods_deleted:
-                            sleep(30)
-                            retries = retries + 1
-                            progress.log()
-                            progress.log(f"Waiting for pods to gracefully shutdown - {retries + 1}/40")
-                        else:
-                            progress.log()
-                            progress.log(Text("All FNCM pods have been scaled down", style="bold green"))
-                            break
-                    if retries == 40:
-                        progress.log()
-                        progress.log(Text("Timeout waiting for all FNCM pods to scale down", style="bold red"))
-                        progress.log("Please check the status of the Pods by issuing the below command")
-                        progress.log(Syntax(f"kubectl get pods -n {self._namespace} ", "bash"))
-                        exit(1)
-                else:
-                    progress.log()
-                    progress.log(
-                        Text("No deployment related pods are running which means no pods need to be scaled down",
-                            style="bold green"))
+            # Removing scale down for 5.6.0 as it is not required, with new rolling update strategy
+            # if upgrade_version in ["5.6.0"]:
+            #
+            #     progress.log()
+            #     progress.log("Collecting IBM FileNet Content Manager Deployment pods to scale down")
+            #     if deployments:
+            #         pods_to_scale = []
+            #         for deployment in deployments:
+            #             deploymemt_name = deployment.metadata.name
+            #             progress.log()
+            #             progress.log(Panel.fit(f"Scaling down pods for deployment: {deploymemt_name}"), style="cyan")
+            #             pods = self._kube.get_pods_for_deployment(
+            #                 namespace=self._namespace,
+            #                 deployment_name=deploymemt_name)
+            #             if pods:
+            #                 for pod in pods:
+            #                     pod_name = pod.metadata.name
+            #                     progress.log()
+            #                     progress.log(f"Scaling down pod: {pod_name}")
+            #                     pods_to_scale.append(pod_name)
+            #             else:
+            #                 continue
+            #
+            #     else:
+            #         pods_to_scale = []
+            #         progress.log()
+            #         progress.log(
+            #             Text("No deployment related pods are running which means no pods need to be scaled down",
+            #                 style="bold green"))
+            #     if pods_to_scale:
+            #         self._kube.scale_pods_in_namespace(
+            #             namespace=self._namespace, deployments=deployments, scale=scale)
+            #         retries = 0
+            #         progress.log()
+            #         progress.log(f"Waiting for pods to gracefully shutdown - {retries + 1}/40")
+            #         while retries < 40:
+            #             pods_present = []
+            #             pods = self._core_v1_api.list_namespaced_pod(self._namespace)
+            #             for pod in pods.items:
+            #                 pods_present.append(pod.metadata.name)
+            #             all_pods_deleted = any(item in pods_present for item in pods_to_scale)
+            #             if all_pods_deleted:
+            #                 sleep(30)
+            #                 retries = retries + 1
+            #                 progress.log()
+            #                 progress.log(f"Waiting for pods to gracefully shutdown - {retries + 1}/40")
+            #             else:
+            #                 progress.log()
+            #                 progress.log(Text("All FNCM pods have been scaled down", style="bold green"))
+            #                 break
+            #         if retries == 40:
+            #             progress.log()
+            #             progress.log(Text("Timeout waiting for all FNCM pods to scale down", style="bold red"))
+            #             progress.log("Please check the status of the Pods by issuing the below command")
+            #             progress.log(Syntax(f"kubectl get pods -n {self._namespace} ", "bash"))
+            #             exit(1)
+            #     else:
+            #         progress.log()
+            #         progress.log(
+            #             Text("No deployment related pods are running which means no pods need to be scaled down",
+            #                 style="bold green"))
         except Exception as e:
             progress.log()
             progress.log(
