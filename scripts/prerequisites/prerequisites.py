@@ -58,7 +58,7 @@ from helper_scripts.utilities.prerequisites_utilites import zip_folder, \
     add_idp_to_trusted_certs
 from helper_scripts.validate import validate as v
 
-__version__ = "5.1.0"
+__version__ = "5.1.1"
 
 app = typer.Typer()
 state = {
