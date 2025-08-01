@@ -164,7 +164,7 @@ spec:
     images:
       keytool_init_container:
         repository: cp.icr.io/cp/cp4a/common/dba-keytool-initcontainer
-        tag: "24.0.0-IF005"
+        tag: "24.0.0-IF006"
     
     ## This is necessary if you want to use your own JDBC drivers and/or need to provide ICCSAP drivers.  If you are providing multiple JDBC drivers and ICCSAP drivers, 
     ## all the files must be compressed in a single file.
@@ -745,21 +745,27 @@ spec:
     ####################################
     cpe:
       ## To connect to the spectrum storage, provide the TLS certificate.
-      # spectrum_certificate_list: []
+      #spectrum_certificate_list: []
 
       ## The architecture of the cluster.  This is the default for Linux on x86 and should not be changed.
       arch:
         amd64: "3 - Most preferred"
 
-      ## The number of replicas or pods to be deployed.  The default is 1 replica and for high availability in a production env,
+      ## The number of replicas or pods to be deployed.  The default is 1 replica, and for high availability in a production env,
       ## it is recommended to have 2 or more.
       replica_count: 2
+
+      ## Rolling update settings for CPE deployment.  By default, max_unavailable is set to 99% and max_surge is set to 1.  This will improve the efficiency of the rolling update.
+      ## Valid values for max_unavailable are 0-100% or 0-<number of replicas>.
+      rolling_update:
+        max_unavailable: 99%
+        max_surge: 1
 
       ## This is the image repository and tag that correspond to image registry, which is where the image will be pulled.
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cpe
-        tag: ga-560-p8cpe-if003
+        tag: ga-560-p8cpe-if004
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -778,7 +784,7 @@ spec:
           ## type: "spc_t
         selinux_options:
         # Defines behavior for changing ownership and permission of the volume before being exposed inside a Pod. This field has two possible values (Always,OnRootMismatch)
-        # For example fs_groupchangepolicy: "OnRootMismatch"
+        # For example, fs_groupchangepolicy: "OnRootMismatch"
         fs_groupchangepolicy:
 
       ## The initial resources (CPU, memory, and ephemeral storage) requests and limits.  If more resources are needed,
@@ -803,7 +809,7 @@ spec:
         target_cpu_utilization_percentage: "<Required>"
    
       ## Use these parameters to configure Content Federation Services for Image Services (CFS-IS).  These entries will be added as host alias.  Refer to IBM Documentation for details.
-      # content_federation_image_services:
+      #content_federation_image_services:
       # - server_ip: 10.14.80.97
       #   server_name: davinci
       #   domain_name: AccountsPayable
@@ -926,7 +932,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/css
-        tag: ga-560-p8css-if003
+        tag: ga-560-p8css-if004
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1024,7 +1030,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cmis
-        tag: ga-307-cmis-if009
+        tag: ga-307-cmis-la1001
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1185,7 +1191,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/graphql
-        tag: ga-560-p8cgql-if003
+        tag: ga-560-p8cgql-if004
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1306,7 +1312,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/extshare
-        tag: ga-310-es-if004
+        tag: ga-310-es-if005
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1414,7 +1420,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/taskmgr
-        tag: ga-310-tm-if004
+        tag: ga-310-tm-if005
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1561,7 +1567,7 @@ spec:
     image:
       ## The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/ban/navigator
-      tag: ga-310-icn-if004
+      tag: ga-310-icn-if005
 
       ## This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
@@ -1765,7 +1771,7 @@ spec:
     image:
       # The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/ier/ier
-      tag: ga-5218-if006-ier-2400-if005
+      tag: ga-5218-if006-ier-2400-if006
 
       # This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
@@ -1888,7 +1894,7 @@ spec:
     image:
       ## The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/iccsap/iccsap
-      tag: ga-4004-iccsap-if018e
+      tag: ga-4004-iccsap-if018f
 
       ## This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
