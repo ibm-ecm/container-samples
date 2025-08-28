@@ -29,7 +29,7 @@ from helper_scripts.utilities.interface import clear, display_issues, display_pr
 from helper_scripts.utilities.utilities import prereq_checks, read_version_toml, create_deployment_info, \
     create_version_info
 
-__version__ = "5.1.1"
+__version__ = "5.1.2"
 
 app = typer.Typer()
 state = {
