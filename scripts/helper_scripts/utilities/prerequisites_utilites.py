@@ -697,16 +697,15 @@ def connect_to_server_ip(host, port, ssl=False, client_cert_file=None, pg=False,
             ip_conn.close()
     return check_ip_connected
 
-# Function to check if podman, oc and other commands are available
+# Function to check if a program exists
 def command_available(command):
     try:
-        if platform.system() == 'Windows':
-            subprocess.check_output("where " + command, stderr=subprocess.PIPE, shell=True)
-        else:
-            subprocess.check_output("which " + command, stderr=subprocess.PIPE, shell=True)
-        return True
-    except subprocess.CalledProcessError as error:
+        if shutil.which(command):
+            return True
         return False
+    except Exception as e:
+        return False
+
 
 
 # Function to check if username is an email

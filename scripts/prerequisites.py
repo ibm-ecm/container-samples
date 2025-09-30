@@ -58,7 +58,7 @@ from helper_scripts.utilities.prerequisites_utilites import zip_folder, \
     add_idp_to_trusted_certs
 from helper_scripts.validate import validate as v
 
-__version__ = "5.1.1"
+__version__ = "5.1.3"
 
 app = typer.Typer()
 state = {
@@ -203,6 +203,8 @@ def gather(
                 deploy1.collect_idp_number()
                 deploy1.collect_idp_discovery()
 
+
+
             clear(console)
             deploy1.collect_init_verify_content()
         else:
@@ -212,6 +214,9 @@ def gather(
 
             clear(console)
             deploy1.collect_platform_ingress()
+
+            clear(console)
+            deploy1.collect_auth_type()
 
             clear(console)
             deploy1.collect_optional_components()
@@ -243,16 +248,22 @@ def gather(
             else:
                 move_dict["GCD"] = gcd_file
 
-            if len(ldap_files) > 0:
-                ldap_number = len(ldap_files)
-                deploy1.ldap_number = ldap_number
-                deploy1.parse_ldap_files(os.path.abspath(move), ldap_files)
-                move_dict["LDAP"] = ldap_files
-                move_ldap = True
-            else:
-                deploy1.collect_ldap_number()
-                deploy1.collect_ldap_type()
-                move_dict["LDAP"] = []
+            if deploy1.auth_type in ("LDAP", "LDAP_IDP"):
+                if len(ldap_files) > 0:
+                    ldap_number = len(ldap_files)
+                    deploy1.ldap_number = ldap_number
+                    deploy1.parse_ldap_files(os.path.abspath(move), ldap_files)
+                    move_dict["LDAP"] = ldap_files
+                    move_ldap = True
+                else:
+                    deploy1.collect_ldap_number()
+                    deploy1.collect_ldap_type()
+                    move_dict["LDAP"] = []
+
+            if deploy1.auth_type in ("LDAP_IDP", "SCIM_IDP"):
+                clear(console)
+                deploy1.collect_idp_number()
+                deploy1.collect_idp_discovery()
 
             # Determine DB type
             all_db_files = []

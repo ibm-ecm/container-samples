@@ -1,3 +1,15 @@
+## 5.1.3 (2025-09-19)
+
+### Fix
+
+- refactored program validation check to use shutil.which
+
+## 5.1.2 (2025-08-11)
+
+### Fix
+
+- added support for IDP authentication when moving LDAP settings from OnPrem install
+
 ## 5.1.1 (2025-07-31)
 
 ### feat
