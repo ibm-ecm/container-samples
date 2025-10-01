@@ -1,4 +1,4 @@
-# IBM FileNet Content Manager 5.7.0 on Container
+# IBM FileNet Content Manager 5.7.0 on Containers
 
 This repository includes folders and resources to help you install the IBM FileNet Content Manager capabilities.
 Installation of the capabilities is done with the operator.
@@ -15,4 +15,5 @@ For more information and download links for the IBM Filenet Content Manager CASE
 
 For information and instructions to install, upgrade, manage, and administer FileNet Content Manager, go
 to [IBM Documentation](https://www.ibm.com/docs/SSNW2F_5.7.0/com.ibm.p8.containers.doc/containers.htm).
+
 
