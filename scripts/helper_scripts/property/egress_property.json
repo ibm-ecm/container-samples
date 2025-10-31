@@ -1,28 +1,46 @@
 {
-    "sc_api_namespace": {
-      "value": ["openshift-kube-apiserver", "openshift-apiserver"],
-      "comment": [
-        "Default are openshift-kube-apiserver, openshift-apiserver for OCP and ROKS.", 
-        "Possible values are kube-system, default, kube-public for other."
-      ]
-    },
-    "sc_api_port": {
-      "value": [443,6443],
-      "comment": [
-        "Default are 443,6443 for OCP, ROKS, other"
-      ]
-    },
-    "sc_dns_namespace": {
-      "value": "openshift-dns",
-      "comment": [
-        "Default is openshift-dns for OCP and ROKS.",
-        "Possible values are kube-system, default, kube-public for other."
-      ]
-    },
-    "sc_dns_port": {
-      "value": [53,5353],
-      "comment": [
-        "Default are 53,5353 for OCP, ROKS and other"
-      ]
-    }
+  "RESTRICTED_INTERNET_ACCESS": {
+    "value": false,
+    "comment": [
+      "Support for Restricted Internet Access"
+    ]
+  },
+  "GENERATE_NETWORK_POLICIES": {
+    "value": false,
+    "comment": [
+      "Enable to generate network policies by the operator"
+    ]
+  },
+  "K8_API_NAMESPACE": {
+    "value": ["<Required>"],
+    "comment": [
+      "Default are openshift-kube-apiserver, openshift-apiserver for OCP.",
+      "Possible values are kube-system, default, kube-public for other."
+    ]
+  },
+  "K8_API_PORT": {
+    "value": [
+      443,
+      6443
+    ],
+    "comment": [
+      "Default are 443,6443 for OCP & other"
+    ]
+  },
+  "K8_DNS_NAMESPACE": {
+    "value": ["<Required>"],
+    "comment": [
+      "Default is openshift-dns for OCP.",
+      "Possible values are kube-system, default, kube-public for other."
+    ]
+  },
+  "K8_DNS_PORT": {
+    "value": [
+      53,
+      5353
+    ],
+    "comment": [
+      "Default are 53,5353 for OCP and other"
+    ]
   }
+}

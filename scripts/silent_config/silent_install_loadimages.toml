@@ -55,7 +55,7 @@ FNCM_VERSION = 6
 # ####################################################
 # ##       Airgap Channel Mirror Configuration      ##
 # ####################################################
-# By default, each CASE Package includes all image of every FNCM Standalone version.
+# By default, each CASE Package includes all image of every FileNet Content Manager version.
 # Reducing the number of channels will reduce the size of the total image set.
 # If set to true, the script will mirror all channels.
 # If set to false, the script will mirror only the channel corresponding to the FNCM_VERSION.

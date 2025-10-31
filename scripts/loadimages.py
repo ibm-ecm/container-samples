@@ -39,7 +39,7 @@ from helper_scripts.utilities.interface import clear, display_issues, display_pr
 from helper_scripts.utilities.utilities import validate_image_details_file, prereq_checks, read_version_toml, \
     validate_airgap_details_file
 
-__version__ = "5.1.3"
+__version__ = "6.0.0"
 
 app = typer.Typer()
 
@@ -158,7 +158,7 @@ def push_airgap_images():
 
     clear(console)
 
-    print(Panel.fit("Starting FNCM Standalone Airgap Image Mirror", style="cyan"))
+    print(Panel.fit("Starting FileNet Content Manager Airgap Image Mirror", style="cyan"))
     with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -210,7 +210,7 @@ def push_cncf_images():
 
     clear(console)
 
-    print(Panel.fit("Starting FNCM Standalone Image Push", style="cyan"))
+    print(Panel.fit("Starting FileNet Content Manager Image Push", style="cyan"))
     with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -419,29 +419,29 @@ def main(ctx: typer.Context,
         if ctx.invoked_subcommand is None:
             display_mode_version("Airgap CASE and Image Mirror",
                                  "Download CASE Package and Mirror Images to Private Registry")
-            checks = ["podman", "docker", 'oc', 'connection', 'ibm-pak', 'mirror']
+            checks = ["podman", 'oc', 'connection', 'ibm-pak', 'mirror']
             files = []
 
         elif ctx.invoked_subcommand == "push":
             display_mode_version("Airgap Image Mirror", "Mirror Images to Private Registry Only")
-            checks = ["podman", "docker", 'oc', 'connection', 'mirror']
+            checks = ["podman", 'oc', 'connection', 'mirror']
             files = []
 
 
         elif ctx.invoked_subcommand == "generate":
             display_mode_version("Airgap CASE Setup", "Download and Setup CASE Package Only")
-            checks = ["podman", "docker", 'oc', 'ibm-pak']
+            checks = ["podman" 'oc', 'ibm-pak']
             files = []
     else:
         if ctx.invoked_subcommand is None:
             display_mode_version("Extract and Push Images",
                                  "Generate ImageDetails and Push images to Private Registry")
-            checks = ["podman", "docker", "skopeo"]
+            checks = ["podman", "skopeo"]
             files = ["ibm_fncm_cr_production_FC_content.yaml"]
 
         elif ctx.invoked_subcommand == "push":
             display_mode_version("Push Images", "Push Images to Private Registry Only")
-            checks = ["podman", "docker", "skopeo"]
+            checks = ["podman", "skopeo"]
             files = []
 
 
@@ -482,7 +482,6 @@ def main(ctx: typer.Context,
         state["setup"] = g.GatherOptions(state["logger"], console, script_type="load_extract", dev=state["dev"])
 
         state["setup"].podman_available = results["podman"]
-        state["setup"].docker_available = results["docker"]
     else:
         # this is the user details object which does pre-checks and collects some necessary details
         silent_path = os.path.join("silent_config", "silent_install_loadimages.toml")
@@ -497,7 +496,6 @@ def main(ctx: typer.Context,
         state["version_data"]["ALL_CHANNELS"] = all_channels
 
         state["setup"].podman_available = results["podman"]
-        state["setup"].docker_available = results["docker"]
 
     if ctx.invoked_subcommand is None:
         generate()

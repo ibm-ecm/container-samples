@@ -8,16 +8,14 @@
 # disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
 #
 ###############################################################################
-import time
-
 import requests
+import time
 from click import style
 from rich.panel import Panel
 from rich.text import Text
 
 requests.packages.urllib3.disable_warnings()
 from ..utilities import kubernetes_utilites as k
-from rich import print
 
 
 # CLass that contains functions to delete the CR as well delete the Operator
@@ -46,8 +44,8 @@ class CleanDeployment:
         if not cr_details:
             return {}, {}
 
-        self._cr_name = cr_details["name"]
-        version = cr_details["version"]
+        self._cr_name = cr_details.get("name", 'fncmdeploy')
+        version = cr_details.get("version", "5.7.0")
 
         self.resource_type_dict = self._kube.list_namespace_resources(console=self._console,
                                                                       namespace=self._namespace,
@@ -65,7 +63,7 @@ class CleanDeployment:
     def delete_CR(self, task1, progress):
         SLEEP_TIMER = 5
         # Attempt to list the CR in the specific namespace
-        progress.log("Starting FNCM Standalone Deployment Cleanup")
+        progress.log("Starting FileNet Content Manager Deployment Cleanup")
         progress.log()
         progress.log("Cleaning up namespace: " + self._namespace)
 
@@ -149,7 +147,7 @@ class CleanDeployment:
             self._logger.info("Error in logic for checking when resources are deleted -", e)
 
         progress.log()
-        progress.log(Panel(Text("All resources have been deleted successfully..."), style="bold green"))
+        progress.log(Panel.fit(Text("All resources have been deleted successfully..."), style="bold green"))
         progress.advance(task1)
 
     def collect_operator_details(self):
@@ -163,7 +161,7 @@ class CleanDeployment:
     # This function takes care of the deletion of operator after the CR and resources are deleted
     def delete_operator(self, task1, progress):
         SLEEP_TIMER = 5
-        if self._deployment_prerequisites.platform.lower() in ["ocp", "roks"]:
+        if self._deployment_prerequisites.platform.lower() in ["ocp"]:
 
             if "subscription" not in self._operator_details:
                 subscription_name = None
@@ -179,12 +177,20 @@ class CleanDeployment:
                 operator_group = None
             else:
                 operator_group = self._operator_details["operatorGroup"]
+
+            if "providedAPIs" not in self._operator_details:
+                provided_apis = None
+            else:
+                # Convert comma seperated string to list
+                if isinstance(self._operator_details["providedAPIs"], str):
+                    provided_apis = [api.strip() for api in self._operator_details["providedAPIs"].split(",")]
+
             if "catalogSource" not in self._operator_details:
                 catalog_source = None
             else:
                 catalog_source = self._operator_details["catalogSource"]
 
-            progress.log("Starting FNCM Standalone Operator OLM Uninstallation")
+            progress.log("Starting FileNet Content Manager Operator OLM Uninstallation")
             progress.log()
             time.sleep(SLEEP_TIMER)
 
@@ -209,15 +215,29 @@ class CleanDeployment:
             time.sleep(SLEEP_TIMER)
             progress.advance(task1)
 
-            progress.log()
-            progress.log("Deleting Operator Group...")
-            if operator_group:
-                self._kube.delete_operator_group(namespace=self._namespace, name=operator_group)
+            # Check if the operator group is serving more than 1 operator API
+            # If it is serving more than 1 operator API, update the operator group to remove the operator API
+            if provided_apis and len(provided_apis) > 1:
+                progress.log()
+                progress.log("Deployed Operator Group is serving more than 1 Operator API")
+                progress.log()
+                progress.log("Updating Operator Group to remove the Operator API served by FileNet Content Manager Operator")
+
+                self._kube.update_operator_group(namespace=self._namespace, operator_group=operator_group,
+                                                 provided_apis=provided_apis)
+                time.sleep(SLEEP_TIMER)
+                progress.advance(task1)
+
             else:
                 progress.log()
-                progress.log(Panel.fit("Operator Group not found", style="bold red"))
-            time.sleep(SLEEP_TIMER)
-            progress.advance(task1)
+                progress.log("Deleting Operator Group...")
+                if operator_group:
+                    self._kube.delete_operator_group(namespace=self._namespace, name=operator_group)
+                else:
+                    progress.log()
+                    progress.log(Panel.fit("Operator Group not found", style="bold red"))
+                time.sleep(SLEEP_TIMER)
+                progress.advance(task1)
 
             # Deleting the catalog source if it is private
             # For https://jsw.ibm.com/browse/DBACLD-158407
@@ -226,13 +246,12 @@ class CleanDeployment:
                 progress.log("Deleting Catalog Source...")
                 self._kube.delete_catalog_source(namespace=self._namespace, name=catalog_source)
                 time.sleep(SLEEP_TIMER)
-                progress.advance(task1)
             else:
                 progress.log()
                 progress.log("Skipping the Deletion of Catalog Source as it is installed in a global scope...")
 
             progress.log()
-            progress.log(Panel.fit("Uninstalling FNCM Standalone Operator completed!", style="bold green"))
+            progress.log(Panel.fit("Uninstalling FileNet Content Manager Operator completed!", style="bold green"))
             progress.log()
             progress.advance(task1)
 
@@ -263,7 +282,7 @@ class CleanDeployment:
                 else:
                     service_account = None
 
-            progress.log("Starting FNCM Standalone Operator Yaml Uninstallation")
+            progress.log("Starting FileNet Content Manager Operator Yaml Uninstallation")
             progress.log()
             time.sleep(SLEEP_TIMER)
 
@@ -304,5 +323,5 @@ class CleanDeployment:
             progress.advance(task1)
 
             progress.log()
-            progress.log(Panel.fit("Uninstalling FNCM Standalone Operator completed!", style="bold green"))
+            progress.log(Panel.fit("Uninstalling FileNet Content Manager Operator completed!", style="bold green"))
             progress.advance(task1)

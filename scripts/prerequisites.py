@@ -24,7 +24,7 @@ import logging
 import os
 import shutil
 from datetime import datetime
-from typing import Optional
+from typing_extensions import Annotated
 import re
 
 import typer
@@ -51,14 +51,16 @@ from helper_scripts.generate.generate_secrets import GenerateSecrets
 from helper_scripts.generate.generate_sql import GenerateSql
 from helper_scripts.property import property as p
 from helper_scripts.property.read_prop import *
-from helper_scripts.utilities.interface import clear, generate_gather_results, generate_generate_results, display_issues
+from helper_scripts.utilities.interface import clear, generate_gather_results, generate_generate_results, \
+    display_issues, display_prereq_passed
 from helper_scripts.utilities.prerequisites_utilites import zip_folder, \
     create_generate_folder, check_ssl_folders, check_icc_masterkey, check_trusted_certs, check_dbname, \
     check_keystore_password_length, collect_visible_files, check_db_password_length, check_db_ssl_mode, \
     add_idp_to_trusted_certs
+from helper_scripts.utilities.utilities import read_version_toml, prereq_checks
 from helper_scripts.validate import validate as v
 
-__version__ = "5.1.3"
+__version__ = "6.0.0"
 
 app = typer.Typer()
 state = {
@@ -78,12 +80,17 @@ def version_callback(value: bool):
 
 
 @app.callback()
-def main(version: Optional[bool] = typer.Option(None, "--version", help="Show version and exit.",
-                                                callback=version_callback, is_eager=True),
-         silent: bool = typer.Option(False, help="Enable Silent Install (no prompts).",
-                                     rich_help_panel="Customization and Utils"),
-         verbose: bool = typer.Option(False, help="Enable verbose logging.",
-                                      rich_help_panel="Customization and Utils")):
+def main(ctx: typer.Context,
+         version: Annotated[bool, typer.Option(
+    "--version", help="Show version and exit.",
+    callback=version_callback, is_eager=True)] = None,
+         silent: Annotated[bool, typer.Option(
+             help="Enable Silent Install (no prompts).",
+             rich_help_panel="Customization and Utils")] = False,
+         verbose: Annotated[bool, typer.Option(
+             help="Enable verbose logging.",
+             rich_help_panel="Customization and Utils")] = False):
+
     """
     FileNet Content Manager Deployment Prerequisites CLI.
     """
@@ -97,6 +104,52 @@ def main(version: Optional[bool] = typer.Option(None, "--version", help="Show ve
 
     if silent:
         state["silent"] = True
+
+    # Read Version File
+    version_path = os.path.join(os.path.dirname(os.getcwd()), "version.toml")
+
+    if os.path.exists(version_path):
+        state["version_data"] = read_version_toml(version_path, state["logger"])
+        state["version_data"]["VERSION"] = state["version_data"]["VERSION"].split('-')[0]
+    else:
+        state["version_data"] = {}
+
+    if ctx.invoked_subcommand == "gather":
+        clear(console)
+        display_mode_version("Gather",
+                             "Gather information required for IBM FileNet Content Manager Deployment")
+        checks = ["connection",]
+        files = []
+
+
+    elif ctx.invoked_subcommand == "generate":
+        display_mode_version("Generate",
+                             "Generate all deployment artifacts for IBM FileNet Content Manager Deployment")
+        checks = ["connection",]
+        files = []
+
+    elif ctx.invoked_subcommand == "validate":
+        display_mode_version("Validate",
+                             "Validate all prerequisites for IBM FileNet Content Manager Deployment")
+        checks = ["connection","keytool", "java"]
+        if platform.system() == 'Windows':
+            checks.append("powershell")
+        files = []
+
+
+    missing_tools, results, files = prereq_checks(logger=state["logger"], prereqs=checks, files=files)
+
+    # Print table of prerequisites that are missing
+    if len(missing_tools) > 0 or len(files) > 0:
+        state["logger"].info("Prerequisites failed. Displaying missing tools and files.")
+        layout = display_issues(tools=missing_tools, descriptors=files)
+        print(layout)
+        exit(1)
+    else:
+        state["logger"].info("Prerequisites passed.")
+        prereq_summary = display_prereq_passed(results)
+        print(prereq_summary)
+        print()
 
 
 def setup_logger(file_log_level):
@@ -149,9 +202,6 @@ def gather(
     """
     Gather the prerequisites for FileNet Content Manager Deployment.
     """
-    clear(console)
-    display_mode_version("Gather",
-                         "FileNet Content Manager Deployment Prerequisites CLI")
 
     if move != '':
         dir_exists = os.path.isdir(move)
@@ -163,63 +213,65 @@ def gather(
     move_db = False
     move_ldap = False
 
-    # this is the user details object
-    deploy1 = g.GatherPrereqOptions(state["logger"], console)
-
     if not state["silent"]:
+        # this is the user details object
+        gather = g.GatherPrereqOptions(state["logger"], console)
+
         if move == '':
-            deploy1.collect_fncm_version()
+            gather.collect_license_model(state["version_data"])
             clear(console)
-            deploy1.collect_license_model()
+
+            gather.collect_namespace()
+            clear(console)
 
             clear(console)
-            deploy1.collect_platform_ingress()
+            gather.collect_platform_ingress()
 
             clear(console)
-            deploy1.collect_auth_type()
+            gather.collect_auth_type()
 
             clear(console)
-            deploy1.collect_fips_info()
+            gather.collect_fips_info()
 
             clear(console)
-            deploy1.collect_egress_info()
+            gather.collect_egress_info()
 
             clear(console)
-            deploy1.collect_networkpolicy_info()
+            gather.collect_networkpolicy_info()
 
             clear(console)
-            deploy1.collect_optional_components()
+            gather.collect_optional_components()
 
             clear(console)
-            deploy1.collect_db_info()
+            gather.collect_db_info()
 
-            if deploy1.auth_type in ("LDAP", "LDAP_IDP"):
+            if gather.auth_type in ("LDAP", "LDAP_IDP"):
                 clear(console)
-                deploy1.collect_ldap_number()
-                deploy1.collect_ldap_type()
+                gather.collect_ldap_number()
+                gather.collect_ldap_type()
 
-            if deploy1.auth_type in ("LDAP_IDP", "SCIM_IDP"):
+            if gather.auth_type in ("LDAP_IDP", "SCIM_IDP"):
                 clear(console)
-                deploy1.collect_idp_number()
-                deploy1.collect_idp_discovery()
+                gather.collect_idp_number()
+                gather.collect_idp_discovery()
 
 
 
             clear(console)
-            deploy1.collect_init_verify_content()
+            gather.collect_init_verify_content()
         else:
-            deploy1.collect_fncm_version()
+            gather.collect_fncm_version()
             clear(console)
-            deploy1.collect_license_model()
+            gather.collect_license_model()
 
             clear(console)
-            deploy1.collect_platform_ingress()
+            gather.collect_platform_ingress()
 
             clear(console)
-            deploy1.collect_auth_type()
+            gather.collect_auth_type()
 
             clear(console)
-            deploy1.collect_optional_components()
+            gather.collect_optional_components()
 
             clear(console)
             # Get all files in the directory as list by type
@@ -248,22 +300,22 @@ def gather(
             else:
                 move_dict["GCD"] = gcd_file
 
-            if deploy1.auth_type in ("LDAP", "LDAP_IDP"):
+            if gather.auth_type in ("LDAP", "LDAP_IDP"):
                 if len(ldap_files) > 0:
                     ldap_number = len(ldap_files)
-                    deploy1.ldap_number = ldap_number
-                    deploy1.parse_ldap_files(os.path.abspath(move), ldap_files)
+                    gather.ldap_number = ldap_number
+                    gather.parse_ldap_files(os.path.abspath(move), ldap_files)
                     move_dict["LDAP"] = ldap_files
                     move_ldap = True
                 else:
-                    deploy1.collect_ldap_number()
-                    deploy1.collect_ldap_type()
+                    gather.collect_ldap_number()
+                    gather.collect_ldap_type()
                     move_dict["LDAP"] = []
 
-            if deploy1.auth_type in ("LDAP_IDP", "SCIM_IDP"):
+            if gather.auth_type in ("LDAP_IDP", "SCIM_IDP"):
                 clear(console)
-                deploy1.collect_idp_number()
-                deploy1.collect_idp_discovery()
+                gather.collect_idp_number()
+                gather.collect_idp_discovery()
 
             # Determine DB type
             all_db_files = []
@@ -271,72 +323,69 @@ def gather(
             all_db_files.extend(os_files)
             all_db_files.extend(icn_files)
             if len(all_db_files) > 0:
-                deploy1.parse_db_files(os.path.abspath(move), all_db_files)
+                gather.parse_db_files(os.path.abspath(move), all_db_files)
                 move_db = True
             else:
-                deploy1.collect_db_type()
+                gather.collect_db_type()
 
             # Determine number of OS's
             if len(os_files) > 0:
                 os_number = len(os_files)
-                deploy1.os_number = os_number
+                gather.os_number = os_number
                 move_dict["OS"] = os_files
             else:
                 print()
                 print(Panel.fit("Database"))
-                deploy1.collect_os_number()
+                gather.collect_os_number()
                 move_dict["OS"] = []
 
             # Determine SSL Enabled
-            deploy1.collect_db_ssl_info()
+            gather.collect_db_ssl_info()
 
     else:
         # add logic to populate user_details using silent mode
 
-        # deploy1 = s.SilentGather(state["logger"])
-        # above line is for default silent installation file path
-        # below line is for custom silent install config file
-        deploy1 = sg.SilentGatherPrereqOptions(state["logger"],
-                                  os.path.join("silent_config", "silent_install_prerequisites.toml"))
-
-        # The following will run through the whole env file for silent install
-        # deploy1.parse_envfile()
+        gather = sg.SilentGatherPrereqOptions(state["logger"],
+                                              os.path.join("silent_config", "silent_install_prerequisites.toml"))
 
         # Individual components instead:
-        deploy1.silent_version()
-        deploy1.silent_platform()
-        deploy1.silent_auth_type()
-        if deploy1.auth_type in ("LDAP", "LDAP_IDP"):
-            deploy1.silent_ldap()
+        gather.silent_version(state["version_data"])
+        gather.silent_namespace()
+        gather.silent_platform()
+        gather.silent_auth_type()
+        if gather.auth_type in ("LDAP", "LDAP_IDP"):
+            gather.silent_ldap()
 
-        if deploy1.auth_type in ("LDAP_IDP", "SCIM_IDP"):
-            deploy1.silent_idp()
+        if gather.auth_type in ("LDAP_IDP", "SCIM_IDP"):
+            gather.silent_idp()
 
-        deploy1.silent_fips_support()
-        deploy1.silent_egress_support()
-        deploy1.silent_optional_components()
-        deploy1.silent_sendmail_support()
-        deploy1.silent_icc_support()
-        deploy1.silent_tm_support()
-        deploy1.silent_db()
-        deploy1.silent_license_model()
-        deploy1.silent_initverify()
-        deploy1.error_check()
-        deploy1.silent_networkpolicy_support()
+        gather.silent_fips_support()
+        gather.silent_network_policies_support()
+        gather.silent_optional_components()
+        gather.silent_sendmail_support()
+        gather.silent_icc_support()
+        gather.silent_tm_support()
+        gather.silent_db()
+        gather.silent_license_model()
+        gather.silent_initverify()
+        gather.error_check()
+
+    namespace = gather.namespace
+    state["logger"].info(f"Namespace: {namespace}")
 
     # Zip up previous propertyFile if it exists
     # Remove the propertyFile folder
-    if os.path.exists(os.path.join(os.getcwd(), "propertyFile")):
+    if os.path.exists(os.path.join(os.getcwd(), "propertyFile", namespace)):
         if not os.path.exists(os.path.join(os.getcwd(), "backups")):
             os.mkdir(os.path.join(os.getcwd(), "backups"))
         now = datetime.now()
         dt_string = now.strftime("%Y-%m-%d_%H-%M")
-        zip_folder(os.path.join(os.getcwd(), "backups", "propertyFile_" + dt_string),
-                   os.path.join(os.getcwd(), "propertyFile"))
-        shutil.rmtree(os.path.join(os.getcwd(), "propertyFile"))
+        zip_folder(os.path.join(os.getcwd(), "backups", f"propertyFile_{namespace}_{dt_string}"),
+                   os.path.join(os.getcwd(), "propertyFile", namespace))
+        shutil.rmtree(os.path.join(os.getcwd(), "propertyFile", namespace))
 
     # function call to create property files
-    property_obj = p.Property(deploy1, os.getcwd(), state["logger"], console)
+    property_obj = p.Property(gather, os.getcwd(), state["logger"], console)
     property_obj.create_property_structure()
 
     db_properties = property_obj.populate_db_propertyfile()
@@ -344,33 +393,33 @@ def gather(
         db_properties = property_obj.move_database(os.path.abspath(move), move_dict, db_properties)
     property_obj.create_db_propertyfile(db_properties)
 
-    if deploy1.auth_type in ("LDAP", "LDAP_IDP"):
+    if gather.auth_type in ("LDAP", "LDAP_IDP"):
         ldap_properties = property_obj.populate_ldap_propertyfile()
         if move_ldap:
             ldap_properties = property_obj.move_ldap(os.path.abspath(move), move_dict, ldap_properties)
         property_obj.create_ldap_propertyfile(ldap_properties)
 
-    if deploy1.auth_type in ("LDAP_IDP", "SCIM_IDP"):
+    if gather.auth_type in ("LDAP_IDP", "SCIM_IDP"):
         idp_properties = property_obj.populate_idp_propertyfile()
         property_obj.create_idp_propertyfile(idp_properties)
 
-    if deploy1.auth_type in ("SCIM_IDP"):
+    if gather.auth_type in ("SCIM_IDP"):
         scim_properties = property_obj.populate_scim_propertyfile()
         property_obj.create_scim_propertyfile(scim_properties)
 
-    if deploy1.ingress:
+    if gather.ingress:
         property_obj.create_ingress_propertyfile()
     property_obj.create_deployment_propertyfile()
     property_obj.create_user_group_propertyfile()
 
     # this is a property file generated for custom properties such as sendmail, icc , task manager groups etc
-    if deploy1.sendmail_support or deploy1.icc_support or deploy1.tm_custom_groups:
+    if gather.sendmail_support or gather.icc_support or gather.tm_custom_groups:
         property_obj.create_custom_component_propertyfile()
 
     # Commented out the line below as it was removing error messages
     clear(console)
     layout = generate_gather_results(property_obj.property_folder,
-                                     deploy1.to_dict(),
+                                     gather.to_dict(),
                                      move_db,
                                      move_ldap)
 
@@ -383,26 +432,37 @@ def generate():
     Generate the prerequisites for FileNet Content Manager Deployment.
     """
 
-    clear(console)
-    display_mode_version("Generate",
-                         "FileNet Content Manager Deployment Prerequisites CLI")
+    if not state["silent"]:
+        # this is the user details object
+        deploy1 = g.GatherPrereqOptions(state["logger"], console)
+        deploy1.collect_namespace()
+    else:
+        deploy1 = sg.SilentGatherPrereqOptions(state["logger"],
+                                               os.path.join("silent_config", "silent_install_prerequisites.toml"))
+        # Individual components loaded:
+        deploy1.silent_version(state["version_data"])
+        deploy1.silent_namespace()
+
+    namespace = deploy1.namespace
+    state["logger"].info(f"Namespace: {namespace}")
 
 
     # Loading property folder locations
-    prop_folder = os.path.join(os.getcwd(), "propertyFile")
+    prop_folder = os.path.join(os.getcwd(), "propertyFile", namespace)
 
     if not os.path.exists(prop_folder):
         state["logger"].info("Property files are missing. Please run the gather command first.")
-        print(Panel.fit(Text("Property files are missing.\n"
+        print()
+        print(Panel.fit(Text(f"Property files are missing for namespace: {namespace}.\n\n"
                              "Please run the python3 prerequisites.py gather command first."), style="bold red"))
         raise typer.Exit()
 
-    ssl_cert_folder = os.path.join(os.getcwd(), "propertyFile", "ssl-certs")
-    icc_folder = os.path.join(os.getcwd(), "propertyFile", "icc")
-    trusted_certs_folder = os.path.join(os.getcwd(), "propertyFile", "ssl-certs", "trusted-certs")
+    ssl_cert_folder = os.path.join(os.getcwd(), "propertyFile", namespace, "ssl-certs")
+    trusted_certs_folder = os.path.join(os.getcwd(), "propertyFile", namespace, "ssl-certs", "trusted-certs")
+    icc_folder = os.path.join(os.getcwd(), "propertyFile", namespace, "icc")
 
     # Loading generated folder location
-    generated_folder = os.path.join(os.getcwd(), "generatedFiles")
+    generated_folder = os.path.join(os.getcwd(), "generatedFiles", namespace)
 
     # Loading property files locations
     db_prop_file = os.path.join(prop_folder, "fncm_db_server.toml")
@@ -542,11 +602,11 @@ def generate():
                 os.mkdir(os.path.join(os.getcwd(), "backups"))
             now = datetime.now()
             dt_string = now.strftime("%Y-%m-%d_%H-%M")
-            zip_folder(os.path.join(os.getcwd(), "backups", "generatedFiles_" + dt_string),
-                       os.path.join(os.getcwd(), "generatedFiles"))
+            zip_folder(os.path.join(os.getcwd(), "backups", f"generatedFiles_{namespace}_{dt_string}"),
+                       os.path.join(os.getcwd(), "generatedFiles", namespace))
             shutil.rmtree(generated_folder)
+        create_generate_folder(trusted_certs_present, namespace=namespace)
 
-        create_generate_folder(trusted_certs_present)
 
         generate_secrets = GenerateSecrets(db_properties=db_prop_dict,
                                            ldap_properties=ldap_prop_dict,
@@ -555,7 +615,7 @@ def generate():
                                            customcomponent_properties=customcomponent_prop_dict,
                                            scim_properties=scim_prop_dict,
                                            deployment_properties=deployment_prop_dict,
-                                           logger=state["logger"])
+                                           logger=state["logger"], namespace=namespace)
 
         # generate ban secret only if navigator is selected and generate fncm secret only if cpe is present
         # ban secret created if release version is 5.5.8 or navigator has been selected as a component in 5.5.11
@@ -612,7 +672,7 @@ def generate():
         if trusted_certs_present:
             generate_secrets.create_trusted_secrets()
 
-        generate_sql = GenerateSql(db_prop.to_dict(), state["logger"])
+        generate_sql = GenerateSql(db_prop.to_dict(), state["logger"], namespace=namespace)
         if cpe_present:
             generate_sql.create_gcd()
             generate_sql.create_os()
@@ -629,7 +689,7 @@ def generate():
                         customcomponent_properties=customcomponent_prop_dict,
                         idp_properties=idp_prop_dict,
                         scim_properties=scim_prop_dict,
-                        logger=state["logger"])
+                        logger=state["logger"], namespace=namespace)
 
         cr.generate_cr()
 
@@ -658,13 +718,9 @@ def validate(
     validate_ldap = not skip_ldap
     validate_idp = not skip_idp
     validate_scim = not skip_scim
-    
-    clear(console)
-    display_mode_version("Validate",
-                         "FileNet Content Manager Deployment Prerequisites CLI")
 
     hint_panel = Panel.fit(
-        "- Run the validation from the FNCM Standalone Operator \n"
+        "- Run the validation from the FileNet Content Manager Operator \n"
         "- All tools and libraries are installed \n"
         "- Validation from within the your cluster can test private connections \n"
         "- See the below command to copy the folder and run the validation.",
@@ -684,19 +740,31 @@ def validate(
     ))
 
     operator_panel = Panel(Columns([hint_panel, command_panel], align="center", equal=True),
-                           title="FNCM Standalone Operator", border_style="cyan")
+                           title="FileNet Content Manager Operator", border_style="cyan")
     print(operator_panel)
     print()
 
-    # Loading property folder locations
-    prop_folder = os.path.join(os.getcwd(), "propertyFile")
+    if not state["silent"]:
+        # this is the user details object
+        gather = g.GatherPrereqOptions(state["logger"], console)
+        gather.collect_namespace()
+    else:
+        gather = sg.SilentGatherPrereqOptions(state["logger"],
+                                              os.path.join("silent_config", "silent_install_prerequisites.toml"))
+        # Individual components loaded:
+        gather.silent_version(state["version_data"])
+        gather.silent_namespace()
+
+    namespace = gather.namespace
+    state["logger"].info(f"Namespace: {namespace}")
 
     # Loading property folder locations
-    prop_folder = os.path.join(os.getcwd(), "propertyFile")
+    prop_folder = os.path.join(os.getcwd(), "propertyFile", namespace)
 
     if not os.path.exists(prop_folder):
         state["logger"].info("Property files are missing. Please run the gather command first.")
-        print(Panel.fit(Text("Property files are missing.\n"
+        print()
+        print(Panel.fit(Text(f"Property files are missing for namespace: {namespace}.\n\n"
                              "Please run the python3 prerequisites.py gather command first."), style="bold red"))
         raise typer.Exit()
     
@@ -709,13 +777,12 @@ def validate(
         state["logger"].info("The passed pvc_size is not valid. Size needs to be either ending in Mi or Gi")
         raise typer.Exit()
 
-    ssl_cert_folder = os.path.join(os.getcwd(), "propertyFile", "ssl-certs")
+    ssl_cert_folder = os.path.join(os.getcwd(), "propertyFile", namespace, "ssl-certs")
+    trusted_certs_folder = os.path.join(os.getcwd(), "propertyFile", namespace, "ssl-certs", "trusted-certs")
     icc_folder = os.path.join(os.getcwd(), "propertyFile", "icc")
-    trusted_certs_folder = os.path.join(os.getcwd(), "propertyFile", "ssl-certs", "trusted-certs")
 
     # Loading generated folder location
-    os.path.join(os.getcwd(), "generatedFiles")
-    generated_folder = os.path.join(os.getcwd(), "generatedFiles")
+    generated_folder = os.path.join(os.getcwd(), "generatedFiles", namespace)
 
     # Loading property files locations
     db_prop_file = os.path.join(prop_folder, "fncm_db_server.toml")
@@ -824,7 +891,8 @@ def validate(
                          scim_prop=scim_prop_dict,
                          component_prop=customcomponent_prop_dict,
                          user_group_prop=usergroup_prop_dict, 
-                         pvc_size=pvc_size)
+                         pvc_size=pvc_size,
+                         namespace=namespace)
 
     db_number = 0
     if deployment_prop_dict["FNCM_Version"] == "5.5.8":
@@ -854,13 +922,17 @@ def validate(
     if db_prop.missing_required_fields():
         required_fields = db_prop.required_fields
 
-    if db_prop.missing_required_fields() or len(vobject.missing_tools) > 0 or len(missing_certs) > 0 or len(
+    if db_prop.missing_required_fields()  or len(missing_certs) > 0 or len(
             incorrect_certs) > 0:
-        layout = display_issues(required_fields=required_fields, tools=vobject.missing_tools, certs=missing_certs,
+        layout = display_issues(required_fields=required_fields, certs=missing_certs,
                                 incorrect_certs=incorrect_certs, mode="validate",deployment_prop=deployment_prop_dict)
         print(layout)
         exit(1)
     else:
+
+        # starting validation
+        print(Panel.fit(Text("IBM FileNet Content Manager Validation"), style="bold cyan"))
+        print()
 
         with Progress(
                 SpinnerColumn(),
