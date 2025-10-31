@@ -13,17 +13,17 @@
 import base64
 import os
 import shutil
-import jinja2
-import yaml
 
-from ..utilities.prerequisites_utilites import collect_visible_files, split_pem
+import jinja2
+
+from ..utilities.prerequisites_utilites import collect_visible_files, split_pem, encode_secret_contents
 
 
 # Class to generate secrets
 class GenerateSecrets:
     _TMP_DIR = os.path.join(os.getcwd(), "helper_scripts", "generate", "tmp")
 
-    def __init__(self, db_properties=None, ldap_properties=None, idp_properties=None, usergroup_properties=None,
+    def __init__(self, namespace, db_properties=None, ldap_properties=None, idp_properties=None, usergroup_properties=None,
                  customcomponent_properties=None, scim_properties=None, deployment_properties=None, logger=None):
         self._logger = logger
 
@@ -35,14 +35,17 @@ class GenerateSecrets:
         self._scim_properties = scim_properties
         self._deployment_properties = deployment_properties
 
-        self._generate_folder = os.path.join(os.getcwd(), "generatedFiles")
-        self._ssl_cert_folder = os.path.join(os.getcwd(), "propertyFile", "ssl-certs")
-        self._icc_folder = os.path.join(os.getcwd(), "propertyFile", "icc")
-        self._trusted_certs_folder = os.path.join(os.getcwd(), "propertyFile", "ssl-certs", "trusted-certs")
+        self._ssl_cert_folder = os.path.join(os.getcwd(), "propertyFile", namespace, "ssl-certs")
+        self._trusted_certs_folder = os.path.join(self._ssl_cert_folder, "trusted-certs")
+
+
+        self._generate_folder = os.path.join(os.getcwd(), "generatedFiles", namespace)
         self._generate_secrets_folder = os.path.join(self._generate_folder, "secrets")
         self._generate_ssl_secrets_folder = os.path.join(self._generate_folder, "ssl")
-        self._generate_trusted_secrets_folder = os.path.join(self._generate_folder, "ssl", "trusted-certs")
+        self._generate_trusted_secrets_folder = os.path.join(self._generate_ssl_secrets_folder, "trusted-certs")
+
         self._secret_template_folder = os.path.join(os.getcwd(), "helper_scripts", "generate", "templates")
+
 
         # Load all jinja templates
         self._template_loader = jinja2.FileSystemLoader(self._secret_template_folder)
@@ -113,7 +116,7 @@ class GenerateSecrets:
         str: The rendered secret string.
         """
         # Get the template from the environment
-        template = self._template_env.get_template('string_secret.j2')
+        template = self._template_env.get_template('secret.j2')
 
         # Render the template with the provided values
         rendered_secret = template.render(
@@ -390,7 +393,7 @@ class GenerateSecrets:
                 else:
                     self.create_ssl_secret(folderpath=folderpath, ssl_certs=ssl_certs, item=item)
 
-    def create_ssl_secret(self, folderpath, ssl_certs, item):
+    def create_ssl_secret(self, folderpath, ssl_certs, item, prefix="cert-"):
         """
         This function creates an SSL secret from a list of certificate files.
 
@@ -411,8 +414,8 @@ class GenerateSecrets:
         for i, cert in enumerate(ssl_certs):
             if any(ext in cert for ext in [".crt", ".cer", ".pem", ".cert", ".key", ".arm"]):
                 certfolderpath = os.path.join(folderpath, cert)
-                # Split the certificate to seperate files
-                cert_list = split_pem(self._logger, certfolderpath, self._TMP_DIR, f'ldap-{i}')
+                # Split the certificate to separate files
+                cert_list = split_pem(self._logger, certfolderpath, self._TMP_DIR, f'{prefix}{i}')
 
                 for k, cert in enumerate(cert_list):
                     self._logger.info("Reading the file " + cert)
@@ -424,9 +427,10 @@ class GenerateSecrets:
 
         # Encode the certificate to base64 
         encoded_data = base64.b64encode(data.encode()).decode('utf-8')
-        secret_name = "ibm-" + item + "-ssl-secret"
+        secret_name = f"ibm-{item}-ssl-secret"
         secret_filename = secret_name + ".yaml"
         sslsecret_filepath = os.path.join(self._generate_ssl_secrets_folder, secret_filename)
+
 
         data = {
             'tls.crt': encoded_data,
@@ -439,7 +443,7 @@ class GenerateSecrets:
             file.write(rendered_secret)
             self._logger.info(f"Created ssl secret: {secret_name}")
 
-    def create_component_secret(self, data, secret_name):
+    def create_component_secret(self, data, secret_name,secret_folder):
         """
         Creates a Kubernetes secret from a given dictionary of data and a secret name.
 
@@ -459,9 +463,12 @@ class GenerateSecrets:
         A logging message is also printed to indicate the creation of the component secret.
         """
         secret_filename = secret_name + ".yaml"
-        secret_filepath = os.path.join(self._generate_secrets_folder, secret_filename)
+        secret_filepath = os.path.join(secret_folder, secret_filename)
 
-        rendered_secret = self.render_secret_template(data, secret_name)
+        # This function makes sure all values are encoded in base64 so that we can create templates with data and not string data
+        encoded_secret_data = encode_secret_contents(data)
+
+        rendered_secret = self.render_secret_template(encoded_secret_data, secret_name)
 
         # write the secret data into a yaml
         with open(secret_filepath, 'w+') as file:
@@ -491,7 +498,7 @@ class GenerateSecrets:
                 data["jMailPassword"] = self.xor_password(
                     self._customcomponent_properties["SENDMAIL"]["JAVAMAIL_PASSWORD"])
 
-        self.create_component_secret(data, secret_name)
+        self.create_component_secret(data, secret_name, self._generate_secrets_folder)
 
     # Function to generate ldap_secret
     def create_ldap_secret(self):
@@ -511,7 +518,7 @@ class GenerateSecrets:
                 data['ldap' + self._ldap_properties[ldap]["LDAP_ID"] + 'Password'] = self.xor_password(
                     self._ldap_properties[ldap]["LDAP_BIND_DN_PASSWORD"])
 
-        self.create_component_secret(data, secret_name)
+        self.create_component_secret(data, secret_name, self._generate_secrets_folder)
 
     # Function to generate scim_secret
     def create_scim_secret(self):
@@ -524,7 +531,7 @@ class GenerateSecrets:
                 'scimUsername': self._scim_properties[scim]["SCIM_CLIENT_ID"]
             }
 
-            self.create_component_secret(data, secret_name)
+            self.create_component_secret(data, secret_name, self._generate_secrets_folder)
 
     def create_idp_secret(self):
 
@@ -537,7 +544,7 @@ class GenerateSecrets:
                 'client_secret': self.xor_password(self._idp_properties[idp]["CLIENT_SECRET"])
             }
 
-            self.create_component_secret(data, secret_name)
+            self.create_component_secret(data, secret_name, self._generate_secrets_folder)
 
     # Function to generate fncm_secret
     def create_fncm_secret(self):
@@ -559,7 +566,7 @@ class GenerateSecrets:
             data[f"{os_label}DBUsername"] = self._db_properties[os_id]["DATABASE_USERNAME"]
             data[f"{os_label}DBPassword"] = self.xor_password(self._db_properties[os_id]["DATABASE_PASSWORD"])
 
-        self.create_component_secret(data, secret_name)
+        self.create_component_secret(data, secret_name,self._generate_secrets_folder)
 
     # Function to generate ier secret
     def create_ier_secret(self):
@@ -571,7 +578,7 @@ class GenerateSecrets:
             "keystorePassword": self._usergroup_properties['KEYSTORE_PASSWORD']
         }
 
-        self.create_component_secret(data, secret_name)
+        self.create_component_secret(data, secret_name,self._generate_secrets_folder)
 
     # Function to generate iccsap secret
     def create_iccsap_secret(self):
@@ -583,7 +590,7 @@ class GenerateSecrets:
             "keystorePassword": self._usergroup_properties['KEYSTORE_PASSWORD']
         }
 
-        self.create_component_secret(data, secret_name)
+        self.create_component_secret(data, secret_name,self._generate_secrets_folder)
 
     # Function to generate icc related secrets
     def create_icc_secrets(self):
@@ -599,7 +606,7 @@ class GenerateSecrets:
 
             }
 
-            self.create_component_secret(data, secret_name)
+            self.create_component_secret(data, secret_name,self._generate_secrets_folder)
 
             # creating the masterkey secret
             secret_name = 'icc-masterkey-txt'

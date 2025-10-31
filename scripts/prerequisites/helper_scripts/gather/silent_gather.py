@@ -99,9 +99,9 @@ class SilentGatherOptions(GatherOptions):
         super().collect_namespace(namespace)
         self._namespace = super().namespace
 
-    def silent_license_model(self):
+    def silent_license_model(self, version_data=None):
         license = self._envfile.get("LICENSE_ACCEPT")
-        super().collect_license_model(license)
+        super().collect_license_model(version_data, license)
         self._accept_license = super().accept_license
 
     def silent_collect_sensitive_info(self):
@@ -285,15 +285,11 @@ class SilentGatherOptions(GatherOptions):
         self._logger.info("namespace-", self._namespace)
         self._logger.info("platform-", self._platform)
         self._logger.info("podman present-", super()._podman_available)
-        self._logger.info("docker present -", super()._docker_available)
-        self._logger.info("kubectl present-", super()._kubectl_available)
         self._logger.info("oc logged in", super()._ocp_logged_in)
         return_dict = {
             "namespace": self._namespace,
             "platform": self._platform,
             "podman present": super()._podman_available,
-            "docker present": super()._docker_available,
-            "kubectl present": super()._kubectl_available,
             "Cluster connection": super()._ocp_logged_in
         }
 

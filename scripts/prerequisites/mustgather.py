@@ -41,7 +41,7 @@ from helper_scripts.utilities.interface import (
 from helper_scripts.utilities.utilities import prereq_checks
 from pathlib import Path
 
-__version__ = "5.1.1"
+__version__ = "6.0.0"
 
 app = typer.Typer()
 
@@ -61,17 +61,17 @@ console = Console(record=True)
 def setup_logger(file_log_level):
     # Create a logger object
     logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(file_log_level)
 
     # Setup console logger
     shell_handler = RichHandler()
-    shell_handler.setLevel(file_log_level)
+    shell_handler.setLevel(logging.WARNING)
     formatter_rich = logging.Formatter("%(message)s")
     shell_handler.setFormatter(formatter_rich)
 
     # Setup file logger
     file_handler = logging.FileHandler("mustgather.log")
-    file_handler.setLevel(logging.DEBUG)
+    file_handler.setLevel(file_log_level)
     formatter_file = logging.Formatter(
         "%(asctime)s - %(levelname)s - %(message)-100s - %(filename)s:%(lineno)d", "%Y-%m-%d %H:%M:%S")
     file_handler.setFormatter(formatter_file)
@@ -224,7 +224,7 @@ def main(
     if dryrun:
         state["dryrun"] = True
 
-    checks = ["kubectl", "connection"]
+    checks = ["connection"]
 
     missing_tools, results, files = prereq_checks(logger=state["logger"], prereqs=checks)
 
@@ -290,7 +290,7 @@ def main(
     if state["dryrun"]:
         exit()
     clear(console)
-    print(Panel.fit("Starting FNCM Standalone MustGather", style="cyan"))
+    print(Panel.fit("Starting FileNet Content Manager MustGather", style="cyan"))
     with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -554,13 +554,13 @@ def main(
 @app.command()
 def networkpolicy(apply: bool = typer.Option(False, help="Apply all generated network policies to the cluster")):
     """
-    Collect the Network policy templates from the FNCM Standalone Operator
+    Collect the Network policy templates from the FileNet Content Manager Operator
     """
     clear(console)
     display_mode_version("Gather Network Policies",
                         "FileNet Content Manager MustGather for Container Deployment")
 
-    checks = ["kubectl", "connection"]
+    checks = ["connection"]
 
     missing_tools, results, files = prereq_checks(logger=state["logger"], prereqs=checks)
     if len(missing_tools) > 0 or len(files) > 0:
@@ -585,7 +585,7 @@ def networkpolicy(apply: bool = typer.Option(False, help="Apply all generated ne
             print(Text(f"Current operator release is {operator_details['release']}\n"
                     f"Only operators from 5.7.0 and later releases will generate network policy templates", style="red"))
             raise typer.Exit()
-        np_folder = os.path.join(os.getcwd(), "FNCMNetworkPolicies")
+        np_folder = os.path.join(os.getcwd(), "FNCMNetworkPolicies", namespace)
         must_gather = mg.MustGather(console, namespace, state["logger"], np_folder, deployment_details, operator_details, kube)
         if os.path.exists(np_folder):
             print()
@@ -606,7 +606,7 @@ def networkpolicy(apply: bool = typer.Option(False, help="Apply all generated ne
                     must_gather.collect_network_policy_templates(progress,operator_details) 
                     progress.update(task1, total=1, completed=1)
                 else:
-                    print(Panel.fit(Text("FNCM Standalone Operator not found in namespace."),style="bold red"))
+                    print(Panel.fit(Text("FileNet Content Manager Operator not found in namespace."),style="bold red"))
                     raise typer.Exit()
 
             # Output Network Policy Template folder
@@ -631,7 +631,7 @@ def networkpolicy(apply: bool = typer.Option(False, help="Apply all generated ne
             print(Text(f"Current operator release is {operator_details['release']}\n"
                     f"Only operators from 5.7.0 and later releases will generate network policy templates", style="red"))
             raise typer.Exit()
-        np_folder = os.path.join(os.getcwd(), "FNCMNetworkPolicies")
+        np_folder = os.path.join(os.getcwd(), "FNCMNetworkPolicies", namespace)
 
         must_gather = mg.MustGather(console, namespace, state["logger"], np_folder, deployment_details,operator_details, kube)
         if os.path.exists(np_folder):
@@ -648,6 +648,11 @@ def networkpolicy(apply: bool = typer.Option(False, help="Apply all generated ne
             except Exception as e:
                  state["logger"].exception("Unable to tar network policies, caught %s Exiting...", e)
 
+        if len(operator_details.get("pods", 0)) == 0:
+            print()
+            print(Panel.fit(Text("FileNet Content Manager Operator not found in namespace."), style="bold red"))
+            raise typer.Exit()
+
         print()
         print(Panel.fit(Text("Starting Copying Network policy Templates"), style="cyan"))
         print()
@@ -656,13 +661,10 @@ def networkpolicy(apply: bool = typer.Option(False, help="Apply all generated ne
                     BarColumn(),
                     transient=True,
                     console=console) as progress:
-            if operator_details:
-                task1 = progress.add_task("[cyan]Collect Network Policies", total=None)
-                must_gather.collect_network_policy_templates(progress,operator_details) 
-                progress.update(task1, total=1, completed=1)
-            else:
-                print(Panel.fit(Text("FNCM Standalone Operator not found in namespace."),style="bold red"))
-                raise typer.Exit()
+
+            task1 = progress.add_task("[cyan]Collect Network Policies", total=None)
+            must_gather.collect_network_policy_templates(progress,operator_details)
+            progress.update(task1, total=1, completed=1)
 
 
         results = mustgather_network_results(np_folder, namespace)

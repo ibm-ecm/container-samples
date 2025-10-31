@@ -161,12 +161,9 @@ class ReadPropDb(ReadProp):
 
 class ReadPropLdap(ReadProp):
     def __find_ldap_ids(self):
-        ldap_ids = []
-        for key in self._toml_dict.keys():
-            if "LDAP" in key:
-                ldap_ids.append(key)
+        ldap_ids = list(self._toml_dict.keys())
         self._toml_dict["_ldap_ids"] = ldap_ids
-        self._toml_dict["ldap_number"] = len(self._toml_dict["_ldap_ids"])
+        self._toml_dict["ldap_number"] = len(ldap_ids)
 
     def __init__(self, propertyfile, logger):
         super().__init__(propertyfile, logger)
@@ -174,12 +171,9 @@ class ReadPropLdap(ReadProp):
 
 class ReadPropIdp(ReadProp):
     def __find_idp_ids(self):
-        idp_ids = []
-        for key in self._toml_dict.keys():
-            if "IDP" in key:
-                idp_ids.append(key)
+        idp_ids = list(self._toml_dict.keys())
         self._toml_dict["_idp_ids"] = idp_ids
-        self._toml_dict["idp_number"] = len(self._toml_dict["_idp_ids"])
+        self._toml_dict["idp_number"] = len(idp_ids)
 
     def __init__(self, propertyfile, logger):
         super().__init__(propertyfile, logger)
@@ -222,13 +216,9 @@ class ReadPropImageTag(ReadProp):
         super().__init__(propertyfile, logger)
 
     def check_toml(self):
-        keys_to_check = ["TAG", "REPOSITORY"]
+        keys_to_check = ["TAG", "REPOSITORY", "DIGEST"]
         self._incorrect_keys_list = []
         for key, value in self._toml_dict.items():
-            if set(value.keys()) != set(keys_to_check):
+            if set(keys_to_check).issubset(set(value.keys())):
                 self._incorrect_keys_list.append(key)
-        if not self._incorrect_keys_list:
-            for key,value in self._toml_dict.items():
-                if not value["REPOSITORY"] or not value["TAG"]:
-                    self._incorrect_keys_list.append(key)
         return self._incorrect_keys_list
