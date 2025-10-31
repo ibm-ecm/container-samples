@@ -48,6 +48,7 @@ class SilentGatherPrereqOptions(GatherPrereqOptions):
             self.silent_platform()
             self.silent_fips_support()
             self.silent_auth_type()
+            self.silent_namespace()
             self.silent_idp()
             self.silent_optional_components()
             self.silent_sendmail_support()
@@ -57,7 +58,7 @@ class SilentGatherPrereqOptions(GatherPrereqOptions):
             self.silent_license_model()
             self.silent_ldap()
             self.silent_initverify()
-            self.silent_egress_support()
+            self.silent_network_policies_support()
 
             # self.error_check()
 
@@ -74,23 +75,21 @@ class SilentGatherPrereqOptions(GatherPrereqOptions):
         return len(self._error_list)
 
     def silent_platform(self):
-        platform = gather_var(key="PLATFORM", valid_values=[1, 2, 3], _logger=self._logger, _envfile=self._envfile,
+        platform = gather_var(key="PLATFORM", valid_values=[1, 2], _logger=self._logger, _envfile=self._envfile,
                               _error_list=self._error_list)
         if platform is not None:
             self.platform = self.Platform(platform).name
             if self.platform == 'other' and gather_var(key="INGRESS", _logger=self._logger, _envfile=self._envfile,
-                                                       _error_list=self._error_list) is not None and self.Version.FNCMVersion(
-                gather_var(key="FNCM_VERSION", valid_values=[1, 2, 3, 4, 5], _logger=self._logger, _envfile=self._envfile,
-                           _error_list=self._error_list)).name != "5.5.8":
+                                                       _error_list=self._error_list) is not None and self._fncm_version != "5.5.8":
                 self.ingress = gather_var(key="INGRESS", _logger=self._logger, _envfile=self._envfile,
                                           _error_list=self._error_list)
 
-    def silent_version(self):
-        version = gather_var(key="FNCM_VERSION", valid_values=[1, 2, 3, 4, 5], _logger=self._logger,
-                             _envfile=self._envfile,
-                             _error_list=self._error_list)
+    def silent_version(self, version_data):
+        self._logger.info(f"Version data from config file: {version_data}")
+        version = version_data.get("VERSION", '5.7.0')
         if version:
-            self._fncm_version = self.Version.FNCMVersion(version).name
+            self._fncm_version = version
+        self._logger.info(f"FNCM Version set to: {self._fncm_version}")
 
     def silent_sendmail_support(self):
         sendmail_support = gather_var(key="SENDMAIL_SUPPORT", _logger=self._logger, _envfile=self._envfile,
@@ -102,23 +101,30 @@ class SilentGatherPrereqOptions(GatherPrereqOptions):
         if "ban" not in self._optional_components:
             self._sendmail_support = False
 
-    def silent_egress_support(self):
-        np_support = gather_var(key="GENERATE_NETWORK_POLICIES", _logger=self._logger, _envfile=self._envfile,
-                                    _error_list=self._error_list)
-        if np_support is not None:
-            self._np_support = np_support
-        else:
-            self._np_support = False
 
-    def silent_networkpolicy_support(self):
-        egress_support = gather_var(key="RESTRICTED_INTERNET_ACCESS", _logger=self._logger, _envfile=self._envfile,
-                                    _error_list=self._error_list)
-        if egress_support is not None:
-            self._egress_support = egress_support
-        else:
-            self._egress_support = False
+    def silent_network_policies_support(self):
         if self._fncm_version in ["5.5.8", "5.5.11"]:
             self._egress_support = False
+            self._np_support = False
+
+        elif self._fncm_version in ["5.5.12", "5.6.0"]:
+            egress_support = gather_var(key="RESTRICTED_INTERNET_ACCESS", _logger=self._logger, _envfile=self._envfile,
+                                    _error_list=self._error_list)
+
+            if egress_support is not None:
+                self._egress_support = egress_support
+            self._np_support = False
+
+        else:
+            np_support = gather_var(key="GENERATE_NETWORK_POLICIES", _logger=self._logger, _envfile=self._envfile,
+                                    _error_list=self._error_list)
+            if np_support is not None:
+                self._np_support = np_support
+            else:
+                self._np_support = False
+            self._egress_support = False
+
+        self._logger.info(f"Egress Support: {self._egress_support}, Network Policies Support: {self._np_support}")
 
     def silent_fips_support(self):
         fips_support = gather_var(key="FIPS_SUPPORT", _logger=self._logger, _envfile=self._envfile,
@@ -275,6 +281,17 @@ class SilentGatherPrereqOptions(GatherPrereqOptions):
 
     def silent_idp(self):
         self._idp_number = self.__find_idp_count()
+
+        if self._auth_type == "SCIM_IDP":
+            if self._idp_number == 0:
+                self._error_list.append("Authentication type is set to SCIM_IDP but no IDP configuration found.")
+            elif self._idp_number > 1:
+                self._error_list.append("Multiple IDP configurations found. Only one IDP configuration is allowed when Authentication type is set to SCIM_IDP.")
+
+            # Add SCIM folder for SSL if not already present
+            if "scim" not in self._ssl_directory_list:
+                self._ssl_directory_list.append("scim")
+
         for i in range(self._idp_number):
             idp_id = f"IDP{str(i + 1) if i > 0 else ''}"
             idp_discovery_enabled = gather_var(key="DISCOVERY_ENABLED", section_header=idp_id, _logger=self._logger,
@@ -290,6 +307,7 @@ class SilentGatherPrereqOptions(GatherPrereqOptions):
                 idp = self.Idp(idp_discovery_enabled, idp_id, idp_discovery_url)
                 idp.parse_discovery_url()
                 self._idp_info.append(idp)
+                self._ssl_directory_list.append(idp_id.lower())
 
     def silent_auth_type(self):
         auth_type = gather_var(key="AUTHENTICATION", valid_values=[1, 2, 3], _logger=self._logger,
@@ -344,6 +362,12 @@ class SilentGatherPrereqOptions(GatherPrereqOptions):
                                    _envfile=self._envfile, _error_list=self._error_list)
         if license_model is not None:
             self._license_model = license_model
+
+    # Function to read namespace information from toml file
+    def silent_namespace(self):
+        namespace = self._envfile.get("NAMESPACE")
+        super().collect_namespace(namespace)
+        self._namespace = super().namespace
 
     def silent_initverify(self):
         content_initialize = gather_var(key="CONTENT_INIT", _logger=self._logger, _envfile=self._envfile,

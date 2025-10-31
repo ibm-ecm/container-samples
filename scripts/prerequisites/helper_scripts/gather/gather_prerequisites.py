@@ -8,22 +8,22 @@
 # disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
 #
 ###############################################################################
-
 import os
 from enum import Enum
+from urllib.parse import urlparse
 
 import requests
-
-from ..utilities.interface import clear
-
-requests.packages.urllib3.disable_warnings()
 import xmltodict
+from kubernetes import config
 from rich import print
 from rich.panel import Panel
 from rich.prompt import Confirm, IntPrompt, Prompt
 from rich.text import Text
-from urllib.parse import urlparse
 
+from ..utilities.interface import clear
+from ..utilities.kubernetes_utilites import KubernetesUtilities
+
+requests.packages.urllib3.disable_warnings()
 
 
 # create a class to gather all deployment options from the user for the prerequisite scripts
@@ -230,8 +230,7 @@ class GatherPrereqOptions:
     # Create an enum for all platform types
     class Platform(Enum):
         OCP = 1
-        ROKS = 2
-        other = 3
+        other = 2
 
     def __init__(self, logger, console):
         self._optional_components = set()
@@ -258,11 +257,19 @@ class GatherPrereqOptions:
         self._np_support = False
         self._fips_support = False
         self._auth_type = self.AuthType(1).name
+        self._namespace = None
+        self._current_namespace = None
+        self._script_type = 'gather'
+        self._k = KubernetesUtilities(self._logger)
 
     # Create a function to gather all deployment options from the user
     @property
     def license_model(self):
         return self._license_model
+
+    @property
+    def namespace(self):
+        return self._namespace
 
     @property
     def fncm_version(self):
@@ -393,6 +400,141 @@ class GatherPrereqOptions:
     @ldap_number.setter
     def ldap_number(self, value):
         self._ldap_number = value
+
+    def collect_namespace(self, namespace=None):
+        # namespace parameter is none when silent mode is NOT selected, hence the conditions to skip conditions if silent mode is selected
+        try:
+            self._logger.info("Gathering namespace information")
+            if namespace is None:
+                print()
+                print(Panel.fit("Namespace"))
+                print()
+                try:
+                    self._current_namespace = self._k.current_namespace
+                    self._logger.info(f"Current namespace from kubeconfig: {self._current_namespace}")
+                except Exception as e:
+                    self._current_namespace = None
+                    self._logger.info("Gathering namespace information failed")
+
+
+            if self._platform in ["OCP"]:
+                invalid_namespaces = ["services", "default", "calico-system", "ibm-cert-store", "ibm-observe",
+                                      "ibm-system", "ibm-odf-validation-webhook"]
+                invalid_namespace_to_start_with = ["openshift-", "kube-"]
+            else:
+                invalid_namespaces = ["services", "default", "calico-system"]
+                invalid_namespace_to_start_with = ["kube-"]
+
+            while True:
+                if namespace is None:
+                    answer = Prompt.ask("Enter your namespace", default=self._current_namespace)
+                    if self._script_type != "deploy":
+                        namespace_exists = self._k.check_namespace_exists(namespace=answer)
+                        if not namespace_exists:
+                            print()
+                            print(Panel.fit(f"Namespace '{answer}' does not exist.\n"
+                                            f"Enter a valid namespace for script to proceed.", style="bold red"))
+                            print()
+                            continue
+                else:
+                    # silent install check for namespace will not loop more than once if invalid namespace is provided
+                    if self._script_type != "deploy":
+                        self._logger.info(f"Checking if namespace: {namespace} exists.")
+                        namespace_exists = self._k.check_namespace_exists(namespace=namespace)
+                        if not namespace_exists:
+                            self._logger.debug(f"Namespace '{namespace}' does not exist.")
+                            print()
+                            print(Panel.fit(f"Namespace '{namespace}' does not exist.\n"
+                                            f"Enter a valid namespace for script to proceed.", style="bold red"))
+                            print()
+                            exit(1)
+                    answer = namespace
+
+                answer = answer.strip()
+                # Start of namespace validation
+                # Check if the answer is not empty after stripping whitespace
+                if answer == '':
+                    self._logger.debug(f"Namespace cannot be empty. Please try again")
+                    print()
+                    print("[prompt.invalid]Namespace cannot be empty. Please try again")
+                    print()
+                    if namespace is None:
+                        continue
+                    else:
+                        exit(0)
+
+                # Check if the answer is not in the list of invalid namespaces
+                if any(answer in value for value in invalid_namespaces):
+                    invalid_msg = ""
+                    for value in invalid_namespaces:
+                        invalid_msg += f"- {value}\n"
+                    invalid_msg.strip()
+
+                    print()
+                    print(f"[prompt.invalid]Namespace cannot be any of the following. Please try again.\n{invalid_msg}")
+                    print()
+                    self._logger.debug(f"Namespace cannot be any of the following: {invalid_msg}")
+                    if namespace is None:
+                        continue
+                    else:
+                        exit(0)
+
+                if any(answer.startswith(value) for value in invalid_namespace_to_start_with):
+                    invalid_msg = ""
+                    for value in invalid_namespace_to_start_with:
+                        invalid_msg += f"- {value}\n"
+                    invalid_msg = invalid_msg.strip()
+                    print()
+                    print(
+                        f"[prompt.invalid]Namespace cannot start with any of the following. Please try again.\n{invalid_msg}")
+                    print()
+                    self._logger.debug(f"Namespace cannot start with any of the following: {invalid_msg}")
+                    if namespace is None:
+                        continue
+                    else:
+                        exit(0)
+
+                # Check if namespace is only numbers
+                if answer.isnumeric():
+                    print()
+                    print("[prompt.invalid]Namespace cannot be a number. Please try again.")
+                    print()
+                    self._logger.debug(f"Namespace cannot be a number. Please try again.")
+                    if namespace is None:
+                        continue
+                    else:
+                        exit(0)
+
+                # Check if namespace is more than 1 word
+                if " " in answer:
+                    print()
+                    print("[prompt.invalid]Namespace cannot contain spaces. Use '-'. Please try again.")
+                    print()
+                    if namespace is None:
+                        continue
+                    else:
+                        exit(0)
+
+                # Check if namespace has an underscore
+                if "_" in answer:
+                    print()
+                    print("[prompt.invalid]Namespace cannot contain '_'. Use '-'. Please try again.")
+                    print()
+                    self._logger.debug(f"Namespace cannot be a number. Please try again.")
+                    if namespace is None:
+                        continue
+                    else:
+                        exit(0)
+
+                # for all scripts using this function other than deploy operator we need to check if namespace exists
+                self._namespace = answer
+                self._logger.info(f"Namespace entered: {self._namespace}")
+                break
+
+        except Exception as e:
+            self._logger.exception(
+                f"Exception from gathering deployment details in collect namespace function -  {str(e)}")
+
 
     def parse_db_files(self, path, db_files):
         try:
@@ -876,7 +1018,7 @@ class GatherPrereqOptions:
             print(Panel.fit("Version"))
             while True:
                 print()
-                print("Which version of FNCM Standalone do you want to deploy?")
+                print("Which version of FileNet Content Manager do you want to deploy?")
                 print("1. 5.5.8")
                 print("2. 5.5.11")
                 print("3. 5.5.12")
@@ -893,7 +1035,7 @@ class GatherPrereqOptions:
 
         except Exception as e:
             self._logger.exception(
-                f"Exception from gather script in FNCM Standalone collect version function -  {str(e)}")
+                f"Exception from gather script in FileNet Content Manager collect version function -  {str(e)}")
 
     # Function to collect FIPS related info
     def collect_fips_info(self):
@@ -913,10 +1055,18 @@ class GatherPrereqOptions:
                 f"Exception from gather script in FNCM S collect version function -  {str(e)}")
 
     # Create a function to gather db_type from the user
-    def collect_license_model(self):
+    def collect_license_model(self, version_data):
         try:
-            print(Panel.fit("License"))
+
+            print(Panel.fit("License and Version"))
             print()
+
+            version = version_data.get("VERSION", '5.7.0' )
+            self._fncm_version = version
+
+            print(Panel.fit(Text(f"Detected IBM FileNet Content Manager Version: {version}"), style="bold cyan"))
+            print()
+
             if self._fncm_version == "5.5.8":
                 fncm_license_url = Text(
                     "https://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-LSWS-C6KPMK",
@@ -1136,15 +1286,14 @@ class GatherPrereqOptions:
                 print()
                 print("Select a Platform Type")
                 print("1. OCP")
-                print("2. ROKS")
-                print("3. CNCF")
-                result = IntPrompt.ask('Enter a valid option [[b]1[/b] and [b]3[/b]]')
+                print("2. CNCF")
+                result = IntPrompt.ask('Enter a valid option [[b]1[/b] and [b]2[/b]]')
 
-                if 1 <= result <= 3:
+                if 1 <= result <= 2:
                     self._platform = self.Platform(result).name
                     break
 
-                print("\n[prompt.invalid]Number must be between [[b]1[/b] and [b]3[/b]]")
+                print("\n[prompt.invalid]Number must be between [[b]1[/b] and [b]2[/b]]")
 
             if self._platform == "other" and self.fncm_version != "5.5.8":
                 print()
@@ -1335,6 +1484,9 @@ class GatherPrereqOptions:
             "db_type": self.db_type,
             "os_number": self.os_number,
             "db_ssl": self.db_ssl,
+            "np_support": self.np_support,
+            "fips_support": self.fips_support,
+            "egress_support": self.egress_support,
             "license_model": self.license_model,
             "fncm_version": self.fncm_version,
             "sendmail_support": self.sendmail_support,
