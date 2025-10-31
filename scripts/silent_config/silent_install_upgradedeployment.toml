@@ -27,10 +27,9 @@ LICENSE_ACCEPT = false
 # ##                   Platform                     ##
 # ####################################################
 
-# Platform of choice - Valid values: [1; 2; 3]
+# Platform of choice - Valid values: [1; 2;]
 # 1. OCP
-# 2. ROKS
-# 3. CNCF
+# 2. CNCF
 PLATFORM = 1
 
 # ####################################################

@@ -14,69 +14,20 @@ import re
 import shutil
 import subprocess
 
-import docker
 import requests
 import toml
-
+from requests import ConnectTimeout
 from rich import print
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.text import Text
 from toml.decoder import TomlDecodeError
 
-from .prerequisites_utilites import command_available, check_java_version, get_kubectl_version, \
-    kubectl_log_in_check, get_skopeo_version, filepath_validate, get_ibm_pak_version, get_oc_version, get_mirror_version
-
+from .prerequisites_utilites import command_available, check_java_version, \
+    get_skopeo_version, filepath_validate, get_ibm_pak_version, get_oc_version, get_mirror_version
 from ..property.read_prop import ReadPropImageTag
+from ..utilities import kubernetes_utilites as k
 
-
-# Function to check if docker is available
-def docker_available():
-    try:
-        client = docker.from_env()
-        client.ping()
-        return True
-    except docker.errors.APIError:
-        return False
-    except Exception as e:
-        return False
-
-# Function to log in to a registry using docker
-def login_to_registry_docker(registry, username, password, logger, ssl_enabled=False, ssl_cert_path=''):
-    try:
-
-        if ssl_enabled:
-            registry_url = f"https://{registry}"
-
-            # Perform Docker login with TLS certificate
-            response = requests.get(f"{registry_url}/v2/", auth=(username, password), verify=ssl_cert_path)
-
-            # Check if login was successful
-            if response.status_code == 200:
-                logger.info("Successfully logged in to the Docker registry.")
-                return True
-            else:
-                logger.error(f"Failed to log in to the Docker registry. Status code: {response.status_code}")
-                return False
-        else:
-
-            client = docker.from_env()
-            client.ping()
-
-            # Log in to the Docker registry
-
-            login_result = client.login(username=username, password=password, registry=registry)
-            # Check if the login was successful
-            if login_result:
-                logger.info(f"Successfully logged in to {registry}")
-                return True
-            else:
-                logger.error(f"Failed to log in to {registry}")
-                return False
-
-    except docker.errors.APIError as e:
-        logger.info(f"Error: {e}")
-        return False
 
 # Function to log in to a registry using podman
 def login_to_registry_podman(registry, username, password, logger, ssl_enabled=False, ssl_cert_path=''):
@@ -102,6 +53,7 @@ def login_to_registry_podman(registry, username, password, logger, ssl_enabled=F
         logger.info(f"Error: {e}")
         return False
 
+
 # Function to check oc plugins
 def check_oc_plugins(logger, plugin):
     try:
@@ -124,6 +76,7 @@ def check_oc_plugins(logger, plugin):
         logger.info(f"Error: {e}")
         return
 
+
 # Function to do the prerequisite checks before the script starts
 def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.6.0'):
     logger.info(f"Checking prerequisites ...")
@@ -137,12 +90,10 @@ def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.6.0'):
         missing_files = []
 
         prereq_summary = {
-            "docker": False,
             "podman": False,
             "java": False,
             "java_version": "",
-            "kubectl": False,
-            "kubectl_version": "",
+            "k8s_version": "",
             "connection": False,
             "skopeo": False,
             "skopeo_version": "",
@@ -170,30 +121,18 @@ def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.6.0'):
                 logger.info(f"Prerequisites failed -> Descriptor files not present - {missing_files}")
                 prereq_summary["descriptor_files"] = False
 
-        if any(x in prereqs for x in ["podman", "docker"]):
+        if any(x in prereqs for x in ["podman"]):
             logger.info(f"Checking if the 'podman' is available.")
             podman = command_available("podman")
-            logger.info(f"Checking if the 'docker' is available.")
-            docker = docker_available()
 
-            # Either podman or docker needed
-            if docker:
+            if podman:
 
-                logger.info("Docker Daemon available")
-                logger.info("Using Docker Daemon")
-                prereq_summary["docker"] = True
-
+                logger.info("Podman available")
+                logger.info("Using Podman Daemon")
+                prereq_summary["podman"] = True
             else:
-                logger.info("Docker Daemon is not available")
-                if podman:
-
-                    logger.info("Podman available")
-                    logger.info("Using Podman Daemon")
-                    prereq_summary["podman"] = True
-
-                else:
-                    logger.info("Neither Podman or Docker Daemon present")
-                    missing_tools.append("Podman/Docker CLI")
+                logger.info("Podman Daemon not present")
+                missing_tools.append("Podman CLI")
 
         if "oc" in prereqs:
             logger.info(f"Checking if the 'oc' command is available.")
@@ -226,7 +165,6 @@ def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.6.0'):
                             prereq_summary["mirror_version"] = get_mirror_version(logger)
                             logger.info(f"Mirror Version: {prereq_summary['mirror_version']}")
 
-
                 if "ibm-pak" in prereqs:
                     logger.info(f"Checking if the 'ibm-pak' plugin is available.")
                     ibm_pak = check_oc_plugins(logger, "ibm-pak")
@@ -239,9 +177,31 @@ def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.6.0'):
                         prereq_summary["ibm-pak_version"] = get_ibm_pak_version(logger)
                         logger.info(f"IBM PAK Version: {prereq_summary['ibm-pak_version']}")
 
+        if "powershell" in prereqs:
+            logger.info(f"Checking if 'PowerShell' is available.")
+            powershell_present = command_available("powershell.exe")
+
+            if not powershell_present:
+                logger.info("Prerequisites failed -> PowerShell not installed")
+                missing_tools.append("PowerShell")
+            else:
+                logger.info("PowerShell available")
+                prereq_summary["powershell"] = True
+
+        if "keytool" in prereqs:
+            logger.info(f"Checking if 'keytool' is available.")
+            keytool_present = command_available("keytool")
+
+            if not keytool_present:
+                logger.info("Prerequisites failed -> keytool not installed")
+                missing_tools.append("keytool")
+            else:
+                logger.info("keytool available")
+                prereq_summary["keytool"] = True
+
         # Java Check
         if "java" in prereqs:
-            
+
             logger.info(f"Checking if 'Java' is available.")
             java_present = command_available("java")
 
@@ -254,36 +214,49 @@ def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.6.0'):
                 logger.info("Checking Java version")
                 java_version = check_java_version(fncm_version)
 
+                # Collect the Java version even if it is incorrect
+
                 if not java_version:
-                    logger.info("Prerequisites failed -> Java version not correct")
-                    missing_tools.append("Java Version")
+                    logger.info("Prerequisites failed -> Java version not found")
+                    missing_tools.append("Java")
                 else:
-                    logger.info("Java Version correct")
+                    logger.info(f"Java version found: {java_version}")
                     prereq_summary["java_version"] = java_version
 
-        # kubectl check
-        if "kubectl" in prereqs:
-            logger.info(f"Checking if the 'kubectl' command is available")
-            kubectl = command_available("kubectl")
-            if not kubectl:
-                logger.info("Prerequisites failed -> kubectl not installed")
-                missing_tools.append("Kubectl CLI")
-            else:
-                logger.info("Kubectl CLI available")
-                prereq_summary["kubectl"] = True
-                kubectl_version = get_kubectl_version(logger)
-                prereq_summary["kubectl_version"] = kubectl_version
+                if fncm_version == "5.5.8":
+                    prereq_summary["expected_java_version"] = "8"
+                if fncm_version == "5.5.11":
+                    prereq_summary["expected_java_version"] = "11"
+                if fncm_version in ("5.5.12", "5.6.0"):
+                    prereq_summary["expected_java_version"] = "17"
+                if fncm_version == "5.7.0":
+                    prereq_summary["expected_java_version"] = "21"
+                else:
+                    prereq_summary["expected_java_version"] = "21"
+
+                logger.info("Expected Java version: " + prereq_summary["expected_java_version"])
 
         # check if cluster is logged in
         if "connection" in prereqs:
-            logger.info("Checking if user is logged into the OCP console")
-            ocp_logged_in = kubectl_log_in_check(logger)
-            if not ocp_logged_in:
+            try:
+                kube = k.KubernetesUtilities(logger)
+                logger.info("Checking if user is logged into the OCP console")
+                server_version, ocp_logged_in = kube.get_kubernetes_version()
+
+                if not ocp_logged_in:
+                    logger.info("Prerequisites failed -> User is not logged into the OCP console")
+                    missing_tools.append("connection")
+                else:
+                    logger.info("User is logged into the OCP console")
+                    prereq_summary["connection"] = True
+                    prereq_summary["k8s_version"] = server_version
+
+            except (ConnectTimeout, ConnectionError) as e:
+                logger.info(f"Could not connect to kubernetes cluster: {e}")
+                missing_tools.append("connection")
+            except Exception as e:
                 logger.info("Prerequisites failed -> User is not logged into the OCP console")
                 missing_tools.append("connection")
-            else:
-                logger.info("User is logged into the OCP console")
-                prereq_summary["connection"] = True
 
         if "skopeo" in prereqs:
             logger.info("Checking if skopeo is available")
@@ -323,6 +296,7 @@ def read_version_toml(file_path, logger):
     except Exception as e:
         logger.info(f"Error: {e}")
         return None
+
 
 # Function to replace namespace variable in different yaml files used
 # could be repurposed for other text replacement in the future
@@ -466,6 +440,7 @@ def create_deployment_info(setup, version_data):
     }
     return deployment_details
 
+
 #Function to compare the requests and limits section of CR and return a flag to denote if a update is required or not
 def resource_limits_comparison(current_value,upgrade_value,limits=False):
     try:
@@ -494,6 +469,7 @@ def resource_limits_comparison(current_value,upgrade_value,limits=False):
                 return False
     except Exception as e:
         return True
+
 
 # Function to update a key value pair using the values present in a another dictionary
 # used to update tags and resources if they are present in the cr to be updated
@@ -550,6 +526,7 @@ def parse_yaml_for_keys(yaml_data, keys):
     parsed_values = {key: list(extract_values(yaml_data, key)) for key in keys}
     return parsed_values
 
+
 def create_version_info(setup, version_data):
     namespace = setup.namespace
 
@@ -572,6 +549,7 @@ def create_version_info(setup, version_data):
     }
 
     return version_details
+
 
 # Create tmp folder
 def create_tmp_folder():
@@ -623,6 +601,7 @@ def copy_image(source_image, dest_image, progress=None):
         (f"Error: {e}")
         return False
 
+
 # Function to read all env variables from the airgap variables file
 def read_airgap_vars(airgap_details_file):
     airgap_vars = {}
@@ -636,6 +615,7 @@ def read_airgap_vars(airgap_details_file):
                 airgap_vars[key] = value
 
     return airgap_vars
+
 
 # Parse the airgap details file
 
@@ -730,7 +710,6 @@ def validate_image_details_file(logger, image_tag_file):
                 Syntax("python3 loadimages.py generate", "bash", theme="ansi_dark")
             ))
 
-
             exit(1)
         # Create dictionaries for property files if not None
         if image_prop:
@@ -764,3 +743,4 @@ def update_operator_template(input_file, output_file):
                     line = re.sub(search_pattern, replacement, line)
                     break  # Once a pattern is matched, break out of the loop
             fout.write(line)
+

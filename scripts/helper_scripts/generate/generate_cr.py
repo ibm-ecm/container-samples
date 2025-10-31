@@ -33,7 +33,9 @@ class GenerateCR:
         # load the YAML file with comments
         # read the source YAML file with comments
         with open(filepath, 'r') as file:
-            data = YAML().load(file)
+            data = YAML()
+            data.preserve_quotes = True
+            data = data.load(file)
         return data
 
     # write to yaml function
@@ -46,7 +48,7 @@ class GenerateCR:
 
     def __init__(self, db_properties=None, ldap_properties=None, usergroup_properties=None, deployment_properties=None,
                  ingress_properties=None, customcomponent_properties=None, idp_properties=None, scim_properties=None,
-                 logger=None):
+                 logger=None, namespace=None):
         self._logger = logger
 
         self._db_properties = db_properties
@@ -57,8 +59,9 @@ class GenerateCR:
         self._ingress_properties = ingress_properties
         self._customcomponent_properties = customcomponent_properties
         self._scim_properties = scim_properties
+        self._namespace = namespace
 
-        self._generate_folder = os.path.join(os.getcwd(), "generatedFiles")
+        self._generate_folder = os.path.join(os.getcwd(), "generatedFiles", self._namespace)
         # Navigate up two levels to the parent directory
         self._base_template = os.path.join(os.getcwd(), "helper_scripts", "generate", "cr_templates",
                                            self._deployment_properties["FNCM_Version"], "base.yaml")
@@ -87,23 +90,31 @@ class GenerateCR:
             os.remove(self._generated_cr)
 
     def generate_cr(self):
-        self._logger.info("generating CR")
+        self._logger.info("Generating Custom Resource YAML")
         # call function to generate shared configuration section of CR
+
+        self._logger.info("Generating Shared Configuration sections")
         self.generate_base_section()
 
+        if self._deployment_properties.get('RESTRICTED_INTERNET_ACCESS', False) or self._deployment_properties.get('GENERATE_NETWORK_POLICIES', False):
+            self._logger.info("Generating Egress sections")
+            self.populate_egress_section()
+
+        self._logger.info("Generating Ingress sections")
+        self.populate_ingress_section()
+
         if self._idp_properties:
+            self._logger.info("Generating IDP sections")
             self.populate_idp_section()
 
-        self.populate_ingress_section()
-        if self._deployment_properties["PLATFORM"] != "OCP" and self._deployment_properties["FNCM_Version"] in ["5.7.0"]:
-            self.populate_egress_section() 
-
         if self._ldap_properties:
+            self._logger.info("Generating LDAP sections")
             ldap_dict = self.load_cr_template(self._ldap_template)
             self.populate_ldap_section(ldap_dict, "ldap_configuration")
             self.populate_multi_ldap_section()
 
         if self._db_properties:
+            self._logger.info("Generating Database sections")
             self.populate_db_section()
 
         # call function to generate init configuration of CR if required
@@ -299,13 +310,14 @@ class GenerateCR:
                 idp_section["spec"]["shared_configuration"]["open_id_connect_providers"][idx]["provider_name"] = key
                 idp_section["spec"]["shared_configuration"]["open_id_connect_providers"][idx]["display_name"] = \
                     self._idp_properties[key]["DISPLAY_NAME"]
-                idp_section["spec"]["shared_configuration"]["open_id_connect_providers"][idx]["issuer_identifier"] = \
-                    self._idp_properties[key]["ISSUER"]
+
 
                 secret_section = {"cpe": secret_name, "nav": secret_name}
                 if self._deployment_properties["FNCM_Version"] == "5.5.8":
                     secret_section["es"] = secret_name
                     secret_section["graphql"] = secret_name
+
+                # Setting the required parameters if discovery URL is supplied
 
                 idp_section["spec"]["shared_configuration"]["open_id_connect_providers"][idx][
                     "client_oidc_secret"] = secret_section
@@ -319,35 +331,50 @@ class GenerateCR:
                 idp_section["spec"]["shared_configuration"]["open_id_connect_providers"][idx][
                     "user_identity_to_create_subject"] = \
                     self._idp_properties[key]["USER_IDENTIFIER_TO_CREATE_SUBJECT"]
-                idp_section["spec"]["shared_configuration"]["open_id_connect_providers"][idx]["token_endpoint_url"] = \
-                    self._idp_properties[key]["TOKEN_ENDPOINT"]
 
+                # Discovery URL is used by liberty and all required info is fetched
                 if "DISCOVERY_ENDPOINT" in self._idp_properties[key]:
                     idp_section["spec"]["shared_configuration"]["open_id_connect_providers"][idx][
                         "discovery_endpoint_url"] = \
                         self._idp_properties[key]["DISCOVERY_ENDPOINT"]
+
+                    # Remove token and issuer endpoints if discovery endpoint is provided
+                    idp_section["spec"]["shared_configuration"]["open_id_connect_providers"][idx].pop(
+                        "token_endpoint_url", None)
+                    idp_section["spec"]["shared_configuration"]["open_id_connect_providers"][idx].pop(
+                        "issuer_identifier", None)
+
                 else:
+                    # Remove discovery endpoint and set token and issuer endpoints manually
                     idp_section["spec"]["shared_configuration"]["open_id_connect_providers"][idx].pop(
                         "discovery_endpoint_url")
 
-                # Build custom user-defined parameters
-                parameter_list = []
-                if self._idp_properties[key]["VALIDATION_METHOD"] == "userinfo":
-                    parameter = "DELIM=;userinfoEndpointUrl;" + self._idp_properties[key]["USERINFO_ENDPOINT"]
-                    parameter_list.append(parameter)
-                    parameter = "DELIM=;userinfo;true"
-                    parameter_list.append(parameter)
-                else:
-                    parameter = "DELIM=;introspectEndpointUrl;" + self._idp_properties[key]["INTROSPECT_ENDPOINT"]
-                    parameter_list.append(parameter)
+                    idp_section["spec"]["shared_configuration"]["open_id_connect_providers"][idx]["token_endpoint_url"] = \
+                        self._idp_properties[key]["TOKEN_ENDPOINT"]
+                    idp_section["spec"]["shared_configuration"]["open_id_connect_providers"][idx]["issuer_identifier"] = \
+                        self._idp_properties[key]["ISSUER"]
 
-                if "REVOCATION_ENDPOINT" in self._idp_properties[key]:
-                    parameter = "DELIM=;revokeEndpointUrl;" + self._idp_properties[key]["REVOCATION_ENDPOINT"]
-                    parameter_list.append(parameter)
 
-                # Add custom user-defined parameters to the OIDC section
-                idp_section["spec"]["shared_configuration"]["open_id_connect_providers"][idx][
-                    "oidc_ud_param"] = parameter_list
+
+                # Build custom user-defined parameters, this is only needed for SCIM / OIDC validation methods
+                if self._idp_properties and self._scim_properties:
+                    parameter_list = []
+                    if self._idp_properties[key]["VALIDATION_METHOD"] == "userinfo":
+                        parameter = "DELIM=;userinfoEndpointUrl;" + self._idp_properties[key]["USERINFO_ENDPOINT"]
+                        parameter_list.append(parameter)
+                        parameter = "DELIM=;userinfo;true"
+                        parameter_list.append(parameter)
+                    else:
+                        parameter = "DELIM=;introspectEndpointUrl;" + self._idp_properties[key]["INTROSPECT_ENDPOINT"]
+                        parameter_list.append(parameter)
+
+                    if "REVOCATION_ENDPOINT" in self._idp_properties[key]:
+                        parameter = "DELIM=;revokeEndpointUrl;" + self._idp_properties[key]["REVOCATION_ENDPOINT"]
+                        parameter_list.append(parameter)
+
+                    # Add custom user-defined parameters to the OIDC section
+                    idp_section["spec"]["shared_configuration"]["open_id_connect_providers"][idx][
+                        "oidc_ud_param"] = parameter_list
 
             self._merged_data["spec"]["shared_configuration"].update(idp_section["spec"]["shared_configuration"])
 
@@ -589,9 +616,6 @@ class GenerateCR:
                         base_dict["spec"]["shared_configuration"]["trusted_certificate_list"].append(
                             secret_name)
 
-            # when roks is enabled we need to have an ingress parameter set to false
-            if self._deployment_properties["PLATFORM"].lower() == "roks":
-                base_dict["spec"]["shared_configuration"]["sc_ingress_enable"] = False
             base_dict["spec"]["shared_configuration"]["sc_fncm_license_model"] = \
                 self._deployment_properties["LICENSE"]
             base_dict["spec"]["shared_configuration"]["storage_configuration"][
@@ -600,6 +624,7 @@ class GenerateCR:
                 "sc_medium_file_storage_classname"] = self._deployment_properties["MEDIUM_FILE_STORAGE_CLASSNAME"]
             base_dict["spec"]["shared_configuration"]["storage_configuration"][
                 "sc_fast_file_storage_classname"] = self._deployment_properties["FAST_FILE_STORAGE_CLASSNAME"]
+
             if "CONTENT_INITIALIZATION_ENABLE" in self._usergroup_properties and self._usergroup_properties[
                 "CONTENT_INITIALIZATION_ENABLE"]:
                 base_dict["spec"]["shared_configuration"]["sc_content_initialization"] = \
@@ -613,16 +638,14 @@ class GenerateCR:
             if self._deployment_properties["FNCM_Version"] not in ["5.5.8", "5.5.11"]:
                 base_dict["spec"]["shared_configuration"]["enable_fips"] = self._deployment_properties[
                     "FIPS_SUPPORT"]
-                if self._deployment_properties["FNCM_Version"] not in ["5.7.0"]:
-                    base_dict["spec"]["shared_configuration"]["sc_egress_configuration"][
-                        "sc_restricted_internet_access"] = \
-                        self._deployment_properties[
-                            "RESTRICTED_INTERNET_ACCESS"]
-                else:
-                    base_dict["spec"]["shared_configuration"][
-                        "sc_generate_sample_network_policies"] = \
-                        self._deployment_properties[
-                            "GENERATE_NETWORK_POLICIES"]
+
+            # populate generate network policies only for 5.7.0
+            if self._deployment_properties["FNCM_Version"] in ["5.7.0"]:
+                base_dict["spec"]["shared_configuration"][
+                    "sc_generate_sample_network_policies"] = \
+                    self._deployment_properties[
+                        "GENERATE_NETWORK_POLICIES"]
+
 
             self._merged_data.update(base_dict)
 
@@ -676,26 +699,36 @@ class GenerateCR:
     # function to generate the egress section
     def populate_egress_section(self):        
         egress_dict = self.load_cr_template(self._egress_template)
-        if "sc_api_namespace" in self._deployment_properties.keys():
-            egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"]["sc_api_namespace"] = self._deployment_properties[
-                "sc_api_namespace"]
+
+        if self._deployment_properties["PLATFORM"] != "OCP":
+
+            if "K8_API_NAMESPACE" in self._deployment_properties.keys():
+                egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"]["sc_api_namespace"] = self._deployment_properties[
+                    "K8_API_NAMESPACE"]
+            else:
+                egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"].pop("sc_api_namespace")
+            if "K8_API_PORT" in self._deployment_properties.keys():
+                egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"]["sc_api_port"] = \
+                    self._deployment_properties["K8_API_PORT"]
+            else:
+                egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"].pop("sc_api_port")
+            if "K8_DNS_NAMESPACE" in self._deployment_properties.keys():
+                egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"]["sc_dns_namespace"] = \
+                    self._deployment_properties["K8_DNS_NAMESPACE"]
+            else:
+                egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"].pop("sc_dns_namespace")
+            if "K8_DNS_PORT" in self._deployment_properties.keys():
+                egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"]["sc_dns_port"] = \
+                    self._deployment_properties["K8_DNS_PORT"]
+            else:
+                egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"].pop("sc_dns_port")
         else:
-            egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"].pop("sc_api_namespace")
-        if "sc_api_port" in self._deployment_properties.keys():
-            egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"]["sc_api_port"] = \
-                self._deployment_properties["sc_api_port"]
-        else:
-            egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"].pop("sc_api_port")
-        if "sc_dns_namespace" in self._deployment_properties.keys():
-            egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"]["sc_dns_namespace"] = \
-                self._deployment_properties["sc_dns_namespace"]
-        else:
-            egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"].pop("sc_dns_namespace")
-        if "sc_dns_port" in self._deployment_properties.keys():
-            egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"]["sc_dns_port"] = \
-                self._deployment_properties["sc_dns_port"]
-        else:
-            egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"].pop("sc_dns_port")
+            if self._deployment_properties['FNCM_Version'] not in ['5.7.0']:
+                egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"].pop("sc_api_namespace")
+                egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"].pop("sc_api_port")
+                egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"].pop("sc_dns_namespace")
+                egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"].pop("sc_dns_port")
+
         
         if egress_dict["spec"]["shared_configuration"]["sc_egress_configuration"].keys():
             self._merged_data["spec"]["shared_configuration"].update(egress_dict["spec"]["shared_configuration"])
