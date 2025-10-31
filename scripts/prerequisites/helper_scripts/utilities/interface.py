@@ -132,6 +132,11 @@ def selection_tree(selection_summary: dict) -> Tree:
     """Create a selection summary tree for the user to review."""
     tree = Tree("Selection Summary", guide_style="cyan")
 
+    version_tree = Tree("IBM FileNet Content Manager")
+    version_tree.add(selection_summary["fncm_version"])
+
+    tree.add(version_tree)
+
     license_tree = Tree("License Model")
     license_tree.add(selection_summary["license_model"])
 
@@ -182,7 +187,7 @@ def mustgather_details(cr_details: dict, components: [], operator_details: dict)
     layout["upper"].update(msg_panel)
 
     summary_msg = (
-        "\nThe FNCM Standalone MustGather collections a set of files that will help the IBM support team diagnose"
+        "\nThe FileNet Content Manager MustGather collections a set of files that will help the IBM support team diagnose"
         " and resolve issues with your deployment.\n\n"
         "The collection includes the following artifacts:\n"
         "- Cluster Information and Resource Usage\n")
@@ -205,7 +210,8 @@ def mustgather_details(cr_details: dict, components: [], operator_details: dict)
         operator_table.add_row("Release", operator_details["release"])
         operator_table.add_row("Install Type", operator_details["type"])
 
-        summary_msg += ("- FNCM Operator Deployment & Ansible Logs\n")
+        summary_msg += ("- FNCM Operator Deployment & Ansible Logs\n"
+                        "- Role, RoleBinding & Service Account\n")
 
         if operator_details["type"] == "OLM":
             operator_table.add_row("Installed CSV", operator_details["installedCSV"])
@@ -226,7 +232,7 @@ def mustgather_details(cr_details: dict, components: [], operator_details: dict)
 
     else:
 
-        summary_msg += ("- The FNCM Standalone Custom Resource (CR) file\n"
+        summary_msg += ("- The FileNet Content Manager Custom Resource (CR) file\n"
                         "- Components Logs\n"
                         "- Workloads: Deployment & Pod Details\n"
                         "- Networking: Route, Ingress & Services\n"
@@ -295,7 +301,7 @@ def upgrade_details(deployment_details: dict, version_details: dict, current_ope
     msg_panel = Panel(msg)
     layout["upper"].update(msg_panel)
 
-    summary_msg = ("\nThe FNCM Standalone Operator Deployment will upgrade\n"
+    summary_msg = ("\nThe FileNet Content Manager Operator Deployment will upgrade\n"
                    "the following artifacts to your cluster:\n\n")
 
     left_panels = []
@@ -394,7 +400,7 @@ def deploy_details(deployment_details: dict, version_details: dict) -> Layout:
     msg_panel = Panel(msg)
     layout["upper"].update(msg_panel)
 
-    summary_msg = ("\nThe FNCM Standalone Operator Deployment will apply\n"
+    summary_msg = ("\nThe FileNet Content Manager Operator Deployment will apply\n"
                    "the following artifacts to your cluster:\n\n")
 
     right_panels = []
@@ -420,8 +426,7 @@ def deploy_details(deployment_details: dict, version_details: dict) -> Layout:
             deployment_table.add_row("Catalog Source", deployment_details["catalogSource"])
             deployment_table.add_row("Catalog Install Type", deployment_details["catalogType"])
 
-            summary_msg += ("- Cluster Role & Cluster Role Binding\n"
-                            "- FNCM Operator Catalog Source\n"
+            summary_msg += ("- FNCM Operator Catalog Source\n"
                             "- Subscription and Operator Group\n")
 
         left_panels.append(deployment_table)
@@ -463,6 +468,7 @@ def generate_gather_results(property_folder: str, selection_summary: dict, moved
     # Create the left side panel
     # Create next steps panel
     next_steps_panel = Panel.fit("Next Steps")
+    namespace = selection_summary.get("namespace", "N/A")
 
     instructions = Panel.fit(
         "1. Review the toml files in the propertyFiles folder\n"
@@ -510,16 +516,16 @@ def generate_gather_results(property_folder: str, selection_summary: dict, moved
 
 def upgrade_deployment_details(update_list: list, version_details: dict, download_folder_path: ""):
     right_panels = []
-    msg = Text("FNCM Standalone Deployment Preparation", style="bold green")
+    msg = Text("FileNet Content Manager Deployment Preparation", style="bold green")
     msg_panel = Panel.fit(msg)
 
     if version_details["version"] in ("5.7.0"):
-        msg = f"The FNCM Standalone Custom Resource (CR) has been upgraded.\n\n" \
+        msg = f"The FileNet Content Manager Custom Resource (CR) has been upgraded.\n\n" \
         "1. The current and upgraded CR have been copied to ./FNCMUpgrade/CustomResource folder\n" \
         "2. Review the following tables for changes made to the current CR\n" \
         "3. Network Policies have been formatted and copied to ./FNCMUpgrade/NetworkPolicies folder"
     else:
-        msg = f"The FNCM Standalone Custom Resource (CR) has been upgraded.\n\n" \
+        msg = f"The FileNet Content Manager Custom Resource (CR) has been upgraded.\n\n" \
         "1. The current and upgraded CR have been copied to ./FNCMUpgrade/CustomResource folder\n" \
         "2. Review the following tables for changes made to the current CR"
 
@@ -571,18 +577,15 @@ def display_prereq_passed(prereqs=None):
     if prereqs is None:
         prereqs = {}
 
+    left_group_list = []
+
     msg_panel = Panel.fit("All Prerequisites Passed", style="bold green")
+    left_group_list.append(msg_panel)
 
     check_list = []
     if 'podman' in prereqs:
         if prereqs['podman']:
             check_list.append("Podman Daemon")
-    if 'docker' in prereqs:
-        if prereqs['docker']:
-            check_list.append("Docker Daemon")
-    if 'kubectl' in prereqs:
-        if prereqs['kubectl']:
-            check_list.append("Kubectl CLI")
     if 'java' in prereqs:
         if prereqs['java']:
             check_list.append("Java")
@@ -616,11 +619,15 @@ def display_prereq_passed(prereqs=None):
         checklist_msg += f":heavy_check_mark: {check_list[0]}"
 
     checklist_panel = Panel.fit(checklist_msg.strip())
+    left_group_list.append(checklist_panel)
 
-    left_group = Group(msg_panel, checklist_panel)
+
+    left_group = Group(*left_group_list)
+
+    right_group_list = []
 
     version_list = [
-        prereqs['kubectl'],
+        prereqs['connection'],
         prereqs['java'],
         prereqs['skopeo'],
         prereqs['oc'],
@@ -630,13 +637,13 @@ def display_prereq_passed(prereqs=None):
 
     if any(version_list):
 
-        cli_version_table = Table(title="CLI Versions")
-        cli_version_table.add_column("Tool", style="cyan", no_wrap=True)
+        cli_version_table = Table(title="Versions")
+        cli_version_table.add_column("Component", style="cyan", no_wrap=True)
         cli_version_table.add_column("Version", style="blue")
 
-        if 'kubectl' in prereqs:
-            if prereqs['kubectl']:
-                cli_version_table.add_row("Kubectl CLI", prereqs["kubectl_version"])
+        if 'connection' in prereqs:
+            if prereqs['connection']:
+                cli_version_table.add_row("K8s Server Version", prereqs["k8s_version"])
 
         if 'java' in prereqs:
             if prereqs['java']:
@@ -658,9 +665,23 @@ def display_prereq_passed(prereqs=None):
             if prereqs['mirror']:
                 cli_version_table.add_row("OC Mirror Plugin", prereqs["mirror_version"])
 
-        version_panel = Panel(cli_version_table)
+        version_panel = Panel.fit(cli_version_table)
+        right_group_list.append(version_panel)
 
-        prereq_info = Columns([left_group, version_panel], equal=True)
+        if 'java' in prereqs:
+            if prereqs['java']:
+                java_version = prereqs.get('java_version', '').split()[0]
+                expected_java_version = prereqs.get('expected_java_version', '')
+
+                if java_version and expected_java_version and java_version != expected_java_version:
+                    warning_msg = Text(
+                        f"Warning: Detected Java version {java_version} does not match the expected version {expected_java_version}.")
+                    warning_panel = Panel.fit(warning_msg, style="bold yellow")
+                    right_group_list.append(warning_panel)
+
+        right_group = Group(*right_group_list)
+
+        prereq_info = Columns([left_group, right_group], equal=True)
 
         return prereq_info
 
@@ -678,7 +699,7 @@ def display_airgap_vars(airgap_vars=None):
         airgap_vars = {}
 
     airgap_msg = Text(
-                      "\n\nThe following variables will be used to configure and mirror the FNCM Standalone Images."
+                      "\n\nThe following variables will be used to configure and mirror the FileNet Content Manager Images."
                       "\nReview all Airgap Variables below:\n")
 
 
@@ -756,26 +777,27 @@ def display_issues(generate_folder=None, required_fields=None,
             required_fields["fncm_user_group.toml"].append((["KEYSTORE_PASSWORD"], "Incorrect Length"))
     if required_fields is not None:
         for file in required_fields:
-            if file in section_files:
+            filename = file.split('/')[1]
+            if filename in section_files:
                 parsed_parameters = parse_required_fields(required_fields[file])
-                error_table = Table(title=file)
+                error_table = Table(title=filename)
                 error_table.add_column("Section", style="cyan", no_wrap=True)
                 error_table.add_column("Parameters", style="blue")
                 for section in parsed_parameters:
                     parameters = ""
                     for i in parsed_parameters[section]:
                         parameters += "- " + i + "\n"
-                    error_table.add_row(section, parameters)
+                    error_table.add_row(section, parameters.strip())
 
                 error_tables.append(error_table)
 
-            elif file in unsectioned_files:
-                error_table = Table(title=file)
+            elif filename in unsectioned_files:
+                error_table = Table(title=filename)
                 error_table.add_column("Parameters", style="blue")
                 for section in required_fields[file]:
                     parameters = ""
                     parameters += "- " + section[0][0]
-                    error_table.add_row(parameters)
+                    error_table.add_row(parameters.strip())
                 error_tables.append(error_table)
 
     if certs:
@@ -788,7 +810,7 @@ def display_issues(generate_folder=None, required_fields=None,
             files = ""
             for i in certs[connection]:
                 files += "- " + i + "\n"
-            error_table.add_row(connection, files)
+            error_table.add_row(connection, files.strip())
 
         error_tables.append(error_table)
 
@@ -811,7 +833,7 @@ def display_issues(generate_folder=None, required_fields=None,
             files = ""
             for i in incorrect_certs[connection]:
                 files += "- " + i + "\n"
-            error_table.add_row(connection, files)
+            error_table.add_row(connection, files.strip())
 
         error_tables.append(error_table)
 
@@ -871,7 +893,7 @@ def display_issues(generate_folder=None, required_fields=None,
             instruction_list.append(
                 "Make sure you have the correct Java version installed, refer to the table on the right for the correct Java version to install.\n")
             error_table = Table(title="Correct Java Version to use")
-            error_table.add_column("FNCM Standalone Version", style="green")
+            error_table.add_column("FileNet Content Manager Version", style="green")
             error_table.add_column("Java Version", style="green")
             if deployment_prop["FNCM_Version"] == "5.5.8":
                 error_table.add_row("5.5.8", "Java 8")
@@ -1018,7 +1040,7 @@ def generate_generate_results(generate_folder: str) -> Layout:
     # Create the left side panel
     # Create next steps panel
     message = Text("Files Generated Successfully", style="bold cyan", justify="center")
-    result_panel = Panel(message)
+    result_panel = Panel(message, style="bold cyan")
 
     layout["upper"].update(result_panel)
 
@@ -1079,20 +1101,20 @@ def generate_loadimage_results(summary: {}) -> Layout:
     # Create next steps panel
     total = summary["total"]
     if 0 < len(summary["failed"]) < total:
-        message = Text("Image Push Completed with Errors", style="bold yellow", justify="center")
+        message = Panel(Text("Image Push Completed with Errors", justify="center"), style="bold yellow")
     elif len(summary["failed"]) == total:
-        message = Text("Image Push Failed", style="bold red", justify="center")
+        message = Panel(Text("Image Push Failed",  justify="center"), style="bold red")
     else:
-        message = Text("Image Push Completed Successfully", style="bold green", justify="center")
+        message = Panel(Text("Image Push Completed Successfully", justify="center"), style="bold green")
 
-    result_panel = Panel(message)
+    result_panel = message
 
     layout["upper"].update(result_panel)
 
     next_steps_panel = Panel.fit("Next Steps")
     instructions = Panel.fit(
         "1. If any failures review the generated image details TOML file\n"
-        "2. To configure your FNCM Standalone deployment to use the private registry set the following in your Custom Resource File"
+        "2. To configure your FileNet Content Manager deployment to use the private registry set the following in your Custom Resource File"
     )
     private_registry = summary["private_registry"]
     code = f"spec:\n" \
@@ -1222,7 +1244,7 @@ def generate_loadimages_results(imageDetailFolder: str, airgap=False) -> Layout:
     if airgap:
         instructions = Panel.fit(
             "1. Review the generated Airgap Environment Variables file\n"
-            "2. The FNCM Standalone CASE Package has been downloaded to your current directory\n"
+            "2. The FileNet Content Manager CASE Package has been downloaded to your current directory\n"
             "3. Run the following command start the image mirror"
         )
 
@@ -1698,7 +1720,7 @@ def display_deployment_resources(logger, deployment_resources=None, deployment_d
     layout["left"].minimum_size = 50
     layout["right"].ratio = 9
 
-    message = Text("FNCM Standalone Deployment Resources to be Deleted", style="bold blue", justify="center")
+    message = Text("FileNet Content Manager Deployment Resources to be Deleted", style="bold blue", justify="center")
     result_panel = Panel(message)
     layout["upper"].update(result_panel)
 
@@ -1751,7 +1773,7 @@ def display_deployment_resources(logger, deployment_resources=None, deployment_d
         details_panel = Panel.fit(deployment_details_list.strip())
         left_panel_list.append(details_panel)
 
-        instructions_msg += ("\n\nFNCM Standalone Deployment: \n"
+        instructions_msg += ("\n\nFileNet Content Manager Deployment: \n"
                              "  - Deployments\n"
                              "  - Services\n"
                              "  - Operator Generated ConfigMap\n"
@@ -1769,7 +1791,7 @@ def display_deployment_resources(logger, deployment_resources=None, deployment_d
 
     # Operator Details Panel
     if operator_details:
-        instructions_msg += ("\n\nFNCM Standalone Operator: \n"
+        instructions_msg += ("\n\nFileNet Content Manager Operator: \n"
                              "  - Operator Deployment\n"
                              "  - Role, RoleBinding & Service Account\n")
 

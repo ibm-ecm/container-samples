@@ -10,13 +10,14 @@
 ###############################################################################
 
 import os
-import subprocess
+from pathlib import Path
 
+from rich import print
 from rich.panel import Panel
 from rich.text import Text
 
 from ..utilities.prerequisites_utilites import write_yaml_to_file, write_log_to_file
-from pathlib import Path
+
 
 # Create a MustGather Class
 
@@ -296,6 +297,39 @@ class MustGather:
             progress.log(Text(f"Unable to retrieve routes", style="bold red"))
             progress.log()
 
+
+    # Function to collect all HorizonalPodAutoscaler information
+    def collect_hpa_info(self, progress, hpas=[]):
+        # Create folder for hpas if it does not exist
+        hpa_folder_path = os.path.join(self._mustgather_folder, "hpas")
+        if not os.path.exists(hpa_folder_path):
+            os.makedirs(hpa_folder_path)
+
+        try:
+            progress.log(Panel.fit("Starting HPA Information Collection", style="cyan"))
+            progress.log()
+
+            for hpa in hpas:
+                progress.log(f"Collecting HPA {hpa}")
+                progress.log()
+                path = os.path.join(
+                    f"{hpa_folder_path}",
+                    f"{hpa}.yaml",
+                )
+                if os.path.isfile(path):
+                    self._logger.info("Log already collected in the previous step. Skipping...")
+                else:
+                    hpa_response = self._kube.describe_hpa(hpa, self._namespace)
+                    write_yaml_to_file(hpa_response, path)
+
+            progress.log()
+            progress.log(Panel.fit("HPA Information Collection Completed", style="bold green"))
+
+        except Exception as e:
+            self._logger.info("Unable to retrieve HPAs, caught %s Skipping...", e)
+            progress.log(Text(f"Unable to retrieve HPAs", style="bold red"))
+            progress.log()
+
     # Function to collect Network Policy information
     def collect_network_policy_info(self, progress, network_policies=[]):
 
@@ -451,31 +485,38 @@ class MustGather:
             self._logger.info("Unable to retrieve storage classes, caught %s Skipping...", e)
             progress.log(Text(f"Unable to retrieve storage classes", style="bold red"))
             progress.log()
-    def collect_network_policy_templates(self,progress, operator_details):
-        policies_folder_path = os.path.join(self._mustgather_folder, "templates")
-        if not os.path.exists(policies_folder_path):
-            os.makedirs(policies_folder_path)
-            progress.log()
-            progress.log("Creating Network Policy Templates folder")
-        else:
-            progress.log()
-            progress.log("Using existing Network Policy Templates folder")
 
+    def collect_network_policy_templates(self,progress, operator_details):
         operator_pods = operator_details["pods"]
+
         try:
-            if len(operator_pods) == 0:
+            policies_folder_path = os.path.join(self._mustgather_folder, "templates")
+            if not os.path.exists(policies_folder_path):
+                os.makedirs(policies_folder_path)
                 progress.log()
-                progress.log(Text(f"No Operator pods found", style="bold red"))
-                return
+                progress.log("Creating Network Policy Templates folder")
+            else:
+                progress.log()
+                progress.log("Using existing Network Policy Templates folder")
+
             progress.log()
             progress.log("Collecting Egress Network Policy Templates")
             progress.log()
             progress.log("Collecting Ingress Network Policy Templates")
-            command = f'kubectl exec -n {self._namespace} {operator_pods[0]} -- bash -c "cd /tmp && [ -d {self._namespace} ] && tar -zcf - {self._namespace}/" | tar xzf - -C {policies_folder_path}'
-            subprocess.run(command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+
+            copied = self._kube.copy_files_from_pod(pod_name=operator_pods[0], namespace=self._namespace, src_path=f"/tmp/{self._namespace}/network-policies", dest_path=policies_folder_path)
+
+            if not copied:
+                progress.log(Text(f"Network Policy Templates not found in Operator", style="bold red"))
+                progress.log()
+                progress.log(Text(f"Make sure shared_configuration.sc_generate_sample_network_policies: true is present in CR\n"
+                                  f"If the parameter is enabled in CR, wait for a reconcile for the operator to generate the templates", style="bold red"))
+                return
+
             progress.log()
             progress.log(Panel.fit("Network Policy Templates Collection Completed", style="bold green"))
         except Exception as e:
+            self._logger.info("Unable to retrieve Network Policy Templates, caught %s Skipping...", e)
             progress.log()
             progress.log(Text(f"Network Policy from Templates not found in Operator\n\n"
                               f"Make sure shared_configuration.sc_generate_sample_network_policies: true is present in CR\n"
@@ -483,32 +524,70 @@ class MustGather:
             progress.log()
     
     def auto_apply_networkpolicy(self):
-        content_egress_folder_path=os.path.join(self._mustgather_folder, "templates",self._namespace,"network-policies","Content","egress")
-        content_ingress_folder_path=os.path.join(self._mustgather_folder, "templates",self._namespace,"network-policies","Content","ingress")
-        ier_egress_folder_path=os.path.join(self._mustgather_folder, "templates",self._namespace,"network-policies","IER","egress")
-        ier_ingress_folder_path=os.path.join(self._mustgather_folder, "templates",self._namespace,"network-policies","IER","ingress")
-        iccsap_egress_folder_path=os.path.join(self._mustgather_folder, "templates",self._namespace,"network-policies","ICCSAP","egress")
-        iccsap_ingress_folder_path=os.path.join(self._mustgather_folder, "templates",self._namespace,"FNCMNetworkPolicies","ICCSAP","ingress")
+        content_egress_folder_path=os.path.join(self._mustgather_folder, "templates","Content","egress")
+        content_ingress_folder_path=os.path.join(self._mustgather_folder, "templates","Content","ingress")
+        ier_egress_folder_path=os.path.join(self._mustgather_folder, "templates","IER","egress")
+        ier_ingress_folder_path=os.path.join(self._mustgather_folder, "templates","IER","ingress")
+        iccsap_egress_folder_path=os.path.join(self._mustgather_folder, "templates","ICCSAP","egress")
+        iccsap_ingress_folder_path=os.path.join(self._mustgather_folder, "templates","ICCSAP","ingress")
+        # Get all yaml and yml files from the egress and ingress folders
         egress_files = list(Path(content_egress_folder_path).glob("*.yaml")) + list(Path(content_egress_folder_path).glob("*.yml")) + list(Path(ier_egress_folder_path).glob("*.yaml")) + list(Path(ier_egress_folder_path).glob("*.yml")) + list(Path(iccsap_egress_folder_path).glob("*.yaml")) + list(Path(iccsap_egress_folder_path).glob("*.yml"))
         ingress_files = list(Path(content_ingress_folder_path).glob("*.yaml")) + list(Path(content_ingress_folder_path).glob("*.yml")) + list(Path(ier_ingress_folder_path).glob("*.yaml")) + list(Path(ier_ingress_folder_path).glob("*.yml")) + list(Path(iccsap_ingress_folder_path).glob("*.yaml")) + list(Path(iccsap_ingress_folder_path).glob("*.yml"))
         if len(egress_files) == 0:
-            self._logger.error(f"No egress network policy files found in FNCMNetworkPolicies/")
+            self._logger.info(f"No egress network policy files found in FNCMNetworkPolicies/{self._namespace}")
+            print()
+            print(Panel.fit(Text(f"No egress network policy files found in FNCMNetworkPolicies/{self._namespace}/templates/*/egress/"), style="bold red"))
         if len(ingress_files) == 0:
-            self._logger.error(f"No ingress network policy files found in FNCMNetworkPolicies/")
-        for file in egress_files + ingress_files :
-            kubectl_cmd = "kubectl apply -f \"" + str(file) + "\""
-            response = None
+            self._logger.info(f"No ingress network policy files found in CASNetworkPolicies/")
+            print()
+            print(Panel.fit(Text(f"No ingress network policy files found in FNCMNetworkPolicies/{self._namespace}/templates/*/ingress/"), style="bold red"))
+        if len(egress_files) == 0 and len(ingress_files) == 0:
+            return
+
+         # Apply each network policy file
+
+        print()
+        print(Panel.fit(Text(f"Applying Egress and Ingress Network Policies"), style="cyan"))
+
+        for file in egress_files:
+            # Get Filename from path
+            file_name = os.path.basename(file)
+            self._logger.info(f"Applying network policy file: {str(file)}")
             try:
-                response = subprocess.check_output(kubectl_cmd, shell=True, stderr=subprocess.PIPE, universal_newlines=True)
-            except subprocess.CalledProcessError as error:
-                if "metadata.resourceVersion" in str(error.stderr):
-                    kubectl_cmd = "kubectl replace -f \"" + str(file) + "\""
-                    response = subprocess.check_output(kubectl_cmd, shell=True, stderr=subprocess.PIPE,
-                                                    universal_newlines=True)
+                applied = self._kube.apply_cluster_resource_files(resource_type='network_policy', resource_file=str(file), namespace=self._namespace)
+                if not applied:
+                    self._logger.info(f"Failed to apply network policy file: {str(file_name)}")
+                    print()
+                    print(Text(f"Failed to apply network policy file: {str(file_name)}", style="bold red"))
                 else:
-                    self._logger.exception(
-                        f"Exception applying '{str(file)}' -  {str(error.stderr)}")
-            self._console.print(Panel.fit(Text(response.strip(), style="bold cyan")))
+                    self._logger.info(f"Successfully applied network policy file: {str(file_name)}")
+                    print()
+                    print(Text(f"Successfully applied network policy file: {str(file_name)}", style="bold green"))
+            except Exception as e:
+                self._logger.info(f"Failed to apply network policy file {str(file_name)}: {e}")
+                continue
+
+
+        for file in ingress_files :
+            # Get Filename from path
+            file_name = os.path.basename(file)
+            self._logger.info(f"Applying network policy file: {str(file)}")
+            try:
+                applied = self._kube.apply_cluster_resource_files(resource_type='network_policy', resource_file=str(file), namespace=self._namespace)
+                if not applied:
+                    self._logger.info(f"Failed to apply network policy file: {str(file_name)}")
+                    print()
+                    print(Text(f"Failed to apply network policy file: {str(file_name)}", style="bold red"))
+                else:
+                    self._logger.info(f"Successfully applied network policy file: {str(file_name)}")
+                    print()
+                    print(Text(f"Successfully applied network policy file: {str(file_name)}", style="bold green"))
+            except Exception as e:
+                self._logger.info(f"Failed to apply network policy file {str(file_name)}: {e}")
+                continue
+
+        print()
+        print(Panel.fit(Text(f"Successfully applied Egress and Ingress Network Policies", style="bold green")))
 
     # Function to collect CPE information
     def collect_cpe_info(self, progress, collect_sensitive, pods=list, init_containers=list):
@@ -540,8 +619,11 @@ class MustGather:
             if not os.path.exists(path):
                 os.makedirs(path)
 
-            command = f'kubectl exec -n {self._namespace} {cpe_pods[0]} -- bash -c "cd /opt/ibm/wlp/usr/servers/defaultServer/FileNet/ && tar -zcf - {self._cr_name}-cpe*/*.log" | tar xzf - -C {path}'
-            subprocess.run(command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            self._kube.copy_files_from_pod(pod_name=cpe_pods[0], namespace=self._namespace,
+                                                    src_path=f"/opt/ibm/wlp/usr/servers/defaultServer/FileNet/",
+                                                    dest_path=path,
+                                                    file_filter=f'{self._cr_name}-cpe*/*.log')
+
 
             # Collect Configuration Files
             if collect_sensitive:
@@ -553,8 +635,11 @@ class MustGather:
                 )
                 if not os.path.exists(path):
                     os.makedirs(path)
-                command = f'kubectl exec -n {self._namespace} {cpe_pods[0]} -- bash -c "cd /opt/ibm/wlp/usr/servers/defaultServer/configDropins/overrides && tar -zcf - *" | tar xzf - -C {path}'
-                subprocess.run(command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+                self._kube.copy_files_from_pod(pod_name=cpe_pods[0], namespace=self._namespace,
+                                                        src_path=f"/opt/ibm/wlp/usr/servers/defaultServer/configDropins/overrides",
+                                                        dest_path=path)
+
 
             for pod in cpe_pods:
                 progress.log(Panel.fit(f"Collecting for CPE pod: {pod}", style="yellow"))
@@ -576,6 +661,7 @@ class MustGather:
         if not os.path.exists(pod_path):
             os.makedirs(pod_path)
 
+
         # Collect product version
         if component not in ["iccsap"]:
             self.get_component_version(pod, pod_path, progress)
@@ -587,6 +673,9 @@ class MustGather:
         # Collect Java Version
         self.get_java_version(pod, pod_path, progress)
 
+        # Collect env variables
+        self.get_environment_variables(pod, pod_path, progress)
+
         if component not in ["css", "operator", "iccsap"]:
             self.get_jvm_options(pod, pod_path, progress)
 
@@ -594,8 +683,11 @@ class MustGather:
         if component not in ["css", "operator", "iccsap"]:
             progress.log(f"Collecting Liberty logs")
             progress.log()
-            command = f'kubectl exec -n {self._namespace} {pod} -- bash -c "cd /opt/ibm/wlp/usr/servers/defaultServer/logs/{pod} && tar -zcf - *" | tar xzf - -C {pod_path}'
-            subprocess.run(command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+            self._kube.copy_files_from_pod(pod_name=pod, namespace=self._namespace,
+                                                    src_path=f"/opt/ibm/wlp/usr/servers/defaultServer/logs/{pod}",
+                                                    dest_path=pod_path,
+                                                    file_filter=f'*')
 
         # Collect init-container logs
         for container in init_containers:
@@ -645,8 +737,11 @@ class MustGather:
                 )
                 if not os.path.exists(path):
                     os.makedirs(path)
-                command = f'kubectl exec -n {self._namespace} {ier_pods[0]} -- bash -c "cd /opt/ibm/wlp/usr/servers/defaultServer/configDropins/overrides && tar -zcf - *" | tar xzf - -C {path}'
-                subprocess.run(command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+                self._kube.copy_files_from_pod(pod_name=ier_pods[0], namespace=self._namespace,
+                                                        src_path=f"/opt/ibm/wlp/usr/servers/defaultServer/configDropins/overrides",
+                                                        dest_path=path,
+                                                        file_filter=f'*')
 
             for pod in ier_pods:
                 progress.log(Panel.fit(f"Collecting for IER pod: {pod}", style="yellow"))
@@ -699,8 +794,12 @@ class MustGather:
                 )
                 if not os.path.exists(path):
                     os.makedirs(path)
-                command = f'kubectl exec -n {self._namespace} {iccsap_pods[0]} -- bash -c "cd /opt/IBM/iccsap/instance && tar -zcf - *" | tar xzf - -C {path}'
-                subprocess.run(command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+                self._kube.copy_files_from_pod(pod_name=iccsap_pods[0], namespace=self._namespace,
+                                                        src_path=f"/opt/IBM/iccsap/instance",
+                                                        dest_path=path,
+                                                        file_filter=f'*')
+
 
             for pod in iccsap_pods:
                 progress.log(Panel.fit(f"Collecting for ICCSAP pod: {pod}", style="yellow"))
@@ -710,8 +809,11 @@ class MustGather:
                 if not os.path.exists(pod_path):
                     os.makedirs(pod_path)
 
-                command = f'kubectl exec -n {self._namespace} {pod} -- bash -c "cd /opt/IBM/iccsap/logs/{pod} && tar -zcf - *" | tar xzf - -C {pod_path}'
-                subprocess.run(command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                self._kube.copy_files_from_pod(pod_name=pod, namespace=self._namespace,
+                                                        src_path=f"/opt/IBM/iccsap/logs/{pod}",
+                                                        dest_path=pod_path,
+                                                        file_filter=f'*')
+
 
                 self.collect_pod_info(progress, iccsap_folder_path, pod, init_containers, "iccsap")
 
@@ -751,8 +853,12 @@ class MustGather:
                 )
                 if not os.path.exists(path):
                     os.makedirs(path)
-                command = f'kubectl exec -n {self._namespace} {css_pods[0]} -- bash -c "cd /opt/IBM/ContentSearchServices/CSS_Server/config && tar -zcf - *" | tar xzf - -C {path}'
-                subprocess.run(command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+                self._kube.copy_files_from_pod(pod_name=css_pods[0], namespace=self._namespace,
+                                                        src_path=f"/opt/IBM/ContentSearchServices/CSS_Server/config",
+                                                        dest_path=path,
+                                                        file_filter=f'*')
+
 
             for pod in css_pods:
                 progress.log(Panel.fit(f"Collecting for CSS pod: {pod}", style="yellow"))
@@ -762,8 +868,11 @@ class MustGather:
                 if not os.path.exists(pod_path):
                     os.makedirs(pod_path)
 
-                command = f'kubectl exec -n {self._namespace} {pod} -- bash -c "cd /opt/IBM/ContentSearchServices/CSS_Server/log/{pod} && tar -zcf - *.log" | tar xzf - -C {pod_path}'
-                subprocess.run(command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                self._kube.copy_files_from_pod(pod_name=pod, namespace=self._namespace,
+                                                src_path=f"/opt/IBM/ContentSearchServices/CSS_Server/log/{pod}",
+                                                dest_path=pod_path,
+                                                file_filter=f'*.log')
+
 
                 self.collect_pod_info(progress, css_folder_path, pod, init_containers, "css")
 
@@ -803,8 +912,11 @@ class MustGather:
                 )
                 if not os.path.exists(path):
                     os.makedirs(path)
-                command = f'kubectl exec -n {self._namespace} {graphql_pods[0]} -- bash -c "cd /opt/ibm/wlp/usr/servers/defaultServer/configDropins/overrides && tar -zcf - *" | tar xzf - -C {path}'
-                subprocess.run(command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+                self._kube.copy_files_from_pod(pod_name=graphql_pods[0], namespace=self._namespace,
+                                                        src_path=f"/opt/ibm/wlp/usr/servers/defaultServer/configDropins/overrides",
+                                                        dest_path=path,
+                                                        file_filter=f'*')
 
             for pod in graphql_pods:
                 progress.log(Panel.fit(f"Collecting for GraphQL pod: {pod}", style="yellow"))
@@ -848,8 +960,12 @@ class MustGather:
                 )
                 if not os.path.exists(path):
                     os.makedirs(path)
-                command = f'kubectl exec -n {self._namespace} {externalshare_pods[0]} -- bash -c "cd /opt/ibm/wlp/usr/servers/defaultServer/configDropins/overrides && tar -zcf - *" | tar xzf - -C {path}'
-                subprocess.run(command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+                self._kube.copy_files_from_pod(pod_name=externalshare_pods[0], namespace=self._namespace,
+                                                        src_path=f"/opt/ibm/wlp/usr/servers/defaultServer/configDropins/overrides",
+                                                        dest_path=path,
+                                                        file_filter=f'*')
+
 
             for pod in externalshare_pods:
                 progress.log(Panel.fit(f"Collecting for ExternalShare pod: {pod}", style="yellow"))
@@ -893,8 +1009,12 @@ class MustGather:
                 )
                 if not os.path.exists(path):
                     os.makedirs(path)
-                command = f'kubectl exec -n {self._namespace} {cmis_pods[0]} -- bash -c "cd /opt/ibm/wlp/usr/servers/defaultServer/configDropins/overrides && tar -zcf - *" | tar xzf - -C {path}'
-                subprocess.run(command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+                self._kube.copy_files_from_pod(pod_name=cmis_pods[0], namespace=self._namespace,
+                                                        src_path=f"/opt/ibm/wlp/usr/servers/defaultServer/configDropins/overrides",
+                                                        dest_path=path,
+                                                        file_filter=f'*')
+
 
             for pod in cmis_pods:
                 progress.log(Panel.fit(f"Collecting for CMIS pod: {pod}", style="yellow"))
@@ -938,8 +1058,12 @@ class MustGather:
                 )
                 if not os.path.exists(path):
                     os.makedirs(path)
-                command = f'kubectl exec -n {self._namespace} {taskmanager_pods[0]} -- bash -c "cd /opt/ibm/wlp/usr/servers/defaultServer/configDropins/overrides && tar -zcf - *" | tar xzf - -C {path}'
-                subprocess.run(command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+                self._kube.copy_files_from_pod(pod_name=taskmanager_pods[0], namespace=self._namespace,
+                                                        src_path=f"/opt/ibm/wlp/usr/servers/defaultServer/configDropins/overrides",
+                                                        dest_path=path,
+                                                        file_filter=f'*')
+
 
             for pod in taskmanager_pods:
                 progress.log(Panel.fit(f"Collecting for TaskManager pod: {pod}", style="yellow"))
@@ -983,8 +1107,12 @@ class MustGather:
                 )
                 if not os.path.exists(path):
                     os.makedirs(path)
-                command = f'kubectl exec -n {self._namespace} {navigator_pods[0]} -- bash -c "cd /opt/ibm/wlp/usr/servers/defaultServer/configDropins/overrides && tar -zcf - *" | tar xzf - -C {path}'
-                subprocess.run(command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+                self._kube.copy_files_from_pod(pod_name=navigator_pods[0], namespace=self._namespace,
+                                                        src_path=f"/opt/ibm/wlp/usr/servers/defaultServer/configDropins/overrides",
+                                                        dest_path=path,
+                                                        file_filter=f'*')
+
 
             for pod in navigator_pods:
                 progress.log(Panel.fit(f"Collecting for Navigator pod: {pod}", style="yellow"))
@@ -1027,7 +1155,6 @@ class MustGather:
             write_yaml_to_file(deployment_response, path)
 
             deployment_type = operator_details["type"]
-            version = self._version
 
             if deployment_type == "OLM":
 
@@ -1082,7 +1209,6 @@ class MustGather:
                 operator_group_response = self._kube.describe_operator_group(operator_group, self._namespace)
                 write_yaml_to_file(operator_group_response, path)
 
-
             # Collect Configuration Files
             if len(operator_pods) == 0:
                 progress.log(Text(f"No Content Operator pods found", style="bold red"))
@@ -1090,6 +1216,11 @@ class MustGather:
                 return
 
             for pod in operator_pods:
+
+                pod_path = os.path.join(f"{operator_folder_path}", "pods", pod)
+                if not os.path.exists(pod_path):
+                    os.makedirs(pod_path)
+
                 progress.log(Panel.fit(f"Collecting for Content Operator pod: {pod}", style="yellow"))
                 progress.log()
 
@@ -1106,12 +1237,13 @@ class MustGather:
             if not os.path.exists(path):
                 os.makedirs(path)
 
-            if self._version == "5.5.8":
-                command = f'kubectl exec -n {self._namespace} {operator_pods[0]} -- bash -c "cd /logs/{operator_pods[0]}/ansible-operator/runner/fncm.ibm.com/v1/FNCMCluster/{self._namespace}/{self._cr_name}/artifacts/ && tar -zcf - *" | tar xzf - -C {path}'
-            else:
+            log_path = f'/logs/{operator_pods[0]}/ansible-operator/runner/fncm.ibm.com/v1/FNCMCluster/{self._namespace}/{self._cr_name}/artifacts'
 
-                command = f'kubectl exec -n {self._namespace} {operator_pods[0]} -- bash -c "cd /logs/*/ansible-operator/runner/fncm.ibm.com/v1/FNCMCluster/{self._namespace}/{self._cr_name}/artifacts/ && tar -zcf - *" | tar xzf - -C {path}'
-            subprocess.run(command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+            self._kube.copy_files_from_pod(pod_name=operator_pods[0], namespace=self._namespace,
+                                           src_path=log_path,
+                                           file_filter='*',
+                                           dest_path=path)
 
             # Check if the logs folder is empty
             # if logs folder is empty, download the logs from the tmp folder
@@ -1126,8 +1258,12 @@ class MustGather:
 
                 progress.log(f"No completed Ansible logs found in /logs folder. Downloading the in progress logs from /tmp folder")
                 progress.log()
-                command = f'kubectl exec -n {self._namespace} {operator_pods[0]} -- bash -c "cd /tmp/ansible-operator/runner/fncm.ibm.com/v1/FNCMCluster/{self._namespace}/{self._cr_name}/artifacts/* && tar -zcf - stdout" | tar xzf - -C {inprogressPath}'
-                subprocess.run(command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+                self._kube.copy_files_from_pod(pod_name=operator_pods[0], namespace=self._namespace,
+                                               src_path=f'/tmp/ansible-operator/runner/fncm.ibm.com/v1/FNCMCluster/{self._namespace}/{self._cr_name}/artifacts',
+                                               dest_path=inprogressPath,
+                                               file_filter=f'*')
+
 
             progress.log(Panel.fit("Content Operator Information Collection Completed", style="bold green"))
             progress.log()
@@ -1135,6 +1271,28 @@ class MustGather:
         except Exception as e:
             self._logger.info("Unable to retrieve Content Operator, caught %s Skipping...", e)
             progress.log(Text(f"Unable to retrieve Content Operator Logs", style="bold red"))
+            progress.log()
+
+    # Function to collect environment variables
+    def get_environment_variables(self, pod, folder_path, progress):
+        try:
+            progress.log(f"Collecting environment variables")
+            progress.log()
+            command = ["printenv"]
+            env_vars = self._kube.pod_exec(pod, self._namespace, command)
+            local_path = os.path.join(
+                f"{folder_path}", "environment_variables.txt"
+            )
+            with open(local_path, "w", encoding="utf8") as f:
+                f.write(env_vars)
+
+        except Exception as e:
+            self._logger.info(
+                "Unable to copy from pod, caught %s Skipping...", e
+            )
+            progress.log(
+                Text(f"Unable to copy from pod", style="bold red")
+            )
             progress.log()
 
     # Function to collect Product Version
@@ -1155,7 +1313,7 @@ class MustGather:
                 "Unable to copy from pod, caught %s Skipping...", e
             )
             progress.log(
-                Text(f"Unable to copy from pod, caught {e}", style="bold red")
+                Text(f"Unable to copy from pod", style="bold red")
             )
             progress.log()
 
@@ -1177,7 +1335,7 @@ class MustGather:
                 "Unable to copy from pod, caught %s Skipping...", e
             )
             progress.log(
-                Text(f"Unable to copy from pod, caught {e}", style="bold red")
+                Text(f"Unable to copy from pod", style="bold red")
             )
             progress.log()
 
@@ -1199,7 +1357,7 @@ class MustGather:
                 "Unable to copy from pod, caught %s Skipping...", e
             )
             progress.log(
-                Text(f"Unable to copy from pod, caught {e}", style="bold red")
+                Text(f"Unable to copy from pod", style="bold red")
             )
             progress.log()
 
@@ -1221,6 +1379,6 @@ class MustGather:
                 "Unable to copy from pod, caught %s Skipping...", e
             )
             progress.log(
-                Text(f"Unable to copy from pod, caught {e}", style="bold red")
+                Text(f"Unable to copy from pod", style="bold red")
             )
             progress.log()

@@ -9,24 +9,46 @@
 #
 ###############################################################################
 
-from time import sleep
+import io
+import tarfile
+import warnings
 
 import urllib3
 import yaml
 from kubernetes import config, client
 from kubernetes.client import ApiException
 from kubernetes.stream import stream
+from requests.exceptions import ConnectTimeout, ConnectionError
 from rich.text import Text
+from time import sleep
 
 
 class KubernetesUtilities:
     def __init__(self, logger=None):
-        config.load_kube_config()
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        self._logger = logger
+        self._current_namespace = None
+
+        try:
+            config.load_incluster_config()
+            self._in_cluster = True
+            self._current_namespace = self.get_current_namespace()
+            self._logger.info("Running inside the cluster.")
+            self._logger.info(f"Current namespace: {self._current_namespace}")
+        except Exception:
+            self._in_cluster = False
+            config.load_kube_config()
+            self._current_context = config.list_kube_config_contexts()[1]
+            self._current_namespace = self.get_current_namespace()
+            self._logger.info("Running outside the cluster.")
+            self._logger.info(f"Current context: {self._current_namespace}")
+
+
         self._core_v1 = client.CoreV1Api()
         self._apps_v1 = client.AppsV1Api()
         self._rbac_v1 = client.RbacAuthorizationV1Api()
         self._networking_v1 = client.NetworkingV1Api()
+        self._auto_scaling_v2 = client.AutoscalingV2Api()
         self._custom_api = client.CustomObjectsApi()
         self._storage_v1 = client.StorageV1Api()
         self._extensions_v1 = client.ApiextensionsV1Api()
@@ -34,8 +56,16 @@ class KubernetesUtilities:
         self._custom_resource = {}
         self._cr_details = {}
         self._operator_details = {}
-        self._logger = logger
+
         self._resource_type_dict = {}
+
+    @property
+    def in_cluster(self):
+        return self._in_cluster
+
+    @property
+    def current_namespace(self):
+        return self._current_namespace
 
     @property
     def resource_type_dict(self):
@@ -62,6 +92,10 @@ class KubernetesUtilities:
         return self._networking_v1
 
     @property
+    def auto_scaling_v2(self):
+        return self._auto_scaling_v2
+
+    @property
     def custom_api(self):
         return self._custom_api
 
@@ -72,6 +106,26 @@ class KubernetesUtilities:
     @property
     def version_v1(self):
         return self._version_v1
+
+    # Common function to get current namespace when running in-cluster
+    def get_current_namespace(self):
+        try:
+            # Check if inside or outside the cluster
+            if self._in_cluster:
+                self._logger.info("Getting namespace from in-cluster service account")
+                # Read the namespace from the service account secret
+                with open("/var/run/secrets/kubernetes.io/serviceaccount/namespace", "r") as f:
+                    namespace = f.read().strip()
+                self._logger.info(f"In-cluster namespace: {namespace}")
+            else:
+                self._logger.info("Not running inside the cluster.")
+                namespace = self._current_context['context']['namespace']
+                self._logger.info(f"Current context namespace: {namespace}")
+
+            return namespace
+        except Exception as e:
+            self._logger.info(f"Error getting namespace: {e}")
+            return None
 
     # Function to collect all user-created configmaps
     def calculate_user_configmaps(self, components=list):
@@ -90,6 +144,8 @@ class KubernetesUtilities:
                         for item in cr["spec"]["ecm_configuration"][component][section_name]["custom_configmap"]:
                             if "name" in item.keys():
                                 configmaps.add(item["name"])
+                    else:
+                        self._logger.info(f"No {component} Configmaps found")
             except Exception as e:
                 self._logger.info(f"No ECM Configmaps found")
 
@@ -100,6 +156,8 @@ class KubernetesUtilities:
                     for item in cr["spec"]["navigator_configuration"]["icn_production_setting"]["custom_configmap"]:
                         if "name" in item.keys():
                             configmaps.add(item["name"])
+            else:
+                self._logger.info(f"No BAN Configmaps found")
         except Exception as e:
             self._logger.info(f"No BAN Configmaps found")
 
@@ -110,6 +168,8 @@ class KubernetesUtilities:
                     for item in cr["spec"]["ier_configuration"]["ier_production_setting"]["custom_configmap"]:
                         if "name" in item.keys():
                             configmaps.add(item["name"])
+            else:
+                self._logger.info(f"No IER Configmaps found")
         except Exception as e:
             self._logger.info(f"No IER Configmaps found")
 
@@ -120,6 +180,8 @@ class KubernetesUtilities:
                     for item in cr["spec"]["iccsap_configuration"]["iccsap_production_setting"]["custom_configmap"]:
                         if "name" in item.keys():
                             configmaps.add(item["name"])
+            else:
+                self._logger.info(f"No ICCSAP Configmaps found")
         except Exception as e:
             self._logger.info(f"No ICCSAP Configmaps found")
 
@@ -403,6 +465,7 @@ class KubernetesUtilities:
                 "persistent_volume_claim",
             ]
             networking_v1_resource_types = ["ingress", "network_policy"]
+            auto_scaling_v2_resource_types = ["horizontal_pod_autoscaler"]
             resource_type_dict = {}
             for resource_type in app_v1_resource_types:
                 resource_type_dict[resource_type] = []
@@ -443,6 +506,17 @@ class KubernetesUtilities:
                                 if item.metadata.labels['app.kubernetes.io/instance'] == filter:
                                     resource_type_dict[resource_type].append(item.metadata.name)
                         resource_type_dict[resource_type] = list(set(resource_type_dict[resource_type]))
+                except client.exceptions.ApiException as e:
+                    self._logger.info(f"Error listing {resource_type}: {e}")
+
+            for resource_type in auto_scaling_v2_resource_types:
+                resource_type_dict[resource_type] = []
+                try:
+                    response = getattr(self._auto_scaling_v2, f"list_namespaced_{resource_type}")(namespace=namespace)
+                    for item in response.items:
+                        if item.metadata.owner_references is not None:
+                            if item.metadata.owner_references[0].name == filter:
+                                resource_type_dict[resource_type].append(item.metadata.name)
                 except client.exceptions.ApiException as e:
                     self._logger.info(f"Error listing {resource_type}: {e}")
 
@@ -692,6 +766,38 @@ class KubernetesUtilities:
                         break
         return role_binding_applied
 
+    # Get the Kubernetes server version
+    def get_kubernetes_version(self):
+        try:
+
+            connected = True
+            # Get the server version information
+            server_version = self._version_v1.get_code(_request_timeout=10)
+
+            if server_version:
+                connected = True
+                self._logger.info(f"Connected to kubernetes cluster successfully.")
+                self._logger.info(f"Kubernetes Server Major Version: {server_version.major}")
+                self._logger.info(f"Kubernetes Server Minor Version: {server_version.minor}")
+                self._logger.info(f"Kubernetes Server Git Version: {server_version.git_version}")
+                self._logger.info(f"Kubernetes Server Platform: {server_version.platform}")
+
+                return server_version.git_version, connected
+
+            else:
+                connected = False
+                self._logger.info(f"Could not connect to kubernetes cluster.")
+                return "Unknown", connected
+
+        except (ConnectTimeout, ConnectionError) as e:
+            connected = False
+            self._logger.info(f"Could not connect to kubernetes cluster: {e}")
+            return "Unknown", connected
+        except Exception as e:
+            connected = False
+            self._logger.info(f"Error in utilities.py from the get_kubernetes_version: {e}")
+            return "Unknown", connected
+
     # Function to apply CRD , cluster role and role binding
     def apply_cluster_resource_files(self, resource_type, resource_file, namespace=None):
 
@@ -709,6 +815,10 @@ class KubernetesUtilities:
             if resource_type.lower() == "custom resource definition":
                 api_method = self._extensions_v1.create_custom_resource_definition
                 api_patch_method = self._extensions_v1.patch_custom_resource_definition
+            elif resource_type.lower() == "network_policy":
+                if namespace:
+                    api_method = self._networking_v1.create_namespaced_network_policy
+                    api_patch_method = self._networking_v1.patch_namespaced_network_policy
             elif resource_type.lower() == "image policy":
                 api_method = self._custom_api.create_cluster_custom_object
                 group = "operator.openshift.io"
@@ -758,6 +868,16 @@ class KubernetesUtilities:
                 if namespace:
                     api_method = self._apps_v1.create_namespaced_deployment
                     api_patch_method = self._apps_v1.patch_namespaced_deployment
+
+            elif resource_type.lower() == 'pvc':
+                if namespace:
+                    api_method = self._core_v1.create_namespaced_persistent_volume_claim
+                    api_patch_method = self._core_v1.patch_namespaced_persistent_volume_claim
+
+            elif resource_type.lower() == 'secret':
+                if namespace:
+                    api_method = self._core_v1.create_namespaced_secret
+                    api_patch_method = self._core_v1.patch_namespaced_secret
 
             elif resource_type.lower() == "custom resource":
                 if namespace:
@@ -892,6 +1012,17 @@ class KubernetesUtilities:
             self._logger.info(f"Error in utilities.py from the describe_ingress: {e}")
             return {}
 
+    # Function to describe horizontal pod autoscaler
+    def describe_hpa(self, hpa_name, namespace):
+        try:
+            hpa = self.auto_scaling_v2.read_namespaced_horizontal_pod_autoscaler(
+                name=hpa_name, namespace=namespace,
+            )
+            return hpa
+        except Exception as e:
+            self._logger.info(f"Error in utilities.py from the describe_hpa: {e}")
+            return {}
+
     def describe_network_policy(self, network_policy_name, namespace):
         try:
             network_policy = self.networking_v1.read_namespaced_network_policy(
@@ -951,6 +1082,38 @@ class KubernetesUtilities:
                 progress.log()
             return {}
 
+    # Function to collect container logs
+    def get_container_logs(self, pod_name, namespace, container):
+        try:
+            logs = self.core_v1.read_namespaced_pod_log(name=pod_name, namespace=namespace, container=container)
+            return logs
+        except Exception as e:
+            return ""
+
+    # Function to collect pod metrics
+    def get_pod_metrics(self, pod_name, namespace):
+        try:
+            metrics = self.custom_api.get_namespaced_custom_object(
+                group="metrics.k8s.io",
+                version="v1beta1",
+                namespace=namespace,
+                plural="pods",
+                name=pod_name,
+            )
+            return metrics
+        except Exception as e:
+            self._logger.info(f"Error in utilities.py from the get_pod_metrics: {e}")
+            return {}
+
+    # Function to collect pod events
+    def get_pod_events(self, pod_name, namespace):
+        try:
+            field_selector = f'involvedObject.name={pod_name}'
+            events = self.core_v1.list_namespaced_event(namespace=namespace, field_selector=field_selector)
+            return events
+        except Exception as e:
+            return ""
+
     # Function to collect init-container logs
     def get_init_container_logs(self, pod_name, namespace, ini_container):
         try:
@@ -961,6 +1124,8 @@ class KubernetesUtilities:
 
     def pod_exec(self, pod_name, namespace, command):
         try:
+            self._logger.info(f"Executing command {command} in pod {pod_name}")
+            self._logger.info(f"Namespace: {namespace}")
             exec_command = command
             resp = stream(
                 self.core_v1.connect_get_namespaced_pod_exec,
@@ -1008,6 +1173,21 @@ class KubernetesUtilities:
             self._logger.info(f"Error in utilities.py from the describe_operator_group: {e}")
             return {}
 
+    # Function to list all Operator Groups in a namespace
+    def list_operator_groups(self, namespace):
+        try:
+            ogs = self._custom_api.list_namespaced_custom_object(
+                group="operators.coreos.com",
+                version="v1",
+                namespace=namespace,
+                plural="operatorgroups"
+            )
+            return ogs.get('items', [])
+        except Exception as e:
+            self._logger.info(f"Error in utilities.py from the list_operator_groups: {e}")
+            return []
+
+
     # Function to get operator group details
     def get_operator_group(self, namespace):
         group = "operators.coreos.com"
@@ -1019,7 +1199,7 @@ class KubernetesUtilities:
                                                                 namespace=namespace)
             for group in og.get('items', []):
                 if "FNCMCluster" in group["metadata"]['annotations']['olm.providedAPIs']:
-                    return group["metadata"]['name']
+                    return group["metadata"]['name'], group["metadata"]['annotations']['olm.providedAPIs']
 
             return ""
         except Exception as e:
@@ -1076,6 +1256,44 @@ class KubernetesUtilities:
             self._logger.info(f"Error in utilities.py from the delete_subscription: {e}")
             return False
 
+
+    # Function to check if PVC is bound
+    def check_pvc_bound(self, namespace, pvc_name):
+        try:
+            pvc = self._core_v1.read_namespaced_persistent_volume_claim(name=pvc_name, namespace=namespace)
+            if pvc.status.phase == "Bound":
+                return True
+            else:
+                return False
+        except client.ApiException as e:
+            if e.status == 404:
+                return False
+            else:
+                self._logger.info(f"Error in utilities.py from the check_pvc_bound: {e}")
+                return False
+
+
+    # Function to list all storage classes
+    def list_storage_classes(self):
+        try:
+            storage_classes = self._storage_v1.list_storage_class()
+
+            # Print the names of the storage classes
+            storage_classes = [sc.metadata.name for sc in storage_classes.items]
+            return storage_classes
+        except Exception as e:
+            self._logger.info(f"Error in utilities.py from the list_storage_classes: {e}")
+            return {}
+
+    def delete_pvc(self, namespace, name):
+        try:
+            self._core_v1.delete_namespaced_persistent_volume_claim(name=name, namespace=namespace)
+            self._logger.info(f"PVC '{name}' deleted successfully in namespace '{namespace}'.")
+            return True
+        except client.ApiException as e:
+            self._logger.info(f"Error in utilities.py from the delete_pvc: {e}")
+            return False
+
     def delete_catalog_source(self, namespace, name):
         try:
             self._custom_api.delete_namespaced_custom_object(
@@ -1119,7 +1337,7 @@ class KubernetesUtilities:
                                            "pods": self.get_pod_names_for_deployment(namespace, name),
                                            "init_containers": self.get_init_containers_for_deployment(namespace, name),
                                            "type": "YAML",
-                                           "release": deployment.spec.template.metadata.labels["release"]}
+                                           "release": deployment.spec.template.metadata.labels.get("release", "5.7.0")}
 
             if deployment.metadata.owner_references:
                 for owner in deployment.metadata.owner_references:
@@ -1137,6 +1355,11 @@ class KubernetesUtilities:
             self._core_v1.read_namespace(name=namespace)
             return True
         except client.ApiException as e:
+            if e.status == 403:
+                if self._in_cluster:
+                    self._logger.info("Namespace is it where the pod is running")
+                    return True
+                return False
             if e.status == 404:
                 return False
             else:
@@ -1144,7 +1367,7 @@ class KubernetesUtilities:
                 exit(0)
 
     # Function to describe the role
-    def describe_role(self, namespace, name=""):
+    def describe_role(self, name, namespace):
         try:
             role = self._rbac_v1.read_namespaced_role(name=name, namespace=namespace)
 
@@ -1153,23 +1376,23 @@ class KubernetesUtilities:
             if e.status == 404:
                 return False
 
+    # Function to describe the rolebinding
+    def describe_role_binding(self, name, namespace):
+        try:
+            rolebinding = self._rbac_v1.read_namespaced_role_binding(name=name, namespace=namespace)
+
+            return rolebinding
+        except client.ApiException as e:
+            if e.status == 404:
+                return False
+
     # Function to get the service account
-    def describe_service_account(self, namespace, name=""):
+    def describe_service_account(self, name, namespace):
         try:
             service_account = self._core_v1.read_namespaced_service_account(name=name, namespace=namespace)
 
             return service_account
         except client.ApiException as e:
-            if e.status == 404:
-                return False
-
-    # Function to get the rolebinding
-    def descibe_rolebinding(self, namespace, name=""):
-        try:
-            rolebinding = self._rbac_v1.read_namespaced_role_binding(name=name, namespace=namespace)
-
-            return rolebinding
-        except ApiException as e:
             if e.status == 404:
                 return False
 
@@ -1194,21 +1417,106 @@ class KubernetesUtilities:
                 operator_details.update(self.parse_subscription(subscription))
 
                 # Add Operator Group name
-                operator_details["operatorGroup"] = self.get_operator_group(namespace)
-            else:
-                # Add Permissions
-                operator_details["role"] = self.get_rolename(namespace)
-                operator_details["rolebinding"] = self.get_rolebinding(namespace)
-                operator_details["service_account"] = self.get_service_account(namespace)
+                operator_details["operatorGroup"], operator_details["providedAPIs"] = self.get_operator_group(namespace)
+
+            # Add Permissions
+            operator_details["role"] = self.get_rolename(namespace)
+            operator_details["rolebinding"] = self.get_rolebinding(namespace)
+            operator_details["service_account"] = self.get_service_account(namespace)
 
             self._operator_details = operator_details
             return operator_details
 
         except Exception as e:
-            # self._logger.info(f"Error in kubernetes_utilities.py from the get_operator_details: {e}")
+            self._logger.info(f"Operator details: {operator_details}")
+            self._logger.info(f"Error in kubernetes_utilities.py from the get_operator_details: {e}")
             return {}
 
-    # Function to get CR file from a FNCM deployment
+
+    # Function to copy files or folders from a pod to the local filesystem
+    def copy_files_from_pod(self, pod_name, namespace, src_path, dest_path, file_filter=''):
+        try:
+            exec_command = ["tar", "czf", '-', file_filter, "-C", src_path, '.' ]
+
+            self._logger.info(f"Copying files from pod {pod_name} to {dest_path}")
+            self._logger.info(f"Exec command: {exec_command}")
+
+            # Execute the command and get the stream
+            resp = stream(
+                self.core_v1.connect_get_namespaced_pod_exec,
+                pod_name,
+                namespace,
+                command=exec_command,
+                stderr=True,
+                stdin=True,
+                stdout=True,
+                tty=False,
+                _preload_content=False,
+                binary=True
+            )
+
+            self._logger.info(f"Response: {resp}")
+
+            # Read the streamed tar data
+            tar_data = b""
+            while resp.is_open():
+                resp.update(timeout=1)
+                if resp.peek_stdout():
+                    chunk = resp.read_stdout()
+                    tar_data += chunk  # Ensure the chunk is in bytes
+
+            resp.close()
+
+            # Process the tar data (e.g., extract to a local directory)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                with io.BytesIO(tar_data) as tar_buffer:
+                    with tarfile.open(fileobj=tar_buffer, mode="r") as tar_archive:
+                        tar_archive.extractall(path=dest_path)
+
+            return True
+        except Exception as e:
+            self._logger.info(f"Error in kubernetes_utilities.py from the copy_files_from_pod: {e}")
+            return False
+
+    # Function to update the operator group to remove cas.ibm.com/v1 from providedAPIs
+    def update_operator_group(self, namespace, operator_group, provided_apis, api_to_remove="FNCMCluster.v1.fncm.ibm.com"):
+        # Check if the operator group exists
+        if not operator_group:
+            self._logger.info("Operator group does not exist, skipping update.")
+            return
+
+        # Remove the "cas.ibm.com/v1" API from providedAPIs
+        if api_to_remove in provided_apis:
+            provided_apis.remove(api_to_remove)
+
+        # Update the operator group with the modified providedAPIs
+        self._logger.info(f"Updating operator group '{operator_group}' in namespace '{namespace}' "
+                          f"to remove {api_to_remove} from providedAPIs.")
+
+        try:
+            og = self.describe_operator_group(name=operator_group, namespace=namespace)
+            if not og:
+                self._logger.info(f"Operator group '{operator_group}' not found in namespace '{namespace}'.")
+                return
+            og['metadata']['annotations']['olm.providedAPIs'] = ','.join(provided_apis)
+            self._custom_api.patch_namespaced_custom_object(
+                group="operators.coreos.com",
+                version="v1",
+                namespace=namespace,
+                plural="operatorgroups",
+                name=operator_group,
+                body=og
+            )
+            self._logger.info(f"Operator group '{operator_group}' updated successfully in namespace '{namespace}'.")
+        except client.ApiException as e:
+            self._logger.info(f"Error updating operator group: {e}")
+        except Exception as e:
+            self._logger.info(f"Unexpected error while updating operator group: {e}")
+            return
+
+
+    # Function to get CR file from a Content Assistant deployment
     def get_deployment_cr(self, namespace, logger=None):
         # Attempt to list the CR in the specific namespace
         try:
@@ -1220,6 +1528,7 @@ class KubernetesUtilities:
             if len(cr) == 0:
                 return {}
             else:
+                self._logger.info("Cleaning up the Custom Resource file before returning it.")
                 # Remove unused sections from the CR
                 remove_fields = ["creationTimestamp",
                                  "generation",
@@ -1320,6 +1629,7 @@ class KubernetesUtilities:
 
             if not init_containers:
                 return []
+
 
             return [container.name for container in init_containers]
 

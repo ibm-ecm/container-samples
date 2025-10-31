@@ -31,7 +31,7 @@ from tomlkit.toml_file import TOMLFile
 
 from ..utilities import kubernetes_utilites as k
 from ..utilities.interface import generate_casepackage_results, clear
-from ..utilities.prerequisites_utilites import zip_folder, read_json
+from ..utilities.prerequisites_utilites import zip_folder
 from ..utilities.utilities import parse_yaml_for_keys, copy_image
 
 
@@ -51,7 +51,7 @@ class LoadExtract:
         if version_data is None:
             version_data = {}
         self._logger = logger
-        self._kubernetes_utilities = k.KubernetesUtilities(logger)
+        self._kube = k.KubernetesUtilities(logger)
         self._console = console
         self._dev = dev
         self._silent_mode = silent
@@ -71,12 +71,9 @@ class LoadExtract:
         self._image_details_folder = folder_path
         self._image_details_file = os.path.join(self._image_details_folder, "imageDetails.toml")
 
-        json_path = os.path.join(os.getcwd(), "helper_scripts", "property")
-        self._image_details_template = read_json(json_path, json_file="image_details.json")
-
-        self._apps_v1_api = self._kubernetes_utilities.apps_v1
-        self._core_v1_api = self._kubernetes_utilities.core_v1
-        self._custom_api = self._kubernetes_utilities.custom_api
+        self._apps_v1_api = self._kube.apps_v1
+        self._core_v1_api = self._kube.core_v1
+        self._custom_api = self._kube.custom_api
 
         # Repo information
         self._private_registry_server = ""
@@ -88,7 +85,7 @@ class LoadExtract:
                                            "operator.yaml")
 
         # Variables to store the image details
-        self._repo_tag_dict = {}
+        self._repo_tag_list = []
         self._repo_tag_dict_from_file = {}
 
         self._image_push_summary = {}
@@ -196,37 +193,42 @@ class LoadExtract:
 
     # Function to collect Case Versions
     def collect_case_versions(self):
+        try:
+            # Create tmp folder
+            if not os.path.exists(os.path.join(os.getcwd(), ".tmp")):
+                os.mkdir(os.path.join(os.getcwd(), ".tmp"))
 
-        # Create tmp folder
-        if not os.path.exists(os.path.join(os.getcwd(), ".tmp")):
-            os.mkdir(os.path.join(os.getcwd(), ".tmp"))
+            filename = os.path.join(os.getcwd(), ".tmp", "index.yaml")
 
-        filename = os.path.join(os.getcwd(), ".tmp", "index.yaml")
+            # Download the case package index.yaml file
+            # Send a GET request to the URL
+            response = requests.get(self._casepackage_url, stream=True, timeout=5)
 
-        # Download the case package index.yaml file
-        # Send a GET request to the URL
-        response = requests.get(self._casepackage_url, stream=True, timeout=5)
+            # Check if the request was successful
+            if response.status_code == 200:
+                # Open the file in write-binary mode
+                with open(filename, 'wb') as file:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        # Write each chunk to the file
+                        file.write(chunk)
+                self._logger.info(f"Downloaded case package index.yaml file to {filename}")
+            else:
+                print(Panel.fit(Text(f"Failed to download CASE Package index.yaml file"), style="bold yellow"))
+                print()
+                self._logger.info(f"Failed to download case package index.yaml file from {self._casepackage_url}")
 
-        # Check if the request was successful
-        if response.status_code == 200:
-            # Open the file in write-binary mode
-            with open(filename, 'wb') as file:
-                for chunk in response.iter_content(chunk_size=8192):
-                    # Write each chunk to the file
-                    file.write(chunk)
-            self._logger.info(f"Downloaded case package index.yaml file to {filename}")
-        else:
-            self._logger.error(f"Failed to download case package index.yaml file from {self._casepackage_url}")
+            # Read the index.yaml file
+            with open(filename, 'r') as file:
+                case_versions = yaml.safe_load(file)
 
-        # Read the index.yaml file
-        with open(filename, 'r') as file:
-            case_versions = yaml.safe_load(file)
+            # Return the case versions
+            self._case_versions = case_versions
+            case_versions_parsed = self.__parse_case_versions()
+            self._case_versions_parsed = case_versions_parsed
+        except Exception as e:
+            self._logger.info(f"Exception while trying to collect case versions - {e}")
+            self._case_versions_parsed = {}
 
-        # Return the case versions
-        self._case_versions = case_versions
-        case_versions_parsed = self.__parse_case_versions()
-        self._case_versions_parsed = case_versions_parsed
-        return case_versions_parsed
 
     # Function to parse caseVersions
     def __parse_case_versions(self):
@@ -348,25 +350,56 @@ class LoadExtract:
 
         if content_template_yaml:
             keys_to_parse = ['repository', 'tag']
-            self._repo_tag_dict = parse_yaml_for_keys(content_template_yaml, keys_to_parse)
-            self._repo_tag_dict["components"] = []
-            for repo in self._repo_tag_dict['repository']:
-                self._repo_tag_dict["components"].append(repo.split("/")[-1])
+            parsed_keys = parse_yaml_for_keys(content_template_yaml, keys_to_parse)
+
+            num_components = len(parsed_keys['repository'])
+
+            for i in range(num_components):
+                component_dict = {}
+
+                # Calculate Component Name
+                component_name = parsed_keys['repository'][i].split("/")[-1]
+                component_dict['components'] = component_name
+
+                # Calculate Tag or Digest
+                if "sha256:" in parsed_keys['tag'][i]:
+                    component_dict['digest'] = parsed_keys['tag'][i]
+                else:
+                    component_dict['tag'] = parsed_keys['tag'][i]
+
+                # Calculate Repository
+                repository = parsed_keys['repository'][i]
+                component_dict['repository'] = repository.lower()
+
+                # Add the component dictionary to the repo_tag_list
+                self._repo_tag_list.append(component_dict.copy())
+
+
             # adding sso images
-            if "cpe" in self._repo_tag_dict["components"]:
-                self._repo_tag_dict["components"].append("cpe-sso")
-                self._repo_tag_dict["repository"].append("cp.icr.io/cp/cp4a/fncm/cpe-sso")
-                self._repo_tag_dict["tag"].append(
-                    self._repo_tag_dict["tag"][self._repo_tag_dict["repository"].index("cp.icr.io/cp/cp4a/fncm/cpe")])
-            if "navigator" in self._repo_tag_dict["components"]:
-                self._repo_tag_dict["components"].append("navigator-sso")
-                self._repo_tag_dict["repository"].append("cp.icr.io/cp/cp4a/ban/navigator-sso")
-                self._repo_tag_dict["tag"].append(self._repo_tag_dict["tag"][self._repo_tag_dict["repository"].index(
+            if "cpe" in component_dict["components"]:
+                component_dict["components"].append("cpe-sso")
+                component_dict["repository"].append("cp.icr.io/cp/cp4a/fncm/cpe-sso")
+                component_dict["tag"].append(
+                    component_dict["tag"][component_dict["repository"].index("cp.icr.io/cp/cp4a/fncm/cpe")])
+
+                self._repo_tag_list.append(component_dict.copy())
+            if "navigator" in component_dict["components"]:
+                component_dict["components"].append("navigator-sso")
+                component_dict["repository"].append("cp.icr.io/cp/cp4a/ban/navigator-sso")
+                component_dict["tag"].append(component_dict["tag"][component_dict["repository"].index(
                     "cp.icr.io/cp/cp4a/ban/navigator")])
+
+                self._repo_tag_list.append(component_dict.copy())
+
+            # Modify repositories for dev environment
+            # Loop through each component dictionary in the repo_tag_list
+            # Replace the repository URL with the dev URL
             if self._dev:
-                for i in range(len(self._repo_tag_dict["repository"])):
-                    self._repo_tag_dict["repository"][i] = self._repo_tag_dict["repository"][i].replace("cp.icr.io",
-                                                                                                        "cp.stg.icr.io")
+                for component_dict in self._repo_tag_list:
+                    component_dict["repository"] = component_dict["repository"].replace("cp.icr.io","cp.stg.icr.io")
+
+            # # Add the component dictionary to the repo_tag_list
+            # self._repo_tag_list.append(component_dict.copy())
 
     # Function to parse and retrieve operator image tag and repository
     def parse_operator_template(self):
@@ -377,48 +410,72 @@ class LoadExtract:
         except Exception as e:
             print(f"Error occurred while reading YAML file {self._operator_path}: {e}")
 
+
+        component_dict = {}
+
         if operator_template_yaml:
-            operator_repository, operator_tag = operator_template_yaml["spec"]["template"]["spec"]["containers"][0][
-                "image"].split(":")
+            # Check if operator image is using a tag vs digest
+            image = operator_template_yaml["spec"]["template"]["spec"]["containers"][0].get("image", "")
+            if "@" in image:
+                # If using digest, split by '@' to get the repository and digest
+                operator_repository, operator_digest = image.split("@")
+                component_dict["digest"] = operator_digest
+            else:
+                # If using digest, split by ':' to get the repository and tag
+                operator_repository, operator_tag = image.split(":")
+                component_dict["tag"] = operator_tag
             if self._dev:
                 operator_repository = operator_repository.replace("icr.io/cpopen", "cp.stg.icr.io/cp")
-            self._repo_tag_dict["repository"].append(operator_repository)
-            self._repo_tag_dict["tag"].append(operator_tag)
-            self._repo_tag_dict["components"].append("ibm-fncm-operator")
 
-    # Function to create the TOML file
+            # Add the repository to the component dictionary
+            component_dict['repository'] = operator_repository.lower()
+            # Add the component name
+            component_dict["components"] = "ibm-fncm-operator"
+
+            self._repo_tag_list.append(component_dict)
+
+
+
+        # if operator_template_yaml:
+        #     operator_repository, operator_tag = operator_template_yaml["spec"]["template"]["spec"]["containers"][0][
+        #         "image"].split(":")
+        #     if self._dev:
+        #         operator_repository = operator_repository.replace("icr.io/cpopen", "cp.stg.icr.io/cp")
+        #     self._repo_tag_dict["repository"].append(operator_repository)
+        #     self._repo_tag_dict["tag"].append(operator_tag)
+        #     self._repo_tag_dict["components"].append("ibm-fncm-operator")
+
     def create_image_details_file(self):
 
         # Create the CNCF Image Details folder
         self.__create_cncf_image_details_folder()
 
-        if (len(self._repo_tag_dict["repository"]) != len(self._repo_tag_dict["tag"])) or len(
-                self._repo_tag_dict["repository"]) == 0:
-            self._logger.exception(
-                "Error with the content pattern template, matching pairs of repositories and tags not found")
-            exit(0)
         try:
             image_doc = document()
-            image_doc.add(comment("####################################################"))
-            image_doc.add(comment("##           FNCM Component Image Details          ##"))
-            image_doc.add(comment("####################################################"))
+            image_doc.add(comment("##########################################################"))
+            image_doc.add(comment("##  IBM FileNet Content Manager Component Image Details ##"))
+            image_doc.add(comment("##########################################################"))
 
-            for i in range(len(self._repo_tag_dict["components"])):
+            for component in self._repo_tag_list:
                 component_section = table()
-                for key, value in self._image_details_template.items():
-                    if key.lower() == "repository":
-                        self.__write_property_table(section=component_section,
-                                                    key=key,
-                                                    value=self._repo_tag_dict["repository"][i],
-                                                    note=value['comment'])
 
-                    else:
-                        self.__write_property_table(section=component_section,
-                                                    key=key,
-                                                    value=self._repo_tag_dict["tag"][i],
-                                                    note=value['comment'])
+                self.__write_property_table(section=component_section,
+                                            key="REPOSITORY",
+                                            value=component.get("repository", ''),
+                                            note='')
 
-                component_name = self._repo_tag_dict["components"][i].upper()
+                if 'digest' in component:
+                    self.__write_property_table(section=component_section,
+                                                key="DIGEST",
+                                                value=component.get("digest", ''),
+                                                note='')
+                else:
+                    self.__write_property_table(section=component_section,
+                                                key="TAG",
+                                                value=component.get("tag", ''),
+                                                note='')
+
+                component_name = component.get("components", '').upper()
                 image_doc.add(f"{component_name}", component_section)
                 image_doc.add(nl())
 
@@ -429,6 +486,50 @@ class LoadExtract:
 
         except Exception as e:
             self._logger.exception(f"Exception while trying to create image details toml - {e}")
+
+    # # Function to create the TOML file
+    # def create_image_details_file(self):
+    #
+    #     # Create the CNCF Image Details folder
+    #     self.__create_cncf_image_details_folder()
+    #
+    #     if (len(self._repo_tag_dict["repository"]) != len(self._repo_tag_dict["tag"])) or len(
+    #             self._repo_tag_dict["repository"]) == 0:
+    #         self._logger.exception(
+    #             "Error with the content pattern template, matching pairs of repositories and tags not found")
+    #         exit(0)
+    #     try:
+    #         image_doc = document()
+    #         image_doc.add(comment("####################################################"))
+    #         image_doc.add(comment("##           FNCM Component Image Details          ##"))
+    #         image_doc.add(comment("####################################################"))
+    #
+    #         for i in range(len(self._repo_tag_dict["components"])):
+    #             component_section = table()
+    #             for key, value in self._image_details_template.items():
+    #                 if key.lower() == "repository":
+    #                     self.__write_property_table(section=component_section,
+    #                                                 key=key,
+    #                                                 value=self._repo_tag_dict["repository"][i],
+    #                                                 note=value['comment'])
+    #
+    #                 else:
+    #                     self.__write_property_table(section=component_section,
+    #                                                 key=key,
+    #                                                 value=self._repo_tag_dict["tag"][i],
+    #                                                 note=value['comment'])
+    #
+    #             component_name = self._repo_tag_dict["components"][i].upper()
+    #             image_doc.add(f"{component_name}", component_section)
+    #             image_doc.add(nl())
+    #
+    #         f = TOMLFile(self._image_details_file)
+    #         f.write(image_doc)
+    #         self._logger.info("Generating image details toml file completed successfully")
+    #
+    #
+    #     except Exception as e:
+    #         self._logger.exception(f"Exception while trying to create image details toml - {e}")
 
     # Parsing toml file into a dictionary
     def parse_toml_file(self, image_details_dict=None):
@@ -620,7 +721,7 @@ class LoadExtract:
 
             image_mirror_policy_file = os.path.join(pak_home, '.ibm-pak', 'data', 'mirror', case_name, case_version, 'image-content-source-policy.yaml')
 
-            self._kubernetes_utilities.apply_cluster_resource_files(
+            self._kube.apply_cluster_resource_files(
                 resource_file=image_mirror_policy_file,
                 resource_type="image policy")
 
@@ -754,13 +855,16 @@ class LoadExtract:
             process2 = subprocess.run(command2, env=env_vars, shell=True, capture_output=True, text=True)
 
             if process2.returncode != 0:
-                print(Panel(Text("Case Download Failed", style="bold red")))
-                print(Text(process2.stderr, style="bold red"))
+                print()
+                print(Panel.fit(Text("Case Download Failed\n"
+                                     "Please check logs for additional information"), style="bold red"))
                 self._logger.info(f"Error occurred while downloading case: {process2.stderr}")
                 return False
 
         except Exception as e:
-            print(Panel(Text("Case Download Failed", style="bold red")))
+            print()
+            print(Panel.fit(Text("Case Download Failed\n"
+                                 "Please check logs for additional information"), style="bold red"))
             self._logger.info(f"Error occurred while downloading case: {e}")
             return False
 

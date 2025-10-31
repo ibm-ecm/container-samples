@@ -1,12 +1,12 @@
 spec:
   shared_configuration:
-    ## For ROKS and CNCF, this is used to enable the creation of ingresses. The default value is "false".
+    ## For CNCF, this is used to enable the creation of ingresses. The default value is "false".
     sc_ingress_enable: false
 
     ## Service type to support CNCF Ingress creation, possible values are ClusterIP, NodePort
     sc_service_type: ClusterIP
 
-    ## For ROKS and CNCF Ingress, provide TLS secret name for Ingress controller.
+    ## For CNCF Ingress, provide TLS secret name for Ingress controller.
     sc_ingress_tls_secret_name: "<Required>"
 
     ## OCP: Hostname suffix added to the default ingress hostname, this is optional and the default hostname suffix will be {meta.namespace}.

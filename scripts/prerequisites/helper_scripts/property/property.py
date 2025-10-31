@@ -35,8 +35,9 @@ class Property:
         self._logger = logger
         self._console = console
         self._gather = gather_obj
+        self._namespace = gather_obj.namespace
         self._working_directory = path
-        self._property_folder = os.path.join(self._working_directory, 'propertyFile')
+        self._property_folder = os.path.join(self._working_directory, 'propertyFile', self._namespace)
         self._ssl_directory_folder = os.path.join(self._property_folder, 'ssl-certs')
         self._icc_directory_folder = os.path.join(self._property_folder, 'icc')
         self._trusted_certs_directory_folder = os.path.join(self._property_folder, 'ssl-certs', 'trusted-certs')
@@ -226,32 +227,48 @@ class Property:
             deployment_dict['PLATFORM']['value'] = self._gather.platform
             if self._gather.fncm_version in ["5.5.8", "5.5.11"]:
                 deployment_dict.pop('FIPS_SUPPORT')
-                deployment_dict.pop('RESTRICTED_INTERNET_ACCESS')
-                deployment_dict.pop('GENERATE_NETWORK_POLICIES')
-            elif self._gather.fncm_version in ["5.7.0"]:
-                deployment_dict['FIPS_SUPPORT']['value'] = self._gather.fips_support
-                deployment_dict.pop('RESTRICTED_INTERNET_ACCESS')
-                deployment_dict['GENERATE_NETWORK_POLICIES']['value'] = self._gather.np_support
             else:
                 deployment_dict['FIPS_SUPPORT']['value'] = self._gather.fips_support
-                deployment_dict['RESTRICTED_INTERNET_ACCESS']['value'] = self._gather.egress_support
-                deployment_dict.pop('GENERATE_NETWORK_POLICIES')
             return deployment_dict
 
         except Exception as e:
             self._logger.exception(
                 "Exception from property script in __populate_deployment_dict function -  {}".format(str(e)))
 
+    def __populate_egress_dict(self):
+        try:
+            # Create a copy of the deployment property file properties
+            egress_dict = copy.deepcopy(self._egress_properties)
+
+            # if 5.7.0 and above add Generate Network Policies property
+            # Remove the
+            if self._gather.fncm_version in ["5.7.0"]:
+                egress_dict['GENERATE_NETWORK_POLICIES']['value'] = self._gather.np_support
+                egress_dict.pop("RESTRICTED_INTERNET_ACCESS")
+            elif self._gather.fncm_version in ["5.6.0", "5.5.12"]:
+                egress_dict.pop("GENERATE_NETWORK_POLICIES")
+                egress_dict["RESTRICTED_INTERNET_ACCESS"]['value'] = self._gather.egress_support
+
+
+            # If OCP then remove the options to customize and defaults are loaded in the operator
+            # If both np_support and egress_support are false then remove the k8 api and dns options
+
+            if self._gather.platform in ["OCP"] or not (self._gather.np_support or self._gather.egress_support):
+                egress_dict.pop('K8_API_NAMESPACE')
+                egress_dict.pop('K8_API_PORT')
+                egress_dict.pop('K8_DNS_NAMESPACE')
+                egress_dict.pop('K8_DNS_PORT')
+
+            return egress_dict
+
+        except Exception as e:
+            self._logger.exception(
+                "Exception from property script in __populate_egress_dict function -  {}".format(str(e)))
+
     def __populate_scim_dict(self):
         try:
             # Create a copy of the user group dictionary
             scim_dict = copy.deepcopy(self._scim_properties)
-            scim_dict['SCIM_ENABLE']['value'] = self._gather.scim_support
-            scim_dict['SCIM_ENABLE']['value'] = self._gather.scim_support
-            scim_dict['SCIM_ENABLE']['value'] = self._gather.scim_support
-            scim_dict['SCIM_ENABLE']['value'] = self._gather.scim_support
-            scim_dict['SCIM_ENABLE']['value'] = self._gather.scim_support
-            scim_dict['SCIM_ENABLE']['value'] = self._gather.scim_support
             scim_dict['SCIM_ENABLE']['value'] = self._gather.scim_support
 
             return scim_dict
@@ -293,14 +310,13 @@ class Property:
         # Create a file
         deployment_doc = document()
         deployment_doc.add(comment("####################################################"))
-        deployment_doc.add(comment("##          License , Platform and Version           ##"))
+        deployment_doc.add(comment("##          License, Platform and Version        ##"))
         deployment_doc.add(comment("####################################################"))
 
         deployment_properties = self.__populate_deployment_dict()
 
         for key, value in deployment_properties.items():
-            if self._gather.fncm_version in ["5.5.8", "5.5.11"] and key in ["FIPS_SUPPORT",
-                                                                            "RESTRICTED_INTERNET_ACCESS"]:
+            if self._gather.fncm_version in ["5.5.8", "5.5.11"] and key in ["FIPS_SUPPORT"]:
                 continue
             self.__write_property(doc=deployment_doc,
                                   key=key,
@@ -330,17 +346,20 @@ class Property:
                                   key=key,
                                   value=value['value'],
                                   note=value['comment'])
-        if self._gather.platform != "OCP" and self._gather.np_support:
-            deployment_doc.add(nl())
-            deployment_doc.add(comment("####################################################"))
-            deployment_doc.add(comment("##                   Egress Property              ##"))
-            deployment_doc.add(comment("####################################################"))
-            
-            for key, value in self._egress_properties.items():
-                self.__write_property(doc=deployment_doc,
-                                    key=key,
-                                    value=value['value'],
-                                    note=value['comment'])
+
+
+        deployment_doc.add(nl())
+        deployment_doc.add(comment("####################################################"))
+        deployment_doc.add(comment("##                   Egress Properties            ##"))
+        deployment_doc.add(comment("####################################################"))
+
+        egress_properties = self.__populate_egress_dict()
+
+        for key, value in egress_properties.items():
+            self.__write_property(doc=deployment_doc,
+                                key=key,
+                                value=value['value'],
+                                note=value['comment'])
 
         # Create a file
         f = TOMLFile(os.path.join(self._property_folder, 'fncm_deployment.toml'))
@@ -350,7 +369,7 @@ class Property:
         # Create a file
         ingress_doc = document()
         ingress_doc.add(comment("####################################################"))
-        ingress_doc.add(comment("##                CNCF Ingress             ##"))
+        ingress_doc.add(comment("##                 Ingress Properties             ##"))
         ingress_doc.add(comment("####################################################"))
 
         for key, value in self._ingress_properties.items():
