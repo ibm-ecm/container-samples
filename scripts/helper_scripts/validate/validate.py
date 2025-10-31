@@ -18,27 +18,30 @@ import re
 import shlex
 import shutil
 import subprocess
-import time
+from ipaddress import ip_address, IPv4Address, IPv6Address
 from urllib.parse import urlparse, urljoin
 
 import jinja2
 import requests
+import time
 import typer
 from cryptography import x509
-from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization, hashes
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from requests import Session
+from requests.adapters import HTTPAdapter
 from rich import print
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.text import Text
-from ipaddress import ip_address, IPv4Address, IPv6Address
 
-from ..utilities.interface import ldap_search_results, scim_search_results, ldap_entry_types, scim_entry_types, \
-    idp_token_claim_results, scim_admin_user_results, scim_admin_group_results
-from ..utilities.prerequisites_utilites import command_available, check_java_version, kubectl_log_in_check, \
+from ..utilities import kubernetes_utilites as k
+from ..utilities.interface import idp_token_claim_results, ldap_search_results, scim_entry_types, \
+    scim_search_results, scim_admin_group_results, ldap_entry_types, scim_admin_user_results
+from ..utilities.prerequisites_utilites import command_available, \
     collect_visible_files, \
-    connect_to_server, split_pem, clean_and_combine_pem_files
+    connect_to_server, clean_and_combine_pem_files, create_ssl_context, check_java_version, split_pem
 
 requests.packages.urllib3.disable_warnings()
 
@@ -52,10 +55,20 @@ def remove_protocol(url):
 
 
 class Validate:
-    _keytool_present = None
+
+    class CustomHTTPAdapter(HTTPAdapter):
+        def __init__(self, ssl_context=None, **kwargs):
+            self.ssl_context = ssl_context
+            super().__init__(**kwargs)
+
+        def init_poolmanager(self, *args, **kwargs):
+            # Pass the custom SSL context to the base class's init_poolmanager
+            kwargs['ssl_context'] = self.ssl_context
+            super().init_poolmanager(*args, **kwargs)
 
     _JAR_DIR = os.path.join(os.getcwd(), "helper_scripts", "validate", "jars")
 
+    # Using the same JDBC jar files for all Versions
     _JDBC_DIR = os.path.join(os.getcwd(), "helper_scripts", "validate", "jdbc")
 
     _TMP_DIR = os.path.join(os.getcwd(), "helper_scripts", "validate", "tmp")
@@ -73,7 +86,12 @@ class Validate:
                  scim_prop=None,
                  component_prop=None,
                  user_group_prop=None,
-                 pvc_size='10Mi'):
+                 pvc_size='10Mi',
+                 namespace=''):
+
+        self._kube = k.KubernetesUtilities(logger)
+
+        self._namespace = namespace
 
         self.component_prop_present = False
         if db_prop:
@@ -110,16 +128,6 @@ class Validate:
         else:
             self._user_group_prop = {}
 
-        if self._deploy_prop["FNCM_Version"] == "5.5.8":
-            self._JDBC_DIR = os.path.join(self._JDBC_DIR, "java8")
-
-        elif self._deploy_prop["FNCM_Version"] == "5.5.11":
-            self._JDBC_DIR = os.path.join(self._JDBC_DIR, "java11")
-
-        elif self._deploy_prop["FNCM_Version"] in ['5.5.12', "5.6.0"]:
-            self._JDBC_DIR = os.path.join(self._JDBC_DIR, "java17")
-        else:
-            self._JDBC_DIR = os.path.join(self._JDBC_DIR, "java21")
 
         # For DB2 RDS and DB2 RDS HADR we use the same jar as DB2 but we pass the -db2rds flag hence setting the jar and jdbc path to DB2 folder path
         # Using same jar as DB2 for DB2HADR
@@ -139,8 +147,6 @@ class Validate:
 
         self._logger = logger
         self._pvc_size = pvc_size
-
-        self.missing_tools = self.check_env_util()
 
         self.is_validated = {}
         self.ldap_user_groups = {}
@@ -232,46 +238,6 @@ class Validate:
     @user_group_prop.setter
     def user_group_prop(self, user_group_prop):
         self._user_group_prop = user_group_prop
-
-    def check_env_util(self) -> list:
-        missing_tools = []
-
-        self._keytool_present = command_available("keytool")
-        if not self._keytool_present:
-            missing_tools.append("keytool")
-        self._java_present = command_available("java")
-        if not self._java_present:
-            missing_tools.append("java")
-        self._powershell_present = command_available("powershell.exe")
-        if not self._powershell_present and platform.system() == 'Windows':
-            missing_tools.append("powershell")
-
-        if self._java_present:
-            self._java_correct_version = check_java_version(self.deploy_prop["FNCM_Version"])
-            if not self._java_correct_version:
-                missing_tools.append("java_version")
-
-        self._kubectl_present = command_available("kubectl")
-        if not self._kubectl_present:
-            missing_tools.append("kubectl")
-
-        if self._kubectl_present:
-            self._kubectl_logged_in = kubectl_log_in_check(self._logger)
-            if not self._kubectl_logged_in:
-                missing_tools.append("connection")
-        return missing_tools
-
-    def __check_java(self):
-        if not self._java_present:
-            raise typer.Exit(code=1)
-
-    def __check_keytool(self):
-        if not self._keytool_present:
-            raise typer.Exit(code=1)
-
-    def __check_kubectl(self):
-        if not self._kubectl_present:
-            raise typer.Exit(code=1)
 
     def cleanup_tmp(self):
         if os.path.exists(self._TMP_DIR):
@@ -424,7 +390,7 @@ class Validate:
         db_pwd = self._db_prop[db_label]['DATABASE_PASSWORD']
         db_type = self._db_prop['DATABASE_TYPE'].lower()
         ssl_enabled = self._db_prop['DATABASE_SSL_ENABLE']
-        ssl_cert_folder = os.path.join(os.getcwd(), "propertyFile", "ssl-certs", db_label.lower())
+        ssl_cert_folder = os.path.join(os.getcwd(), "propertyFile", self._namespace, "ssl-certs", db_label.lower())
 
         if db_type == "oracle":
             servername_regex = re.compile(r"(?<=HOST=)[\s]*[^)\s]*")
@@ -499,7 +465,7 @@ class Validate:
             class_path_delim_char = ':'
 
         if ssl_enabled:
-            cert_dir = os.path.join(os.getcwd(), "propertyFile", "ssl-certs", db_label.lower())
+            cert_dir = os.path.join(os.getcwd(), "propertyFile", self._namespace, "ssl-certs", db_label.lower())
 
             if db_type in ["db2", "db2hadr"]:
 
@@ -736,7 +702,6 @@ class Validate:
 
     # Function to add a certificate to a trust store
     def __add_cert_to_tmp_truststore(self, folderpath, alias, progress):
-        self.__check_keytool()
 
         # Collect Truststore variables
         truststore_pwd = self._truststore_pwd
@@ -773,7 +738,6 @@ class Validate:
     # Function to create a PKC12 trust store
     # This truststore will be used to validate the LDAP and DB connection
     def create_truststore(self, progress):
-        self.__check_keytool()
 
         # Collect Truststore variables
         dname = self._dnsname
@@ -805,10 +769,13 @@ class Validate:
                             + f"-dname \"{dname}\" -keyalg RSA -keystore \"{trustpath}\" "
                             + f"-storetype {storetype} -storepass {truststore_pwd} -noprompt")
 
-            subprocess.run(keystore_cmd, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        except Exception as e:
-            self._logger.exception(
-                f"Exception creating key store file -  {str(e)}")
+            response = subprocess.run(keystore_cmd, shell=True, check=True, capture_output=True, text=True)
+            self._logger.info("PKCS12 truststore created successfully.")
+        except subprocess.CalledProcessError as e:
+            self._logger.info(f"Failed to create PKCS12 truststore: {str(e)}")
+            progress.log(Panel.fit(Text(f"Failed to create PKCS12 truststore: {str(e.stderr.strip())}"), style="bold red"))
+            progress.log()
+            exit(1)
 
     # Check every and validate all LDAP found in property file.
     def validate_all_ldap(self, task1, progress):
@@ -834,7 +801,7 @@ class Validate:
             authenticated = False
             check_list = []
             if ssl_enabled:
-                cert_folder = os.path.join(os.getcwd(), "propertyFile", "ssl-certs", ldap_id.lower())
+                cert_folder = os.path.join(os.getcwd(), "propertyFile", self._namespace, "ssl-certs", ldap_id.lower())
 
                 validated = self.validate_server(progress=progress, server=ldap_host,
                                                  port=ldap_port, ssl_enabled=ssl_enabled,
@@ -961,24 +928,30 @@ class Validate:
 
             if cert_path:
                 progress.log()
-                progress.log("Retrieving access token over SSL...")
+                progress.log("Retrieving access and id_token token over SSL...")
 
-                response = requests.post(url, headers=headers, data=payload, verify=cert_path, timeout=5)
+                context = create_ssl_context(client_cert_file=cert_path)
+                client_session = Session()
+                client_session.mount("https://", self.CustomHTTPAdapter(ssl_context=context))
 
-                # Check if "access_token" is in the response
-                if response.status_code == 200 and "access_token" in response.json():
-                    return response.json(), True
+                response = client_session.post(url, headers=headers, data=payload, timeout=5)
 
-                return response.json(), False
+                # Check if "access_token" or 'id_token' is in the response
+                if response.status_code == 200:
+                    if 'access_token' in response.json() or 'id_token' in response.json():
+                        return response.json(), True
+
+                return response, False
 
 
             progress.log()
-            progress.log("Retrieving access token...")
+            progress.log("Retrieving access and id_token token...")
             response = requests.post(url, headers=headers, data=payload, verify=False, timeout=5)
 
             # Check if "access_token" is in the response
-            if response.status_code == 200 and "access_token" in response.json():
-                return response.json(), True
+            if response.status_code == 200:
+                if "access_token" in response.json() or 'id_token' in response.json():
+                    return response.json(), True
 
             return response.json(), False
 
@@ -988,12 +961,13 @@ class Validate:
             self._logger.info("Attempting to retrieve token using non-SSL connection...")
 
             progress.log()
-            progress.log(Text("SSL error occurred while retrieving token. Falling back to non-SSL connection.",
+            progress.log(Text("SSL error occurred while retrieving token. Attempting connection without certificate verification.",
                               style="bold yellow"))
             response = requests.post(url, headers=headers, data=payload, verify=False, timeout=5)
 
-            if response.status_code == 200 and "access_token" in response.json():
-                return response.json(), True
+            if response.status_code == 200:
+                if "access_token" in response.json() or 'id_token' in response.json():
+                    return response.json(), True
 
             return response.json(), False
         except requests.exceptions.RequestException as e:
@@ -1062,7 +1036,7 @@ class Validate:
             self._logger.info(f"SSL Error: {e}")
             self._logger.info("Attempting to retrieve public key using non-SSL connection...")
             progress.log()
-            progress.log(Text("SSL error occurred while retrieving public key. Falling back to non-SSL connection.",
+            progress.log(Text("SSL error occurred while retrieving public key. Attempting connection without certificate verification.",
                               style="bold yellow"))
             jwks = requests.get(jwks_uri, verify=False, timeout=5).json()
         except requests.exceptions.RequestException as e:
@@ -1175,7 +1149,7 @@ class Validate:
             client_id = idp_config.get("CLIENT_ID", "")
             client_secret = idp_config.get("CLIENT_SECRET", "")
             ssl_enabled = idp_config.get("IDP_SSL_ENABLED", False)
-            cert_folder = os.path.join(os.getcwd(), "propertyFile", "ssl-certs", idp_id.lower())
+            cert_folder = os.path.join(os.getcwd(), "propertyFile", self._namespace, "ssl-certs", idp_id.lower())
 
             if ssl_enabled:
                 # Get the certificate path
@@ -1183,11 +1157,11 @@ class Validate:
                 progress.log()
                 progress.log(Text(f"SSL is enabled for IDP: {idp_id.lower()}", style="bold cyan"))
 
-                cert_path = clean_and_combine_pem_files(self._logger, cert_folder, self._TMP_DIR, idp_id)
+                cert_path, san_list = clean_and_combine_pem_files(self._logger, cert_folder, self._TMP_DIR, idp_id)
 
                 self._logger.info(f"Using certificate path: {cert_path}")
 
-                verify_cert = True
+                verify_cert = cert_path
             else:
                 verify_cert = False
 
@@ -1219,9 +1193,9 @@ class Validate:
                                                            display_rtt=False)
 
             if not server_reachability and ssl_enabled:
-                progress.log(Panel.fit(
-                    Text(f"Reachability over SSL failed. Falling back to non-SSL connection.",
-                         style="bold yellow"), style="bold yellow"))
+                progress.log(
+                    Text(f"Reachability over SSL failed. Attempting connection without certificate verification.",
+                         style="bold yellow"), style="bold yellow")
                 progress.log()
 
                 server_reachability = self.validate_server(progress=progress, server=idp_url, port=idp_port,
@@ -1305,7 +1279,7 @@ class Validate:
             self._logger.info(f"\"{client_type}\" authentication method is supported!")
 
             # Retrieving token
-            self._logger.info(f"Retrieving token from IDP using {client_type}")
+            self._logger.info(f"Retrieving id_token from IDP using {client_type}")
             progress.log()
             progress.log("Using \"client_credentials\" grant to retrieve access token from IDP")
 
@@ -1313,7 +1287,7 @@ class Validate:
             # Will check the Issuer Endpoint to determine if it's Azure Entra
             issuer = idp_config.get("ISSUER", "")
             if 'microsoftonline' in issuer:
-                scope = f"api://{client_id}/.default"
+                scope = f"{client_id}/.default"
             else:
                 scope = "openid profile email"
 
@@ -1406,7 +1380,7 @@ class Validate:
             fncm_login_user = self._user_group_prop.get("FNCM_LOGIN_USER", "")
             fncm_login_password = self._user_group_prop.get("FNCM_LOGIN_PASSWORD", "")
             ssl_enabled = idp_config.get("IDP_SSL_ENABLED", False)
-            cert_folder = os.path.join(os.getcwd(), "propertyFile", "ssl-certs", idp_id.lower())
+            cert_folder = os.path.join(os.getcwd(), "propertyFile", self._namespace, "ssl-certs", idp_id.lower())
 
             if ssl_enabled:
                 # Get the certificate path
@@ -1414,7 +1388,7 @@ class Validate:
                 progress.log()
                 progress.log(Text(f"SSL is enabled for IDP: {idp_id.lower()}", style="bold cyan"))
 
-                cert_path = clean_and_combine_pem_files(self._logger, cert_folder, self._TMP_DIR, idp_id)
+                cert_path, san_list = clean_and_combine_pem_files(self._logger, cert_folder, self._TMP_DIR, idp_id)
 
                 self._logger.info(f"Using certificate path: {cert_path}")
 
@@ -1451,7 +1425,7 @@ class Validate:
 
             if not server_reachability and ssl_enabled:
                 progress.log(Panel.fit(
-                    Text(f"Reachability over SSL failed. Falling back to non-SSL connection.",
+                    Text(f"Reachability over SSL failed. Attempting connection without certificate verification.",
                          style="bold yellow"), style="bold yellow"))
                 progress.log()
 
@@ -1844,8 +1818,8 @@ class Validate:
         scim_port = self._scim_prop[scim_id].get("SCIM_PORT", "")
         scim_endpoint = f"https://{scim_server}:{scim_port}/{scim_context_path}/"
 
-        idp_cert_folder = os.path.join(os.getcwd(), "propertyFile", "ssl-certs", idp_id.lower())
-        scim_cert_folder = os.path.join(os.getcwd(), "propertyFile", "ssl-certs", scim_id.lower())
+        idp_cert_folder = os.path.join(os.getcwd(), "propertyFile", self._namespace, "ssl-certs", idp_id.lower())
+        scim_cert_folder = os.path.join(os.getcwd(), "propertyFile", self._namespace, "ssl-certs", scim_id.lower())
 
         try:
 
@@ -1855,9 +1829,9 @@ class Validate:
                 progress.log()
                 progress.log(Text(f"SSL is enabled for SCIM: {scim_id.lower()}", style="bold cyan"))
 
-                idp_cert_path = clean_and_combine_pem_files(self._logger, idp_cert_folder, self._TMP_DIR, scim_id)
+                idp_cert_path, san_list = clean_and_combine_pem_files(self._logger, idp_cert_folder, self._TMP_DIR, scim_id)
 
-                scim_cert_path = clean_and_combine_pem_files(self._logger, scim_cert_folder, self._TMP_DIR, scim_id)
+                scim_cert_path, san_list = clean_and_combine_pem_files(self._logger, scim_cert_folder, self._TMP_DIR, scim_id)
 
                 self._logger.info(f"SSL cert path: {scim_cert_path}")
 
@@ -2924,6 +2898,7 @@ class Validate:
         # Running java command for ldap binding using LdapTest.jar
         self._logger.info(f"Java command for ldap binding using LdapTest.jar : {ldap_test_cmd}")
         try:
+            progress.log()
             bind_output = self.run_command(ldap_test_cmd)
             self._logger.info(f"Ldap bind output : {bind_output}")
             if "AuthenticationException" in bind_output:
@@ -3146,16 +3121,16 @@ class Validate:
             progress.log()
             self._logger.info(f"Validating SSL connection to {server}:{port} with certificate {cert_path}")
             if cert_path:
-                cert = clean_and_combine_pem_files(self._logger, cert_path, self._TMP_DIR, server)
+                cert, san_list  = clean_and_combine_pem_files(self._logger, cert_path, self._TMP_DIR, server)
                 self._logger.info(f"Using certificate: {cert}")
             else:
                 cert = ''
             conn_result, rtt, connected = connect_to_server(host=server, port=int(port), ssl=True,
-                                                            client_cert_file=cert, pg=pg, progress=progress)
+                                                            client_cert_file=cert, pg=pg, progress=progress, logger=self._logger)
         else:
             progress.log(Text(f"Validating Server \"{server}\" Reachability"))
             progress.log()
-            conn_result, rtt, connected = connect_to_server(host=server, port=int(port), progress=progress)
+            conn_result, rtt, connected = connect_to_server(host=server, port=int(port), progress=progress, logger=self._logger)
 
         # Construct the message to be displayed
         # If the SSL connection was successful, display the cipher
@@ -3168,8 +3143,8 @@ class Validate:
                 progress.log(Panel.fit(message, style="bold green"))
 
                 # If SSL connections were successful, then cipher passed
-                self.output_cipher(conn_result.get_cipher_name(),
-                                   conn_result.get_protocol_version_name(), progress)
+                self.output_cipher(conn_result.cipher(),
+                                   conn_result.version(), progress)
             else:
                 message = Text(f"Reachability to \"{server}\" succeeded!")
                 progress.log()
@@ -3193,7 +3168,7 @@ class Validate:
         progress.log()
         progress.log(message)
 
-        message = Text(f"SSL cipher used: \"{cipher}\", is accepted!", style="bold green")
+        message = Text(f"SSL cipher used: \"{cipher[0]}\", is accepted!", style="bold green")
         progress.log()
         progress.log(message)
 
@@ -3225,7 +3200,6 @@ class Validate:
 
     # Use JAR to test DB connection
     def __check_connection_with_jar(self, jar_cmd, progress):
-        self.__check_java()
         try:
             if platform.system() == 'Windows':
                 output = subprocess.check_output(["powershell.exe", jar_cmd], shell=True, stderr=subprocess.PIPE,
@@ -3249,7 +3223,7 @@ class Validate:
             if "PKIX path building failed" in error.stderr or "Connection failure with : TLSv1.3" in error.stderr:
                 progress.log()
                 progress.log(Text(
-                    "SSL Certificate could not be validated, please check the supplied certificate in propertyFile/ssl-certs.",
+                    f"SSL Certificate could not be validated, please check the supplied certificate in propertyFile/{self._namespace}/ssl-certs.",
                     style="bold red"))
 
             return False
@@ -3259,62 +3233,65 @@ class Validate:
                   self._deploy_prop["FAST_FILE_STORAGE_CLASSNAME"]}
         return sc_set
 
-    def validate_all_storage_classes(self, task2, progress):
+    def validate_all_storage_classes(self, task1, progress):
         # Uses a set to skip checked the same storage class twice
         sc_set = self.get_unique_storageclass()
 
         for storage_class in sc_set:
             progress.log(Panel.fit(Text(f"Validating storage class: {storage_class}"), style="bold cyan"))
-            self.validate_sample_sc(storage_class, "ReadWriteMany", "fncm-test-pvc", task2, progress)
+            self.validate_sample_sc(storage_class, "ReadWriteMany", "fncm-test-pvc", task1, progress)
 
-    def __check_pvc_liveliness(self, sample_pvc_name, task2, progress):  # Create new temp yaml sample
+    def __check_pvc_liveliness(self, sample_pvc_name, task1, progress):
         # 30 attempts, 10 seconds each; total ~300 seconds / 5 mins
         TIMEOUT_ATTEMPTS = 30
         SLEEP_TIMER = 10
-
-        if platform.system() == 'Windows':
-            kubectl_cmd = f"kubectl get pvc | findstr {sample_pvc_name} | findstr \"Bound\""
-        else:
-            kubectl_cmd = f"kubectl get pvc | grep {sample_pvc_name}| grep -q -m 1 \"Bound\""
 
         for i in range(TIMEOUT_ATTEMPTS):
             progress.log(f"\nChecking for {sample_pvc_name} liveness - Attempt {i + 1}/{TIMEOUT_ATTEMPTS}\n")
             validated = True
             try:
-                subprocess.check_output(kubectl_cmd, shell=True, stderr=subprocess.PIPE, universal_newlines=True)
-            except subprocess.CalledProcessError as error:
-                # If cannot find pvc in bound PVC grep, validation is not complete
-                # and will keep waiting
-                if "returned non-zero exit status 1" in str(error):
-                    validated = False
-                    progress.log(Text(f"\n\"{sample_pvc_name}\" not yet found, waiting {SLEEP_TIMER} seconds to retry", style="bold yellow"))
+                validated = self._kube.check_pvc_bound(namespace=self._namespace, pvc_name=sample_pvc_name)
+                if not validated:
+                    progress.log(Text(f"\n\"{sample_pvc_name}\" not yet found, waiting {SLEEP_TIMER} seconds to retry",
+                                      style="bold yellow"))
+                    progress.log()
                     time.sleep(SLEEP_TIMER)
                 else:
-                    self._logger.exception(error)
+                    progress.log(
+                        Panel.fit(Text(f"\"{sample_pvc_name}\" is found in Bound state!"), style="bold green"))
                     progress.log()
-                    progress.log(f"Error occurred while when checking \"{sample_pvc_name}\" liveness")
-                    progress.log()
-                    progress.log(Syntax(str(error.stderr), "bash", theme="ansi_dark"))
-            if validated:
+                    progress.advance(task1)
+                    return True
+            except Exception as e:
+                # If cannot find pvc in bound PVC grep, validation is not complete
+                # and will keep waiting
+                self._logger.exception(e)
+                progress.log(f"Error occurred while when checking \"{sample_pvc_name}\" liveness")
                 progress.log()
-                progress.log(Panel.fit(Text(f"\"{sample_pvc_name}\" is found in Bound state!"), style="bold green"))
-                progress.advance(task2)
-                return True
+                progress.log(Syntax(str(e.stderr), "bash", theme="ansi_dark"))
+                return False
+
+
         # Passed 60 seconds and all attempts, still cannot find PVC
         self._logger.info(f"Failed to allocate the persistent volumes using PVC: \"{sample_pvc_name}\"!")
         progress.log()
         progress.log(Panel.fit(Text(f"Failed to allocate PVC: \"{sample_pvc_name}\"!"), style="bold red"))
-        progress.advance(task2)
+        progress.advance(task1)
         return False
 
     # Creates a storage class yaml to apply
-    def validate_sample_sc(self, sc_name, sc_mode, sample_pvc_name, task2, progress):
+    def validate_sample_sc(self, sc_name, sc_mode, sample_pvc_name, task1, progress):
         # check if storage class is present
-        kubectl_cmd = f"kubectl get storageclasses -o custom-columns=:metadata.name"
         validated = True
         try:
-            output = subprocess.check_output(kubectl_cmd, shell=True, stderr=subprocess.PIPE, universal_newlines=True)
-            storage_classes = output.strip().split('\n')
+            if self._kube.in_cluster:
+                self._logger.info("Running inside cluster, skipping storage class validation")
+                progress.log()
+                progress.log(Panel.fit(Text(f"Skipping storage class: \"{sc_name}\" validation, running inside cluster", style="bold yellow")))
+                self.is_validated[sc_name] = True
+
+            storage_classes = self._kube.list_storage_classes()
+
             if sc_name in storage_classes:
                 validated = True
             else:
@@ -3328,11 +3305,11 @@ class Validate:
                 progress.log()
                 progress.log(Panel.fit(Text(f"Storage class: \"{sc_name}\" not found!"), style="bold red"))
                 self.is_validated[sc_name] = False
-                progress.advance(task2)
+                progress.advance(task1)
                 return self.is_validated[sc_name]
 
-        except subprocess.CalledProcessError as error:
-            self._logger.info(error)
+        except Exception as e:
+            self._logger.info(e)
             progress.log()
             progress.log(Panel.fit(Text(f"Storage classes cannot be retrieved, this is usually caused by cluster permission issues\n"
                          f"Test PVC will still be created, without storage class check!"), style="bold yellow"))
@@ -3341,10 +3318,6 @@ class Validate:
         # remove the existing temp file if previously not removed
         pvc_filename = f"{sc_name}.yaml"
         sample_yaml_path = os.path.join(self._TMP_DIR, pvc_filename)
-
-        # if os.path.exists(sample_yaml_path):
-        #     self._logger.info("Temporary yaml file exists and will be removed before a new file is created")
-        #     os.remove(sample_yaml_path)
 
         data = {
             "sc_name": sc_name,
@@ -3359,11 +3332,13 @@ class Validate:
             file.write(rendered_pvc)
             self._logger.info(f"Created PVC yaml file: {pvc_filename}")
 
-        self.kubectl_apply(sample_yaml_path)
+        self._kube.apply_cluster_resource_files(resource_type='pvc', resource_file=sample_yaml_path, namespace=self._namespace)
+
         progress.log()
         progress.log(f"Sample PVC created with storage class: {sc_name}")
-        self.is_validated[sc_name] = self.__check_pvc_liveliness(sample_pvc_name, task2, progress)
-        self.kubectl_delete(sample_yaml_path)
+        self.is_validated[sc_name] = self.__check_pvc_liveliness(sample_pvc_name, task1, progress)
+
+        self._kube.delete_pvc(self._namespace, sample_pvc_name)
 
         return self.is_validated[sc_name]
 
@@ -3379,57 +3354,40 @@ class Validate:
 
         return rendered_pvc
 
-    def kubectl_apply(self, yaml_path):
-        self.__check_kubectl()
-        kubectl_cmd = "kubectl apply -f \"" + yaml_path + "\""
-        response = None
-        try:
-            response = subprocess.check_output(kubectl_cmd, shell=True, stderr=subprocess.PIPE, universal_newlines=True)
-        except subprocess.CalledProcessError as error:
-            if "metadata.resourceVersion" in str(error.stderr):
-                kubectl_cmd = "kubectl replace -f \"" + yaml_path + "\""
-                response = subprocess.check_output(kubectl_cmd, shell=True, stderr=subprocess.PIPE,
-                                                   universal_newlines=True)
-            else:
-                self._logger.exception(
-                    f"Exception applying '{yaml_path}' -  {str(error.stderr)}")
-        return response
-
-    def kubectl_delete(self, yaml_path):
-        self.__check_kubectl()
-        kubectl_cmd = "kubectl delete -f \"" + yaml_path + "\""
-        response = None
-        try:
-            response = subprocess.check_output(kubectl_cmd, shell=True, stderr=subprocess.PIPE, universal_newlines=True)
-        except subprocess.CalledProcessError as error:
-            self._logger.exception(
-                f"Exception deleting '{yaml_path}' -  {str(error.stderr)}")
-        return response
-
     # Looks for yaml files in the folder path and applies it with kubectl, will not look int subfolders.
-    def auto_apply_all_in_folder(self, folder_path):
+    def auto_apply_all_secrets_in_folder(self, folder_path):
         yaml_ext = [".yaml", ".yml"]
         files = self.__files_in_dir(folder_path, yaml_ext)
         if len(files) == 0:
             self._logger.info(f"No files with extension:{str(yaml_ext)} found in {folder_path}!")
 
         for f in files:
-            response = self.kubectl_apply(os.path.join(folder_path, f))
-            print(Panel.fit(Text(response.strip(), style="bold cyan")))
+            # Get name from secret yaml
+            self._logger.info(f"Applying secret from file: {f}")
+            applied = self._kube.apply_cluster_resource_files("secret", os.path.join(folder_path, f), namespace=self._namespace)
+            if applied:
+                print(Panel.fit(Text(f"Secret Applied: {f}", style="bold cyan")))
+            else:
+                print(Panel.fit(Text(f"Failed to apply secret: {f}", style="bold red")))
 
     def auto_apply_secrets_ssl(self):
-        self.auto_apply_all_in_folder(folder_path=os.path.join(os.getcwd(), "generatedFiles", "secrets"))
+        generated_folder = os.path.join(os.getcwd(), "generatedFiles", self._namespace)
+        self.auto_apply_all_secrets_in_folder(folder_path=os.path.join(generated_folder, "secrets"))
         # only if ssl secrets folder is present will they be applied
         # Build path where secrets are generated
-        secret_directories = [os.path.join(os.getcwd(), "generatedFiles", "ssl"),
-                              os.path.join(os.getcwd(), "generatedFiles", "ssl", "trusted-certs")]
+        secret_directories = [os.path.join(generated_folder,  "ssl"),
+                              os.path.join(generated_folder,  "ssl", "trusted-certs")]
 
         for folder_path in secret_directories:
             if os.path.exists(folder_path):
-                self.auto_apply_all_in_folder(folder_path=folder_path)
+                self.auto_apply_all_secrets_in_folder(folder_path=folder_path)
 
     def auto_apply_cr(self):
-        # Applying FNCM CR
-        response = self.kubectl_apply(os.path.join(os.getcwd(), "generatedFiles", "ibm_fncm_cr_production.yaml"))
-        print(Panel.fit(Text(response.strip(), style="bold cyan")))
-        return True
+        generated_folder = os.path.join(os.getcwd(), "generatedFiles", self._namespace)
+        applied = self._kube.apply_cluster_resource_files("custom resource", os.path.join(generated_folder, "ibm_fncm_cr_production.yaml"), namespace=self._namespace)
+        if applied:
+            print(Panel.fit(Text(f"Custom Resource Applied: ibm_fncm_cr_production.yaml", style="bold cyan")))
+            return True
+
+        print(Panel.fit(Text(f"Failed to apply custom resource: ibm_fncm_cr_production.yaml", style="bold red")))
+        return False

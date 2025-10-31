@@ -85,19 +85,19 @@ spec:
       sc_restricted_internet_access: true
       ## Optional.  Kubernetes API server namespace(s) (comma separated) to be used for egress network policy when `sc_restricted_internet_access: true` and `sc_deployment_platform: "other"`.
       ## "{}" can also be used as a value.  It is equivalent to all namespaces (eg: namespaceSelector:{})
-      ## Default are "openshift-kube-apiserver", "openshift-apiserver" for OCP and ROKS.
+      ## Default are "openshift-kube-apiserver", "openshift-apiserver" for OCP.
       ## Possible values are "kube-system", "default", "kube-public" for other.
       sc_api_namespace:
       ## Optional.  Kubernetes API server port(s) (comma separated) to be used for egress network policy when `sc_restricted_internet_access: true` and `sc_deployment_platform: "other"`. 
-      ## Default are 443,6443 for OCP, ROKS, other
+      ## Default are 443,6443 for OCP and other
       sc_api_port:
       ## Optional.  Kubernetes DNS service namespace(s) (comma separated) to be used for egress network policy when `sc_restricted_internet_access: true` and `sc_deployment_platform: "other"`.
       ## "{}" can also be used as a value.  It is equivalent to all namespaces (eg: namespaceSelector:{})
-      ## Default is "openshift-dns" for OCP and ROKS.
+      ## Default is "openshift-dns" for OCP.
       ## Possible values are "kube-system", "default", "kube-public" for other.
       sc_dns_namespace:
       ## Optional.  Kubernetes DNS service port(s) (comma separated) to be used for egress network policy when `sc_restricted_internet_access: true` and `sc_deployment_platform: "other"`. 
-      ## Default are 53,5353 for OCP, ROKS and other
+      ## Default are 53,5353 for OCP and other
       sc_dns_port:
 
     ## Choose the licensing model for the Product you are installing.
@@ -126,23 +126,23 @@ spec:
     sc_is_multiple_az: false
     
     ## Specify the RunAsUser for the security context of the pod.  This is usually a numeric value that corresponds to a user ID.
-    ## For non-OCP (e.g., CNCF platforms such as EKS, AKS, GKE, etc.), this parameter is optional. It is not supported on OCP and ROKS.
+    ## For non-OCP (e.g., CNCF platforms such as EKS, AKS, GKE, etc.), this parameter is optional. It is not supported on OCP.
     sc_run_as_user:
 
     ## Specify the fsGroup for the security context of the pod.  This is usually a numeric value that corresponds to a group ID.
-    ## For non-OCP (e.g., CNCF platforms such as EKS, AKS, GKE, etc.), this parameter is optional. It is not supported on OCP and ROKS.
+    ## For non-OCP (e.g., CNCF platforms such as EKS, AKS, GKE, etc.), this parameter is optional. It is not supported on OCP.
     sc_fs_group:
 
-    ## The platform to be deployed specified by the user.  Possible values are: OCP, ROKS, and other.
+    ## The platform to be deployed specified by the user.  Possible values are: OCP or other.
     sc_deployment_platform: "<Required>"
 
-    ## For ROKS and CNCF, this is used to enable the creation of ingresses. The default value is "false".
+    ## For CNCF, this is used to enable the creation of ingresses. The default value is "false".
     sc_ingress_enable: false
     
     ## Service type to support CNCF Ingress creation, possible values are ClusterIP, NodePort
     #sc_service_type: ClusterIP
     
-    ## For ROKS and CNCF Ingress, provide TLS secret name for Ingress controller.
+    ## For CNCF Ingress, provide TLS secret name for Ingress controller.
     sc_ingress_tls_secret_name: "<Required>"
 
     ## OCP: Hostname suffix added to the default ingress hostname, this is optional and the default hostname suffix will be {meta.namespace}.
@@ -164,7 +164,7 @@ spec:
     images:
       keytool_init_container:
         repository: cp.icr.io/cp/cp4a/common/dba-keytool-initcontainer
-        tag: "24.0.0-IF006"
+        tag: "24.0.0-IF007"
     
     ## This is necessary if you want to use your own JDBC drivers and/or need to provide ICCSAP drivers.  If you are providing multiple JDBC drivers and ICCSAP drivers, 
     ## all the files must be compressed in a single file.
@@ -765,7 +765,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cpe
-        tag: ga-560-p8cpe-if004
+        tag: ga-560-p8cpe-if005
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -932,7 +932,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/css
-        tag: ga-560-p8css-if004
+        tag: ga-560-p8css-if005
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1030,7 +1030,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cmis
-        tag: ga-307-cmis-la1001
+        tag: ga-307-cmis-la1004
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1191,7 +1191,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/graphql
-        tag: ga-560-p8cgql-if004
+        tag: ga-560-p8cgql-if005
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1312,7 +1312,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/extshare
-        tag: ga-310-es-if005
+        tag: ga-310-es-if007
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1420,7 +1420,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/taskmgr
-        tag: ga-310-tm-if005
+        tag: ga-310-tm-if007
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1567,7 +1567,7 @@ spec:
     image:
       ## The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/ban/navigator
-      tag: ga-310-icn-if005
+      tag: ga-310-icn-if007
 
       ## This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
@@ -1771,7 +1771,7 @@ spec:
     image:
       # The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/ier/ier
-      tag: ga-5218-if006-ier-2400-if006
+      tag: ga-5218-if009-ier-2400-if007
 
       # This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
@@ -1894,7 +1894,7 @@ spec:
     image:
       ## The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/iccsap/iccsap
-      tag: ga-4004-iccsap-if018f
+      tag: ga-4004-iccsap-if019g
 
       ## This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent

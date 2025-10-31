@@ -33,7 +33,7 @@ from helper_scripts.utilities.interface import clear, display_issues, display_pr
 from helper_scripts.utilities.utilities import prereq_checks, read_version_toml, create_deployment_info, \
     create_version_info, create_current_operator_info
 
-__version__ = "5.1.2"
+__version__ = "6.0.0"
 
 app = typer.Typer()
 
@@ -446,7 +446,7 @@ def main(ctx: typer.Context,
     for file in files:
         required_files.append(os.path.join(descriptor_path, file))
 
-    checks = ["kubectl", "connection","podman", "docker"]
+    checks = ["connection","podman"]
     missing_tools, results, files = prereq_checks(logger=state["logger"], prereqs=checks, files=required_files)
 
     # Print table of prerequisites that are missing
@@ -474,7 +474,6 @@ def main(ctx: typer.Context,
                                                              "silent_install_upgradedeployment.toml"),
                                                 script_type="upgrade", dev=state["dev"])
         state["setup"]._podman_available = results["podman"]
-        state["setup"]._docker_available = results["docker"]
         state["setup"].silent_parse_upgrade_variables()
         state["upgrade"] = u.Upgrade(console, state["setup"], state["logger"], silent=True,
                                      required_files=required_files)
@@ -482,7 +481,6 @@ def main(ctx: typer.Context,
     else:
         state["setup"] = g.GatherOptions(state["logger"], console, script_type="upgrade", dev=state["dev"])
         state["setup"]._podman_available = results["podman"]
-        state["setup"]._docker_available = results["docker"]
         state["setup"].collect_license_model()
         state["setup"].collect_platform()
         state["setup"].collect_namespace()

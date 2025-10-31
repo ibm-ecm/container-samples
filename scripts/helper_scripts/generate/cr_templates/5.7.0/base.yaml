@@ -87,10 +87,10 @@ spec:
     sc_deployment_profile_size: "small"
 
     ## Specify the RunAsUser for the security context of the pod.  This is usually a numeric value that corresponds to a user ID.
-    ## For non-OCP (e.g., CNCF platforms such as AWS, GKE, etc), this parameter is optional. It is not supported on OCP and ROKS.
+    ## For non-OCP (e.g., CNCF platforms such as AWS, GKE, etc), this parameter is optional. It is not supported on OCP.
     sc_run_as_user:
 
-    ## The platform to be deployed specified by the user.  Possible values are: OCP, ROKS and other.
+    ## The platform to be deployed specified by the user.  Possible values are: OCP and other.
     ## based on input from the user.
     sc_deployment_platform: "<Required>"
 
@@ -139,7 +139,7 @@ spec:
     #  css: false
     #  ban: false
 
-    ## For ROKS and CNCF, this is used to enable the creation of ingresses. The default value is "false".
+    ## For CNCF, this is used to enable the creation of ingresses. The default value is "false".
     sc_ingress_enable: false
   
     ## Provide the storage class names for the storage. It can be one storage class for all storage classes or can provide different one for each.

@@ -9,7 +9,7 @@
 #
 ###############################################################################
 '''
-Script to clean FNCM Standalone Operator and deployments
+Script to clean FileNet Content Manager Operator and deployments
 - The default behaviour is to just clean up the deployment
 - An additional mode called operator can be run to uninstall the operator as well
 - Silent and Verbose mode supported
@@ -38,7 +38,7 @@ from helper_scripts.utilities.interface import display_prereq_passed, display_is
     display_deployment_resources
 from helper_scripts.utilities.utilities import prereq_checks, create_version_info, read_version_toml
 
-__version__ = "5.1.2"
+__version__ = "6.0.0"
 
 app = typer.Typer()
 
@@ -116,7 +116,7 @@ def operator():
     operator_dict = state["clean"].collect_operator_details()
     if not operator_dict:
         print()
-        print(Panel.fit("FNCM Standalone Operator not found in {namespace}".format(
+        print(Panel.fit("FileNet Content Manager Operator not found in {namespace}".format(
             namespace=state["clean"]._deployment_prerequisites.namespace), border_style="red"))
         exit()
 
@@ -131,7 +131,7 @@ def operator():
     # ask to delete CR from deployment only for non silent mode
     if not state["silent"]:
         clean_deployment = Confirm.ask(
-            "Do you want to proceed and cleanup the above FNCM Standalone Operator?")
+            "Do you want to proceed and cleanup the above FileNet Content Manager Operator?")
     else:
         clean_deployment = True
 
@@ -146,7 +146,7 @@ def operator():
         else:
             operator_task_num = 5
 
-        print(Panel.fit("Starting FNCM Standalone Operator Cleanup", style="cyan"))
+        print(Panel.fit("Starting FileNet Content Manager Operator Cleanup", style="cyan"))
         with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
@@ -158,7 +158,7 @@ def operator():
                 transient=False,
         ) as progress:
 
-            task1 = progress.add_task("[green]Uninstalling FNCM Standalone Operator", total=operator_task_num)
+            task1 = progress.add_task("[green]Uninstalling FileNet Content Manager Operator", total=operator_task_num)
 
             while not progress.finished:
                 state["clean"].delete_operator(task1, progress)
@@ -174,7 +174,7 @@ def deployment():
     if not deployment_dict:
         print()
         print(Panel.fit(
-            "FNCM Standalone Deployment not found in {namespace}".format(
+            "FileNet Content Manager Deployment not found in {namespace}".format(
                 namespace=state["clean"]._deployment_prerequisites.namespace),
             border_style="red"))
         exit()
@@ -191,7 +191,7 @@ def deployment():
     # ask to delete CR from deployment only for non silent mode
     if not state["silent"]:
         clean_deployment = Confirm.ask(
-            "Do you want to proceed and cleanup the above FNCM Standalone Deployment?")
+            "Do you want to proceed and cleanup the above FileNet Content Manager Deployment?")
     else:
         clean_deployment = True
 
@@ -201,7 +201,7 @@ def deployment():
     if clean_deployment:
         clear(console)
 
-        print(Panel.fit("Starting FNCM Standalone Deployment Cleanup", style="cyan"))
+        print(Panel.fit("Starting FileNet Content Manager Deployment Cleanup", style="cyan"))
         with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
@@ -213,7 +213,7 @@ def deployment():
                 transient=False,
         ) as progress:
 
-            task1 = progress.add_task("[yellow]Cleaning FNCM Standalone Deployment", total=8)
+            task1 = progress.add_task("[yellow]Cleaning FileNet Content Manager Deployment", total=8)
 
             while not progress.finished:
                 state["clean"].delete_CR(task1, progress)
@@ -249,7 +249,7 @@ def main(ctx: typer.Context,
 
     if ctx.invoked_subcommand is None:
         display_mode_version("Deployment and Operator Cleanup",
-                             "Clean up of the FNCM Deployment and FNCM Standalone Operator")
+                             "Clean up of the FNCM Deployment and FileNet Content Manager Operator")
 
     elif ctx.invoked_subcommand == "operator":
         display_mode_version("Operator Cleanup", "Clean up of the FNCM Operator Only")
@@ -257,7 +257,7 @@ def main(ctx: typer.Context,
     elif ctx.invoked_subcommand == "deployment":
         display_mode_version("Deployment Cleanup", "Clean up of the FNCM Deployment Only")
 
-    checks = ["kubectl", "connection","podman", "docker"]
+    checks = ["connection","podman"]
     missing_tools, results, files = prereq_checks(logger=state["logger"], prereqs=checks)
 
     # Print table of prerequisites that are missing
@@ -283,14 +283,12 @@ def main(ctx: typer.Context,
         silent_path = os.path.join("silent_config", "silent_install_cleandeployment.toml")
         state["setup"] = sg.SilentGatherOptions(state["logger"], silent_path, script_type="cleanup")
         state["setup"].podman_available = results["podman"]
-        state["setup"].docker_available = results["docker"]
         state["setup"].silent_platform()
         state["setup"].silent_namespace()
 
     else:
         state["setup"] = g.GatherOptions(state["logger"], console, script_type="cleanup")
         state["setup"].podman_available = results["podman"]
-        state["setup"].docker_available = results["docker"]
         state["setup"].collect_platform()
         state["setup"].collect_namespace()
 
@@ -303,7 +301,7 @@ def main(ctx: typer.Context,
 
         if not operator_dict and not deployment_dict:
             print()
-            print(Panel.fit("FNCM Standalone Operator or FNCM Standalone Deployment not found in {namespace}".format(
+            print(Panel.fit("FileNet Content Manager Operator or Deployment not found in {namespace}".format(
                 namespace=state["clean"]._deployment_prerequisites.namespace), border_style="red"))
             exit(1)
         cleanup_summary = display_deployment_resources(logger=state['logger'],
@@ -319,11 +317,11 @@ def main(ctx: typer.Context,
         # ask to delete CR from deployment only for non silent mode
         if not state["silent"]:
             if operator_dict and deployment_dict:
-                msg = "Do you want to proceed and cleanup the above FNCM Standalone Deployment and Operator?"
+                msg = "Do you want to proceed and cleanup the above FileNet Content Manager Deployment and Operator?"
             elif operator_dict:
-                msg = "Do you want to proceed and cleanup the above FNCM Standalone Operator?"
+                msg = "Do you want to proceed and cleanup the above FileNet Content Manager Operator?"
             else:
-                msg = "Do you want to proceed and cleanup the above FNCM Standalone Deployment?"
+                msg = "Do you want to proceed and cleanup the above FileNet Content Manager Deployment?"
             clean_deployment = Confirm.ask(msg)
         else:
             clean_deployment = True
@@ -339,7 +337,7 @@ def main(ctx: typer.Context,
             else:
                 operator_task_num = 5
 
-            print(Panel.fit("Starting FNCM Standalone Deployment and Operator Cleanup", style="cyan"))
+            print(Panel.fit("Starting FileNet Content Manager Deployment and Operator Cleanup", style="cyan"))
             with Progress(
                     SpinnerColumn(),
                     TextColumn("[progress.description]{task.description}"),
@@ -352,9 +350,9 @@ def main(ctx: typer.Context,
             ) as progress:
 
                 if operator_dict:
-                    task1 = progress.add_task("[green]Uninstalling FNCM Standalone Operator", total=operator_task_num)
+                    task1 = progress.add_task("[green]Uninstalling FileNet Content Manager Operator", total=operator_task_num)
                 if deployment_dict:
-                    task2 = progress.add_task("[yellow]Cleaning FNCM Standalone Deployment", total=8)
+                    task2 = progress.add_task("[yellow]Cleaning FileNet Content Manager Deployment", total=8)
 
                 while not progress.finished:
                     if operator_dict:

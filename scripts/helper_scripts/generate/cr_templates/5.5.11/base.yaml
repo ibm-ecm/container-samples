@@ -82,10 +82,10 @@ spec:
     sc_deployment_profile_size: "small"
 
     ## Specify the RunAsUser for the security context of the pod.  This is usually a numeric value that corresponds to a user ID.
-    ## For non-OCP (e.g., CNCF platforms such as AWS, GKE, etc), this parameter is optional. It is not supported on OCP and ROKS.
+    ## For non-OCP (e.g., CNCF platforms such as AWS, GKE, etc), this parameter is optional. It is not supported on OCP.
     sc_run_as_user:
 
-    ## The platform to be deployed specified by the user.  Possible values are: OCP, ROKS and other.
+    ## The platform to be deployed specified by the user.  Possible values are: OCP or other.
     ## based on input from the user.
     sc_deployment_platform: "<Required>"
 
@@ -139,13 +139,13 @@ spec:
     #  css: false
     #  ban: false
 
-    ## For ROKS and CNCF, this is used to enable the creation of ingresses. The default value is "false".
+    ## For CNCF, this is used to enable the creation of ingresses. The default value is "false".
     sc_ingress_enable: false
 
     ## Service type to support CNCF Ingress creation, possible values are ClusterIP, NodePort
     sc_service_type: ClusterIP
 
-    ## For ROKS and CNCF Ingress, provide TLS secret name for Ingress controller.
+    ## For CNCF Ingress, provide TLS secret name for Ingress controller.
     sc_ingress_tls_secret_name: "<Required>"
 
     ## This is the deployment hostname suffix, this is optional and the default hostname suffix will be used as {meta.namespace}.router-canonicalhostname

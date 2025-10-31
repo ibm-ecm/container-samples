@@ -10,6 +10,23 @@
 ###############################################################################
 
 # ####################################################
+# ##                  Namespace                     ##
+# ####################################################
+
+# The value can't be empty or any of the following:
+# - services
+# - default
+# - calico-system
+# - ibm-cert-store
+# - ibm-observe
+# - ibm-system
+# - ibm-odf-validation-webhook
+# - openshift-*
+# - kube-*
+
+NAMESPACE = "<Namespace>"
+
+# ####################################################
 # ##     Filenet Content Manager Version            ##
 # ####################################################
 # Filenet Content Manager version to be deployed - Valid values: [1; 2; 3; 4]
@@ -41,10 +58,9 @@ FNCM_VERSION = 5
 # "CP4BA.User"
 LICENSE = "FNCM.PVUNonProd"
 
-# Platform of choice - Valid values: [1; 2; 3]
+# Platform of choice - Valid values: [1; 2]
 # 1. OCP
-# 2. ROKS
-# 3. CNCF
+# 2. CNCF
 PLATFORM = 1
 
 # Do you want to configure ingress - Valid values: [true; false]

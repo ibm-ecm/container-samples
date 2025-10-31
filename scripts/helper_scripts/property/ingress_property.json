@@ -15,7 +15,7 @@
     "value": [],
     "comment": [
       "Annotations for the generated ingress",
-      "Example: kubernetes.io/ingress.class: nginx"
+      "Example: [\"\"\"kubernetes.io/ingress.class: nginx\"\"\"]"
     ]
   },
   "INGRESS_TLS_ENABLED": {
