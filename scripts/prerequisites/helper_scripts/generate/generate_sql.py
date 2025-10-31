@@ -30,10 +30,9 @@ class GenerateSql:
 
     _template_path = os.path.join(os.getcwd(), "helper_scripts", "generate", "sql")
 
-    # Where to store generated sql files
-    _dest_path = os.path.join(os.getcwd(), "generatedFiles", "database")
 
-    def __init__(self, propertydict, logger):
+
+    def __init__(self, propertydict, logger, namespace=""):
         try:
             # Gets content of proerty file and sorts them using DbProperty class
             # self._dbprop = DbProperty(propertyfile,logger)
@@ -41,6 +40,9 @@ class GenerateSql:
             self._logger = logger
 
             self._dbprop = propertydict
+
+            # Where to store generated sql files
+            self._dest_path = os.path.join(os.getcwd(), "generatedFiles",namespace, "database")
 
             # Creates destination folder
             self.make_folder(os.path.join(os.getcwd(), "generatedFiles"))
@@ -174,10 +176,6 @@ class GenerateSql:
         except Exception as e:
             self._logger.exception(
                 f"Exception from generate_sql.py script in {inspect.currentframe().f_code.co_name} function -  {str(e)}")
-
-    def print_dest_message(self, item: string, destination: string):
-        print(
-            "\n============================\nCreating " + item + " script at: " + destination + "\n============================")
 
     # With a criteria (skip hidden files)
     def is_not_hidden(self, path):

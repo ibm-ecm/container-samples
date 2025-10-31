@@ -1,6 +1,10 @@
 spec:
   shared_configuration:
     sc_egress_configuration:
+      ## Required. Enable or disable egress access to external systems.
+      ## If "sc_restricted_internet_access" is defined and has no value set, then default will be "true".
+      ## If "sc_restricted_internet_access" is not defined (e.g., in the case of upgrade, the existing CR will not have sc_restricted_internet_access), then "sc_restricted_internet_access" will be "false"
+      sc_restricted_internet_access: true
       ## Optional.  Kubernetes API server namespace(s) (comma separated) to be used for egress network policy when  `sc_deployment_platform: "other"`.
       ## "{}" can also be used as a value.  It is equivalent to all namespaces (eg: namespaceSelector:{})
       ## Default are "openshift-kube-apiserver", "openshift-apiserver" for OCP.
@@ -15,5 +19,5 @@ spec:
       ## Possible values are "kube-system", "default", "kube-public" for other.
       sc_dns_namespace:
       ## Optional.  Kubernetes DNS service port(s) (comma separated) to be used for egress network policy when `sc_restricted_internet_access: true` and `sc_deployment_platform: "other"`. 
-      ## Default are 53,5353 for OCP and other
+      ## Default are 53,5353 for OCP or other
       sc_dns_port:

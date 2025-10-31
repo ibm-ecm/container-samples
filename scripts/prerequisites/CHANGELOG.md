@@ -1,3 +1,35 @@
+## 6.0.0 (2025-10-29)
+
+### Fix
+
+- docker python library and support has been removed, only podman is supported for image loading and credential checks
+- prerequisite scripts request a namespace parameter to ensure all k8s interactions are done in the correct namespace context
+- running mustgather and prerequisite scripts can now be run from inside the operator pod, using service account permissions
+- namespace create will not allow uppercase characters to avoid k8s namespace creation errors
+- `ROKS` platform option have been removed, as OCP will apply to both ROKS and OCP clusters
+- a single set of jdbc drivers are now used for all FNCM and Java versions, reducing the download size and complexity
+- oracle jdbc driver version updated to 19.28.0
+
+### Feat
+
+- all property and generated files are namespaced scoped to avoid conflicts and improve multi-namespace management
+- kubectl binary requirement has been removed, all kubernetes interactions are done via python kubernetes client
+- specific java version is no longer required, script will continue with any installed java version 8 or higher
+- automatic version detection for deployment, upgrade, and prerequisite scripts
+- simplified OIDC CR generation for IDP configurations
+- `fncm.ibm.com/backup-type: mandatory` label added to all secrets that would need to be backed up for migrations or restores
+- loadimages scripts now supports digests for image loading
+- mustgather will now collect HPA (Horizontal Pod Autoscaler) information if configured
+- mustgather will now collect environmental variables from pods 
+- prerequisite validation will check SAN of supplied certificates against hostnames
+- non-ssl verification fallback for database and ldap connections if ssl connection fails or using self-signed certificates
+
+## 5.1.3 (2025-09-19)
+
+### Fix
+
+- refactored program validation check to use shutil.which
+
 ## 5.1.2 (2025-08-11)
 
 ### Fix
