@@ -12,18 +12,17 @@
 import os
 from enum import Enum
 
-from kubernetes import client, config
 from rich import print
 from rich.panel import Panel
 from rich.prompt import Confirm, IntPrompt, Prompt
-from rich.text import Text
 from rich.syntax import Syntax
+from rich.text import Text
 
 from ..utilities.interface import clear
 from ..utilities.kubernetes_utilites import KubernetesUtilities
 from ..utilities.prerequisites_utilites import check_pem_cert_format, \
     connect_to_server
-from ..utilities.utilities import login_to_registry_docker, login_to_registry_podman
+from ..utilities.utilities import login_to_registry_podman
 
 
 # create a class to gather all deployment options from the user for the cleanup deployment script
@@ -41,8 +40,7 @@ class GatherOptions:
     # Create an enum for all platform types
     class Platform(Enum):
         OCP = 1
-        ROKS = 2
-        other = 3
+        other = 2
 
     class Version:
         FNCMVersion = Enum(
@@ -59,8 +57,6 @@ class GatherOptions:
         self._ocp_logged_in = False
         self._namespace = None
         self._podman_available = False
-        self._docker_available = False
-        self._kubectl_available = False
         self._skopeo_available = False
         self._sensitive_collect = False
         self._logger = logger
@@ -91,10 +87,8 @@ class GatherOptions:
             self._runtime_mode = "prod"
             self._registry = "cp.icr.io"
         self._silent_mode = False
-        config.load_kube_config()
         # Initialize Kubernetes client
-        self._core_api_instance = client.CoreV1Api()
-        self._k = KubernetesUtilities()
+        self._k = KubernetesUtilities(self._logger)
 
     @property
     def fncm_version(self):
@@ -123,14 +117,6 @@ class GatherOptions:
     @property
     def namespace(self):
         return self._namespace
-
-    @property
-    def docker_available(self):
-        return self._docker_available
-
-    @docker_available.setter
-    def docker_available(self, value):
-        self._docker_available = value
 
     @property
     def podman_available(self):
@@ -216,18 +202,17 @@ class GatherOptions:
                 print()
                 print("Select a Platform Type")
                 print("1. OCP")
-                print("2. ROKS")
-                print("3. CNCF")
+                print("2. CNCF")
                 print()
-                result = IntPrompt.ask('Enter a valid option [[b]1[/b] and [b]3[/b]]')
+                result = IntPrompt.ask('Enter a valid option [[b]1[/b] and [b]2[/b]]')
 
-                if 1 <= result <= 3:
+                if 1 <= result <= 2:
                     self._platform = self.Platform(result).name
                     self._logger.info(f"Platform selected: {self._platform}")
                     break
 
-                print("\n[prompt.invalid]Number must be between [[b]1[/b] and [b]3[/b]]")
-                self._logger.debug(f"Invalid prompt. Number must be between [1 and 3]")
+                print("\n[prompt.invalid]Number must be between [[b]1[/b] and [b]2[/b]]")
+                self._logger.debug(f"Invalid prompt. Number must be between [1 and 2]")
         except Exception as e:
             self._logger.exception(
                 f"Exception from utility script in collect_platform function -  {str(e)}")
@@ -249,7 +234,7 @@ class GatherOptions:
                 f"Exception from gather script in set_optional_components function -  {str(e)}")
 
         # Create a function to gather optional components from the user
-    def collect_mustgather_components(self, component_list, version):
+    def collect_mustgather_components(self, component_list, version="5.7.0"):
         try:
             # Convert component list to enum values
             component_list = [self.OptionalComponents[component].value for component in component_list]
@@ -393,20 +378,12 @@ class GatherOptions:
                 print(Panel.fit("Namespace"))
                 print()
                 try:
-                    current_context = config.list_kube_config_contexts()[1]
-
-                    # Extract namespace from the current context
-                    if current_context:
-                        if "context" in current_context.keys():
-                            if "namespace" in current_context["context"].keys():
-                                self._current_namespace = current_context["context"]["namespace"]
-                    else:
-                        self._current_namespace = None
+                    self._current_namespace = self._k.current_namespace
                 except Exception as e:
                     self._current_namespace = None
 
 
-            if self._platform in ["OCP", "ROKS"]:
+            if self._platform in ["OCP"]:
                 invalid_namespaces = ["services", "default", "calico-system", "ibm-cert-store", "ibm-observe",
                                       "ibm-system", "ibm-odf-validation-webhook"]
                 invalid_namespace_to_start_with = ["openshift-", "kube-"]
@@ -421,8 +398,8 @@ class GatherOptions:
                         namespace_exists = self._k.check_namespace_exists(namespace=answer)
                         if not namespace_exists:
                             print()
-                            print(f"[prompt.invalid]Namespace '{answer}' does not exist.\n"
-                                  f"Enter a valid namespace for script to proceed.")
+                            print(Panel.fit(f"Namespace '{answer}' does not exist.\n"
+                                            f"Enter a valid namespace for script to proceed.", style="bold red"))
                             print()
                             continue
                 else:
@@ -431,10 +408,10 @@ class GatherOptions:
                         self._logger.info(f"Checking if namespace: {namespace} exists.")
                         namespace_exists = self._k.check_namespace_exists(namespace=namespace)
                         if not namespace_exists:
-                            self._logger.debug(f"Namespace '{namespace}' does not exist.")
+                            self._logger.info(f"Namespace '{namespace}' does not exist.")
                             print()
-                            print(f"[prompt.invalid]Namespace '{namespace}' does not exist.\n"
-                                  f"Enter a valid namespace for script to proceed.")
+                            print(Panel.fit(f"Namespace '{namespace}' does not exist.\n"
+                                            f"Enter a valid namespace for script to proceed.", style="bold red"))
                             print()
                             exit(1)
                     answer = namespace
@@ -494,6 +471,17 @@ class GatherOptions:
                     else:
                         exit(0)
 
+                # Check if the answer has any uppercase letters
+                if any(char.isupper() for char in answer):
+                    print()
+                    print("[prompt.invalid]Namespace cannot contain uppercase letters. Please try again.")
+                    print()
+                    self._logger.debug(f"Namespace cannot contain uppercase letters. Please try again.")
+                    if namespace is None:
+                        continue
+                    else:
+                        exit(0)
+
                 # Check if namespace is more than 1 word
                 if " " in answer:
                     print()
@@ -525,11 +513,19 @@ class GatherOptions:
                 f"Exception from gathering deployment details in collect namespace function -  {str(e)}")
 
     # Create a function to gather db_type from the user
-    def collect_license_model(self, license_accept=None):
+    def collect_license_model(self, version_data, license_accept=None):
         try:
             self._logger.info("Gathering license model details")
-            print(Panel.fit("License"))
+            print(Panel.fit("License and Version"))
             print()
+
+            version = version_data.get("VERSION", '5.7.0')
+            self._fncm_version = version.split('-')[0]
+            self._logger.info(f"IBM FileNet Content Manager Version detected: {self._fncm_version}")
+
+            print(Panel.fit(Text(f"Detected IBM FileNet Content Manager Version: {version}"), style="bold cyan"))
+            print()
+
             if self._fncm_version == "5.5.8":
                 fncm_license_url = Text("https://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-LSWS-C6KPMK",
                                         style="link https://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-LSWS-C6KPMK")
@@ -571,6 +567,7 @@ class GatherOptions:
                     f"IBM Content Foundation license information here: {icf_license_url}\n"
                     f"IBM Content Platform Engine Software Notices here: {cpe_notices_url}\n"
                     f"IBM Cloud Pak for Business Automation license information here: {cp4ba_license_url}"))
+
             elif self._fncm_version == "5.6.0":
                 fncm_license_url = Text("https://ibm.biz/CPE_FNCM_License_5_6_0",
                                         style="link https://ibm.biz/CPE_FNCM_License_5_6_0")
@@ -584,6 +581,15 @@ class GatherOptions:
                                        style="link https://ibm.biz/iccsap_license_4002")
                 cp4ba_license_url = Text("https://ibm.biz/cp4ba_license_2400",
                                        style="link https://ibm.biz/cp4ba_license_2400")
+
+                print(Panel.fit(
+                    f"IMPORTANT: Review the license information for the product bundle you are deploying.\n\n"
+                    f"IBM FileNet Content Manager license information here: {fncm_license_url}\n"
+                    f"IBM Content Foundation license information here: {icf_license_url}\n"
+                    f"IBM Content Platform Engine Software Notices here: {cpe_notices_url}\n"
+                    f"IBM Enterprise Records information here: {ier_license_url}\n"
+                    f"IBM Content Collector for SAP license information here: {iccsap_license_url}\n"
+                    f"IBM Cloud Pak for Business Automation license information here: {cp4ba_license_url}"))
             else:
                 fncm_license_url = Text("https://ibm.biz/CPE_FNCM_License_5_7_0",
                                         style="link https://ibm.biz/CPE_FNCM_License_5_7_0")
@@ -679,13 +685,7 @@ class GatherOptions:
                         continue
                     else:
                         self._logger.info("Collected IBM Entitlement Registry key.")
-                        if self._docker_available:
-                            self._entitlement_key_valid = login_to_registry_docker(registry=self._registry,
-                                                                                   username=username,
-                                                                                   password=self._entitlement_key,
-                                                                                   logger=self._logger)
-                        else:
-                            self._entitlement_key_valid = login_to_registry_podman(registry=self._registry,
+                        self._entitlement_key_valid = login_to_registry_podman(registry=self._registry,
                                                                                    username=username,
                                                                                    password=self._entitlement_key,
                                                                                    logger=self._logger)
@@ -737,54 +737,6 @@ class GatherOptions:
                     else:
                         break
 
-                if self._docker_available:
-                    self._private_registry_valid = login_to_registry_docker(registry=self._private_registry_server,
-                                                                            username=self._private_registry_username,
-                                                                            password=self._private_registry_password,
-                                                                            logger=self._logger,
-                                                                            ssl_enabled=self._private_registry_ssl_enabled,
-                                                                            ssl_cert_path=self._private_registry_ssl_cert)
-                else:
-                    # podman needs the cert path directory for authentication
-                    if self._private_registry_ssl_enabled:
-                        ssl_folder = os.path.dirname(self._private_registry_ssl_cert)
-                    else:
-                        ssl_folder = ""
-                    self._private_registry_valid = login_to_registry_podman(registry=self._private_registry_server,
-                                                                            username=self._private_registry_username,
-                                                                            password=self._private_registry_password,
-                                                                            logger=self._logger,
-                                                                            ssl_enabled=self._private_registry_ssl_enabled,
-                                                                            ssl_cert_path=ssl_folder)
-
-                if not self._private_registry_valid:
-                    print()
-                    print("[prompt.invalid]Private registry credentials could not be authenticated. Please try again")
-                    self._logger.debug(f"Private registry credentials could not be authenticated. Please try again.")
-                    if not self._silent_mode:
-                        continue
-                    else:
-                        exit()
-
-                msg = "Successfully Authenticated with Private Registry"
-                if self._private_registry_ssl_enabled:
-                    msg = f"{msg} over SSL"
-                self._logger.info(f"{msg}")
-                msg_panel = Panel.fit(msg, style="bold green")
-                print()
-                print(msg_panel)
-
-                break
-
-        else:
-            if self._docker_available:
-                self._private_registry_valid = login_to_registry_docker(registry=self._private_registry_server,
-                                                                        username=self._private_registry_username,
-                                                                        password=self._private_registry_password,
-                                                                        logger=self._logger,
-                                                                        ssl_enabled=self._private_registry_ssl_enabled,
-                                                                        ssl_cert_path=self._private_registry_ssl_cert)
-            else:
                 # podman needs the cert path directory for authentication
                 if self._private_registry_ssl_enabled:
                     ssl_folder = os.path.dirname(self._private_registry_ssl_cert)
@@ -801,9 +753,43 @@ class GatherOptions:
                     print()
                     print("[prompt.invalid]Private registry credentials could not be authenticated. Please try again")
                     self._logger.debug(f"Private registry credentials could not be authenticated. Please try again.")
-                    exit(1)
+                    if not self._silent_mode:
+                        continue
+                    else:
+                        exit()
+
+                msg = "Successfully Authenticated with Private Registry"
+                self._private_registry = True
+                if self._private_registry_ssl_enabled:
+                    msg = f"{msg} over SSL"
+                self._logger.info(f"{msg}")
+                msg_panel = Panel.fit(msg, style="bold green")
+                print()
+                print(msg_panel)
+
+                break
+
+        else:
+            # podman needs the cert path directory for authentication
+            if self._private_registry_ssl_enabled:
+                ssl_folder = os.path.dirname(self._private_registry_ssl_cert)
+            else:
+                ssl_folder = ""
+            self._private_registry_valid = login_to_registry_podman(registry=self._private_registry_server,
+                                                                    username=self._private_registry_username,
+                                                                    password=self._private_registry_password,
+                                                                    logger=self._logger,
+                                                                    ssl_enabled=self._private_registry_ssl_enabled,
+                                                                    ssl_cert_path=ssl_folder)
+
+            if not self._private_registry_valid:
+                print()
+                print("[prompt.invalid]Private registry credentials could not be authenticated. Please try again")
+                self._logger.debug(f"Private registry credentials could not be authenticated. Please try again.")
+                exit(1)
 
             msg = "Successfully authenticated with Private Registry"
+            self._private_registry = True
             if self._private_registry_ssl_enabled:
                 msg = f"{msg} over SSL"
             self._logger.info(f"{msg}")
@@ -891,9 +877,9 @@ class GatherOptions:
                         # Return a connection object, RTT and a boolean indicating if the connection was successful
                         if self._private_registry_ssl_enabled:
                             conn_result, rtt, connected = connect_to_server(private_reg_hostname, int(private_reg_port),
-                                                                            True, self._private_registry_ssl_cert)
+                                                                            True, self._private_registry_ssl_cert, logger=self._logger)
                         else:
-                            conn_result, rtt, connected = connect_to_server(private_reg_hostname, int(private_reg_port))
+                            conn_result, rtt, connected = connect_to_server(private_reg_hostname, int(private_reg_port), logger=self._logger)
 
                         if not connected:
                             print()
@@ -920,10 +906,10 @@ class GatherOptions:
                 if self._private_registry_ssl_enabled:
                     conn_result, rtt, connected = connect_to_server(self._private_registry_host,
                                                                     int(self._private_registry_port), True,
-                                                                    self._private_registry_ssl_cert)
+                                                                    self._private_registry_ssl_cert, logger=self._logger)
                 else:
                     conn_result, rtt, connected = connect_to_server(self._private_registry_host,
-                                                                    int(self._private_registry_port))
+                                                                    int(self._private_registry_port), logger=self._logger)
 
                 if not connected:
                     print()
@@ -1034,8 +1020,6 @@ class GatherOptions:
         self._logger.info("namespace-", self._namespace)
         self._logger.info("platform-", self._platform)
         self._logger.info("podman present-", self._podman_available)
-        self._logger.info("docker present -", self._docker_available)
-        self._logger.info("kubectl present-", self._kubectl_available)
         self._logger.info("oc logged in", self._ocp_logged_in)
         return_dict = {}
         if self._script_type.lower() == "cleanup":
@@ -1043,8 +1027,6 @@ class GatherOptions:
                 "namespace": self._namespace,
                 "platform": self._platform,
                 "podman present": self._podman_available,
-                "docker present": self._docker_available,
-                "kubectl present": self._kubectl_available,
                 "Cluster connection": self._ocp_logged_in
             }
         print(return_dict)

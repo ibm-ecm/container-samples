@@ -10,7 +10,7 @@ Welcome to the FileNet Deployment DevOps Suite!
 
 This suite provides a set of tools and scripts to streamline the deployment / management / troubleshooting of FileNet Standalone systems in containerized environments.
 
-The FNCM Standalone Suite includes the following tools:
+The FileNet Content Manager Suite includes the following tools:
 
 - Deployment Prerequisite
     Building a FileNet Standalone system in a containerized environment requires gathering information about your desired deployment, generating SQL templates and YAML files based on the gathered information, and validating the connections to external services and the usage of storage classes. The FileNet Deployment Preparation Script helps you automate these tasks and streamline the preparation phase for deploying FileNet in containerized environments.

@@ -12,13 +12,13 @@ import base64
 import os.path
 import re
 import shutil
-from time import sleep
 
 from kubernetes import client
 from kubernetes.client import ApiException
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.text import Text
+from time import sleep
 
 from ..utilities import kubernetes_utilites as k
 from ..utilities.utilities import replace_namespace_in_file, create_tmp_folder
@@ -60,10 +60,10 @@ class Deploy:
         else:
             self._catalog_namespace = "openshift-marketplace"
 
-        if self._setup.platform.lower() == "ocp" or self._setup.platform.lower() == "roks":
+        if self._setup.platform.lower() == "ocp":
             self._deployment_type = "olm"
             self._task_numbers = {
-                "ClusterSetup": 3,
+                "ClusterSetup": 4,
                 "DeploymentSetup": 3,
                 "Install": 3,
             }
@@ -135,6 +135,7 @@ class Deploy:
                 self._logger.info("Secret 'ibm-entitlement-key' created successfully")
                 progress.log(Text(f"Secret 'ibm-entitlement-key' created successfully", style="bold green"))
                 progress.log()
+                progress.advance(task, advance=1)
                 return
 
         progress.log(Text(f"Secret 'ibm-entitlement-key' already exists", style="bold yellow"))
@@ -244,7 +245,7 @@ class Deploy:
         except Exception as e:
             progress.log(Text(f"Error occurred while applying the resources: {e}", style="bold red"))
 
-    # Function to apply OLM , for OCP / ROKS only
+    # Function to apply OLM , for OCP only
     def apply_olm(self, progress, task):
         # Number of tasks = 3
         try:
@@ -278,7 +279,7 @@ class Deploy:
             retries = 0
             progress.log(f"Waiting for IBM FileNet Content Manager Operator Catalog Pod to start")
             progress.log()
-            while retries < 20:
+            while retries < 40:
                 pods = self._core_v1_api.list_namespaced_pod(self._catalog_namespace)
                 running_pods = [pod.metadata.name for pod in pods.items if
                                 "ibm-fncm-operator-catalog" in pod.metadata.name and pod.status.phase == "Running" and pod.status.container_statuses[0].ready]
@@ -290,11 +291,11 @@ class Deploy:
                     break
                 else:
                     retries = retries + 1
-                    progress.log(f"FileNet Content Management Catalog deployment in progress ({retries + 1}/20) ")
+                    progress.log(f"FileNet Content Management Catalog deployment in progress ({retries}/40) ")
                     progress.log()
                     sleep(5)
 
-            if retries == 20:
+            if retries == 40:
                 self._logger.debug("Timeout Waiting for IBM FileNet Content Manager Operator Catalog pod to start")
                 progress.log(Text("Timeout Waiting for IBM FileNet Content Manager Operator Catalog pod to start",
                                   style="bold red"))
@@ -309,15 +310,24 @@ class Deploy:
             self._logger.info("Applying/Patching Operator Group")
             progress.log("Applying/Patching Operator Group")
             progress.log()
-            replace_namespace_in_file(project_name=self._setup.namespace,
-                                      input_file=self.required_file_paths["operator_group.yaml"],
-                                      output_file=self.tmp_file_paths["operator_group.yaml"],
-                                      resource_type="operator group")
 
-            self._kube.apply_cluster_resource_files(
-                resource_file=self.tmp_file_paths["operator_group.yaml"],
-                namespace=self._setup.namespace,
-                resource_type="Operator Group")
+            # Check if existing operator group file is present, if not create a new one
+            operator_groups = self._kube.list_operator_groups(namespace=self._setup.namespace)
+            if operator_groups:
+                self._logger.info("Operator Group already exists, skipping creation")
+                progress.log(Text("Operator Group already exists, skipping creation", style="bold yellow"))
+                progress.log()
+            else:
+                replace_namespace_in_file(project_name=self._setup.namespace,
+                                          input_file=self.required_file_paths["operator_group.yaml"],
+                                          output_file=self.tmp_file_paths["operator_group.yaml"],
+                                          resource_type="operator group")
+
+                self._kube.apply_cluster_resource_files(
+                    resource_file=self.tmp_file_paths["operator_group.yaml"],
+                    namespace=self._setup.namespace,
+                    resource_type="Operator Group")
+
             progress.update(task, advance=1)
 
             self._logger.info("OLM Installation Completed")
@@ -348,7 +358,7 @@ class Deploy:
                     break
                 else:
                     retries = retries + 1
-                    progress.log(f"FileNet Content Management Operator deployment in progress ({retries + 1}/20) ")
+                    progress.log(f"FileNet Content Management Operator deployment in progress ({retries}/40) ")
                     progress.log()
                     sleep(15)
 
@@ -418,6 +428,7 @@ class Deploy:
         progress.log()
 
         shutil.copy(self.required_file_paths["operator.yaml"], self.tmp_file_paths["operator.yaml"])
+
         with open(self.tmp_file_paths["operator.yaml"], 'r') as file:
             content = file.read()
 
@@ -434,14 +445,14 @@ class Deploy:
 
         with open(self.tmp_file_paths["operator.yaml"], 'r') as file:
             content = file.read()
-        registry_in_file = "icr.io"
+        registry_in_file = "icr.io/cpopen"
 
         if self._setup.entitlement_key_valid:
             self._logger.info("FileNet Content Management Operator is being installed using the IBM Entitlement Registry")
             progress.log("FileNet Content Management Operator is being installed using the IBM Entitlement Registry")
             progress.log()
             if self._setup.runtime_mode == "dev":
-                pattern = re.compile(re.escape(registry_in_file + '/cpopen') + r'\b')
+                pattern = re.compile(re.escape(registry_in_file) + r'\b')
                 replacement = "cp.stg.icr.io" + '/cp'
                 content = pattern.sub(replacement, content)
 

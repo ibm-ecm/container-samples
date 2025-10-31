@@ -8,25 +8,33 @@
 # disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
 #
 ###############################################################################
-
+import base64
+import binascii
 import inspect
 import json
 import os
 import platform
 import re
+import secrets
 import shutil
 import socket
+import ssl
 import struct
 import subprocess
-import time
+import warnings
 
+import time
 import yaml
-from OpenSSL import SSL
+# from OpenSSL import SSL
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
+from cryptography.utils import CryptographyDeprecationWarning
 from rich import print
+from rich.panel import Panel
 from rich.text import Text
+
+warnings.filterwarnings("ignore", category=CryptographyDeprecationWarning)
 
 _CIPHERS = bytes(
     "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256",
@@ -72,17 +80,16 @@ def add_idp_to_trusted_certs(ssl_cert_folder, trusted_certs_folder):
 
 
 # Create a method to create the generatedfiles folder structure and zip it up if it is present
-def create_generate_folder(trusted_certs_present) -> None:
-    generate_folder = os.path.join(os.getcwd(), "generatedFiles")
+def create_generate_folder(trusted_certs_present, namespace='') -> None:
+    generate_folder = os.path.join(os.getcwd(), "generatedFiles", namespace)
     generate_secrets_folder = os.path.join(generate_folder, "secrets")
     generate_ssl_secrets_folder = os.path.join(generate_folder, "ssl")
     generate_trusted_secrets_folder = os.path.join(generate_folder, "ssl", "trusted-certs")
-    os.mkdir(generate_folder)
-    os.mkdir(generate_secrets_folder)
-    os.mkdir(generate_ssl_secrets_folder)
+    os.makedirs(generate_folder)
+    os.makedirs(generate_secrets_folder)
+    os.makedirs(generate_ssl_secrets_folder)
     if trusted_certs_present:
-        os.mkdir(generate_trusted_secrets_folder)
-
+        os.makedirs(generate_trusted_secrets_folder)
 
 def parse_required_fields(required_fields):
     parsed_fields = {}
@@ -97,12 +104,15 @@ def parse_required_fields(required_fields):
 
 
 # Function to check if private key is of pem format
-def check_pem_key_format(ssl_cert):
+def check_pem_key_format(ssl_cert,passkey=None):
     try:
         with open(ssl_cert, 'rb') as file:
             data = file.read()
         # Attempt to load it as a private key
-        serialization.load_pem_private_key(data, password=None, backend=default_backend())
+        if passkey:
+            serialization.load_pem_private_key(data, password=passkey.encode("utf-8"), backend=default_backend())
+        else:
+            serialization.load_pem_public_key(data, backend=default_backend())
         # If successful, it's a valid PEM file
         return True
     except Exception as e:
@@ -142,7 +152,6 @@ def check_ssl_certs_postgres(folder_list, cert_path):
                     return True
             else:
                 return True
-
 
 # Function to check if ssl certs are added to the respective folders
 def check_ssl_folders(db_prop=None, ldap_prop=None, ssl_cert_folder=None, deploy_prop=None, idp_prop=None, scim_prop=None) -> tuple:
@@ -465,28 +474,11 @@ def check_db_ssl_mode(db_prop, deploy_prop):
     return correct_ssl_mode
 
 
-def collect_visible_files(folder_path: str) -> [str]:
+def collect_visible_files(folder_path: str) -> list:
     # Check if folder is a folder
     if not os.path.isdir(folder_path):
         return []
     return [file for file in os.listdir(folder_path) if not file.startswith('.')]
-
-
-def get_kubectl_version(logger):
-    try:
-        # Get the kubectl version
-        kubectl_version = subprocess.check_output(["kubectl", "version", "--output=json"],
-                                                  stderr=subprocess.DEVNULL,
-                                                  timeout=5).decode("utf-8")
-        kubectl_version = json.loads(kubectl_version)["clientVersion"]["gitVersion"]
-        logger.info(f"Kubectl Version: {kubectl_version}")
-        return kubectl_version
-    except subprocess.TimeoutExpired:
-        logger.info("Error: Timeout while getting kubectl version")
-        return ""
-    except Exception as e:
-        logger.info(f"Error: {e}")
-        return ""
 
 
 def get_skopeo_version(logger):
@@ -506,32 +498,19 @@ def check_java_version(fncm_version):
         java_version_output = subprocess.check_output(['java', '-version'], stderr=subprocess.STDOUT, text=True)
         version_match = re.search(r'"(\d+\.\d+\.\d+)', java_version_output)
         java_version = version_match.group(1) if version_match else "Unknown"
-        if java_version != 'Unknown':
-            if fncm_version == "5.5.8":
-                if int(java_version.split(".")[1]) != 8:
-                    return False
-            if fncm_version == "5.5.11":
-                if int(java_version.split(".")[0]) != 11:
-                    return False
 
-            if fncm_version in ("5.5.12", "5.6.0"):
-                if int(java_version.split(".")[0]) != 17:
-                    return False
+        if java_version == "Unknown":
+            return False
 
-            if fncm_version in ("5.7.0"):
-                if int(java_version.split(".")[0]) != 21:
-                    return False
-
-        return True
+        return java_version
     except subprocess.CalledProcessError as e:
         return False
 
 def create_ssl_context(client_cert_file=None) :
-    context = SSL.Context(SSL.SSLv23_METHOD)
-    context.set_cipher_list(_CIPHERS)
-    context.set_min_proto_version(SSL.TLS1_2_VERSION)
-    if client_cert_file:
-        context.use_certificate_file(client_cert_file)
+    context = ssl.create_default_context(cafile=client_cert_file)
+    context.verify_flags &= ~ssl.VERIFY_X509_STRICT
+    context.set_ciphers(_CIPHERS.decode('utf-8'))
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
     return context
 
 def resolve_ip_addreses(host, progress):
@@ -546,7 +525,7 @@ def resolve_ip_addreses(host, progress):
         progress.log(Text(f"Failed to resolve IP for the host : {host} \nError : {e}",style="bold red"))
         return []
 
-def connect_to_server(host, port, ssl=False, client_cert_file=None, pg=False, progress=None):
+def connect_to_server(host, port, ssl=False, client_cert_file=None, pg=False, progress=None, logger=None):
     """
     Method_name: connect_to_server
     Description: Establishes a connection to a server.
@@ -576,19 +555,24 @@ def connect_to_server(host, port, ssl=False, client_cert_file=None, pg=False, pr
         # If SSL is enabled, create an SSL socket
         # Create an SSL context
         if ssl:
+            logger.info(f"Connecting to {host}:{port} with SSL")
+            logger.info(f"Using SSL certificate {client_cert_file}")
             context = create_ssl_context(client_cert_file)
             # Create an SSL socket
-            for family, socktype, proto, _, sockaddr in addr_info:
-                sock = socket.socket(family,socktype,proto)
-            conn = SSL.Connection(context, sock)
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0) as sock:
+                conn = context.wrap_socket(socket.socket(socket.AF_INET),
+                           server_hostname=hostname)
+            # for family, socktype, proto, _, sockaddr in addr_info:
+            #     sock = socket.socket(family,socktype,proto)
         else:
-            for family, socktype, proto, _, sockaddr in addr_info:
-                conn = socket.socket(family,socktype,proto)
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0) as sock:
+                conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
 
         # Connection
         connected = False
         start_time = time.time()
-        conn.connect((sockaddr[0], port))
+        conn.settimeout(10)
+        conn.connect((hostname, port))
         end_time = time.time()
 
         if ssl:
@@ -605,6 +589,7 @@ def connect_to_server(host, port, ssl=False, client_cert_file=None, pg=False, pr
 
     # Now you can perform LDAP operations using 'conn' if needed
     except socket.gaierror as e:
+        logger.info(msg=f"Connection failed: {e}")
         message = Text(
             f"Hostname \"{host}\" is not known.\n"
             f"Please review the Property Files for all SERVERNAME parameters", style="bold red")
@@ -615,6 +600,7 @@ def connect_to_server(host, port, ssl=False, client_cert_file=None, pg=False, pr
             print(message)
         return conn, 0, connected
     except Exception as e:
+        logger.info(msg=f"Connection failed: {e}")
         if type(e.args) == list:
             if e.args[0][0][0] == 'SSL routines' and e.args[0][0][2] == 'sslv3 alert handshake failure':
                 message = Text(
@@ -623,7 +609,10 @@ def connect_to_server(host, port, ssl=False, client_cert_file=None, pg=False, pr
                     f" - \"TLSv1.2\"\n"
                     f" - \"TLSv1.3\"", style="bold red")
         else:
-            message = Text(f"Connection over SSL failed.", style="bold yellow")
+            if ssl:
+                message = Panel.fit(Text(f"SSL Certificate could not be validated. Possibly a self-signed certificate or unrecognized CA certificate."), style="bold yellow")
+            else:
+                message = Panel.fit(Text(f"Connection failed"), style="bold yellow")
 
         if progress:
             progress.log(message)
@@ -636,7 +625,9 @@ def connect_to_server(host, port, ssl=False, client_cert_file=None, pg=False, pr
     rtt = (end_time - start_time) * 1000
     IP_connected = connect_to_server_ip(host,port,ssl,client_cert_file,pg,progress)
     if not IP_connected:
-        progress.log(Text(f"Failed to connect over any one of the Resolved IP",style="bold red"))
+
+        progress.log(Panel.fit(Text(f"Failed to connect over any one of the Resolved IP"),style="bold red"))
+
         return conn, rtt, IP_connected
     return conn, rtt, connected
 
@@ -662,7 +653,7 @@ def connect_to_server_ip(host, port, ssl=False, client_cert_file=None, pg=False,
                 sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
             else :
                 sock = socket.socket()
-            ip_conn = SSL.Connection(context, sock)
+            ip_conn = context.wrap_socket(sock, server_hostname=host)
         else:
             ip_conn = socket.socket()
         try:
@@ -683,29 +674,31 @@ def connect_to_server_ip(host, port, ssl=False, client_cert_file=None, pg=False,
             if progress:
                 progress.log()
                 progress.log(Text(f"Ping returned for IP: {ip} on port: {port}",style="bold green"))
+                progress.log()
             else:
                 print(Text(f"\nPing returned for IP: {ip} on port: {port}", style="bold green"))
+                print()
 
         except Exception as e:
             if progress:
                 progress.log()
                 progress.log(Text(f"Ping unanswered for IP: {ip} on port: {port}", style="bold yellow"))
+                progress.log()
             else:
                 print(Text(f"\nPing unanswered for IP: {ip} on port: {port}", style="bold yellow"))
+                print()
             continue
         finally:
             ip_conn.close()
     return check_ip_connected
 
-# Function to check if podman, oc and other commands are available
+# Function to check if a program exists
 def command_available(command):
     try:
-        if platform.system() == 'Windows':
-            subprocess.check_output("where " + command, stderr=subprocess.PIPE, shell=True)
-        else:
-            subprocess.check_output("which " + command, stderr=subprocess.PIPE, shell=True)
-        return True
-    except subprocess.CalledProcessError as error:
+        if shutil.which(command):
+            return True
+        return False
+    except Exception as e:
         return False
 
 
@@ -723,22 +716,22 @@ def is_email(logger, usernames):
             return True
     return False
 
-# Checks whether we are properly logged into a Kubernetes/OCP cluster
-# 'kubectl config current-context' is not sufficient it will show most recent cluster,
-# but we cannot apply yaml which is needed to test storage classes
-# (!!!) DOES NOT WORK WHEN INSIDE OPERATOR POD
-def kubectl_log_in_check(logger):
-    try:
-        # DBACLD-161187: Changed to general 'kubectl version' command to check if kubectl is logged in
-        subprocess.check_output("kubectl version", shell=True, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL,
-                                universal_newlines=True, timeout=5)
-        return True
-    except subprocess.TimeoutExpired:
-        return False
-    except subprocess.CalledProcessError as error:
-        logger.info("Kubectl is not logged into any cluster and " \
-                    + f"will cause errors when checking storage classes; {error}")
-        return False
+# # Checks whether we are properly logged into a Kubernetes/OCP cluster
+# # 'kubectl config current-context' is not sufficient it will show most recent cluster,
+# # but we cannot apply yaml which is needed to test storage classes
+# # (!!!) DOES NOT WORK WHEN INSIDE OPERATOR POD
+# def kubectl_log_in_check(logger):
+#     try:
+#         # DBACLD-161187: Changed to general 'kubectl version' command to check if kubectl is logged in
+#         subprocess.check_output("kubectl version", shell=True, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL,
+#                                 universal_newlines=True, timeout=5)
+#         return True
+#     except subprocess.TimeoutExpired:
+#         return False
+#     except subprocess.CalledProcessError as error:
+#         logger.info("Kubectl is not logged into any cluster and " \
+#                     + f"will cause errors when checking storage classes; {error}")
+#         return False
 
 
 # method to check to if value in property file is valid
@@ -795,6 +788,7 @@ def gather_var(key, _logger, _envfile, _error_list, section_header='', valid_val
         else:
             value = _envfile[section_header][key]
             section_header = "[" + section_header + "]"
+        _logger.info(f"Gathered variable {section_header + key} with value: {value}")
         # Check that the user/property file input is valid
         if valid_check(prop_key=section_header + key, prop_value=value, valid_values=valid_values, _logger=_logger,
                        _error_list=_error_list):
@@ -914,6 +908,7 @@ def split_pem(logger, cert_file_path, tmp_folder, output_prefix="cert"):
     try:
         with open(cert_file_path, 'r') as pem_file:
             pem_content = pem_file.read()
+
     except FileNotFoundError:
         logger.exception(f"Error: File not found: {cert_file_path}")
         return []
@@ -938,6 +933,23 @@ def split_pem(logger, cert_file_path, tmp_folder, output_prefix="cert"):
         except Exception as e:
             logger.exception(f"Error writing to {output_path}: {e}")
     return cert_list
+
+# Function to collect and return the SANs from a certificate
+def collect_cert_subject_alt_names(logger, cert_path) -> list:
+    try:
+        logger.info(f"Validating SANs in certificate: {cert_path}")
+
+        with open(cert_path, 'rb') as cert_file:
+            cert_data = cert_file.read()
+        cert = x509.load_pem_x509_certificate(cert_data, default_backend())
+        san_extension = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName)
+        san_list = san_extension.value.get_values_for_type(x509.DNSName) + san_extension.value.get_values_for_type(x509.IPAddress)
+        san_list = [str(san) for san in san_list]  # Convert IPAddress objects to strings
+        logger.info(f"Extracted SANs: {san_list}")
+        return san_list
+    except Exception as e:
+        logger.info(f"Error extracting SANs from certificate {cert_path}: {e}")
+        return []
 
 # Function to clean up and combine PEM files
 def clean_and_combine_pem_files(logger, cert_folder, tmp_folder, output_prefix):
@@ -971,20 +983,69 @@ def clean_and_combine_pem_files(logger, cert_folder, tmp_folder, output_prefix):
 
         # Recombine all the split PEM files into a single PEM file
         combined_cert_path = os.path.join(tmp_folder, f"{output_prefix}_combined.pem")
-
+        san_list = []
         with open(combined_cert_path, 'w') as combined_file:
             for cert in ssl_cert_list:
                 with open(cert, 'r') as pem_file:
+                    # collect SAN from the certs
+                    san_list.extend(collect_cert_subject_alt_names(logger, cert))
                     combined_file.write(pem_file.read())
                 combined_file.write("\n")  # Add a newline between certificates
         logger.info(f"Combined PEM file created at {combined_cert_path}")
 
-        return combined_cert_path
+        return combined_cert_path, san_list
     except Exception as e:
         logger.exception(f"Error during PEM file cleanup and combination: {e}")
         return None
 
+def ensure_base64(value: str) -> str:
+    """
+    Ensure a string is Base64 encoded.
+    If already valid Base64, return as is.
+    Otherwise, encode it.
+    """
+    try:
+        decoded = base64.b64decode(value, validate=True)
+        if base64.b64encode(decoded).decode('utf-8') == value:
+            return value  # already base64
+        else:
+            return base64.b64encode(value.encode('utf-8')).decode('utf-8')
+    except (binascii.Error, ValueError, UnicodeDecodeError):
+        return base64.b64encode(value.encode('utf-8')).decode('utf-8')
 
+
+def encode_secret_contents(input_dict: dict) -> dict:
+    result = {}
+    for key, value in input_dict.items():
+        result[key] = base64.b64encode(value.encode('utf-8')).decode('utf-8')
+
+    return result
+
+def generate_secure_password(length=24) -> str:
+    alphabet = (
+        "ABCDEFGHJKLMNPQRSTUVWXYZ"  # No I or O
+        "abcdefghijkmnopqrstuvwxyz"  # No l
+        "23456789"  # No 0 or 1
+    )
+
+    alphabet += "!@#$%^&*()-_=+[]{}|;:,.<>?/"
+
+    password = ''.join(secrets.choice(alphabet) for _ in range(length))
+    return password
+def decode_if_base64(value: str) -> str:
+    """
+    If value is valid Base64, return its decoded string.
+    Otherwise, return the value as-is.
+    """
+    try:
+        decoded_bytes = base64.b64decode(value, validate=True)
+        # Check if re-encoding matches to ensure it's truly base64
+        if base64.b64encode(decoded_bytes).decode('utf-8') == value:
+            return decoded_bytes.decode('utf-8', errors='ignore')
+        else:
+            return value
+    except (binascii.Error, ValueError, UnicodeDecodeError):
+        return value
 
 
 
