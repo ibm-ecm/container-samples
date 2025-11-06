@@ -463,9 +463,9 @@ def main(ctx: typer.Context,
     version_path = os.path.join(os.path.dirname(os.getcwd()), "version.toml")
 
     if os.path.exists(version_path):
-        state["version_data"] = read_version_toml(version_path, state["logger"])
+        version_data = read_version_toml(version_path, state["logger"])
     else:
-        state["version_data"] = {}
+        version_data = {}
 
     if silent:
         state["silent"] = True
@@ -481,14 +481,14 @@ def main(ctx: typer.Context,
     else:
         state["setup"] = g.GatherOptions(state["logger"], console, script_type="upgrade", dev=state["dev"])
         state["setup"]._podman_available = results["podman"]
-        state["setup"].collect_license_model()
+        state["setup"].collect_license_model(version_data)
         state["setup"].collect_platform()
         state["setup"].collect_namespace()
         state["upgrade"] = u.Upgrade(console, state["setup"], state["logger"], required_files=required_files)
 
 
-    state["deployment_details"] = create_deployment_info(state["setup"], state["version_data"])
-    state["version_details"] = create_version_info(state["setup"], state["version_data"])
+    state["deployment_details"] = create_deployment_info(state["setup"], version_data)
+    state["version_details"] = create_version_info(state["setup"], version_data)
 
     state["upgrade"].version_details = state["version_details"]
     state["upgrade"].deployment_details = state["deployment_details"]
