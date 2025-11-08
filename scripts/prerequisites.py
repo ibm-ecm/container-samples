@@ -260,9 +260,8 @@ def gather(
             clear(console)
             gather.collect_init_verify_content()
         else:
-            gather.collect_fncm_version()
+            gather.collect_license_model(state["version_data"])
             clear(console)
-            gather.collect_license_model()
 
             clear(console)
             gather.collect_platform_ingress()
