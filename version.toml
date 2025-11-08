@@ -14,7 +14,7 @@ DATE = "2025-09-30"
 RELEASE = "IBM FileNet Content Manager 5.7.0-IF001"
 
 # Repository Details
-VERSION = "5.7.0"
+VERSION = "5.7.0-IF001"
 APP_VERSION = "25.0.0"
 
 # OLM Version Details
