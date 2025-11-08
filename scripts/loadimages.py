@@ -430,7 +430,7 @@ def main(ctx: typer.Context,
 
         elif ctx.invoked_subcommand == "generate":
             display_mode_version("Airgap CASE Setup", "Download and Setup CASE Package Only")
-            checks = ["podman" 'oc', 'ibm-pak']
+            checks = ["podman", 'oc', 'ibm-pak']
             files = []
     else:
         if ctx.invoked_subcommand is None:
