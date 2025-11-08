@@ -78,7 +78,7 @@ def check_oc_plugins(logger, plugin):
 
 
 # Function to do the prerequisite checks before the script starts
-def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.6.0'):
+def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.7.0'):
     logger.info(f"Checking prerequisites ...")
     if prereqs is None:
         prereqs = []
