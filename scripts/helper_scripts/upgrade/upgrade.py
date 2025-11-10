@@ -24,7 +24,7 @@ from time import sleep
 from ..utilities import kubernetes_utilites as k
 from ..utilities.prerequisites_utilites import zip_folder, write_yaml_to_file
 from ..utilities.utilities import replace_namespace_in_file, create_tmp_folder, is_key_present, update_value_by_path, \
-    find_keys_and_structures
+    find_keys_and_structures, delete_key_by_path
 
 
 # Class to handle upgrade operator and deployment related functionalities
@@ -733,19 +733,16 @@ class Upgrade:
                 cr_details["spec"]["appVersion"] = app_version
                 update_list.append(f"Updated appVersion to {app_version}")
 
-            # Update image tags if present
-            if is_key_present(cr_details, "tag") and is_key_present(cr_details, "repository"):
-                update_list.append("Updated component image tags")
-                for key in ["repository", "tag"]:
-                    # getting all nested paths in the yaml where tag and repository is present
-                    key_results = find_keys_and_structures(dictionary=cr_details, key=key)
-                    if key_results:
-                        for nested_structure, path, key in key_results:
-                            try:
-                                update_value_by_path(dictionary1=cr_details, path=path,
-                                                     dictionary2=fc_template_cr_details, logger=self._logger)
-                            except KeyError as e:
-                                self._logger.info(e)
+            # Remove the image tags if present in the CR
+            if is_key_present(cr_details, "tag"):
+                key_results = find_keys_and_structures(dictionary=cr_details, key="tag")
+                self._logger.info(key_results)
+                for nested_structure, path, key in key_results:
+                    try:
+                        delete_key_by_path(cr_details, path, key, logger=self._logger)
+                    except KeyError as e:
+                        self._logger.info(e)
+                update_list.append("Removed older tag")
             
             # Check if component boolean list exists 
             if not is_key_present(cr_details, key="content_optional_components"):
