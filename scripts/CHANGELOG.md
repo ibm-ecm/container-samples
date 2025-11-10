@@ -1,3 +1,10 @@
+## 6.0.2 (2025-11-10)
+
+### Fix
+
+- upgrade will remove older image tags from generated custom resource
+- mssql jdbc driver version updated to 12.2.1
+
 ## 6.0.0 (2025-10-29)
 
 ### Fix

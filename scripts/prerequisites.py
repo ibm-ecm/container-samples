@@ -60,7 +60,7 @@ from helper_scripts.utilities.prerequisites_utilites import zip_folder, \
 from helper_scripts.utilities.utilities import read_version_toml, prereq_checks
 from helper_scripts.validate import validate as v
 
-__version__ = "6.0.0"
+__version__ = "6.0.2"
 
 app = typer.Typer()
 state = {
