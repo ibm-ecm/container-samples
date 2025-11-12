@@ -83,14 +83,14 @@ spec:
     sc_deployment_profile_size: "small"
 
     ## Specify the RunAsUser for the security context of the pod.  This is usually a numeric value that corresponds to a user ID.
-    ## For non-OCP (e.g., CNCF platforms such as EKS, AKS, GKE, etc.), this parameter is optional. It is not supported on OCP and ROKS.
+    ## For non-OCP (e.g., CNCF platforms such as EKS, AKS, GKE, etc.), this parameter is optional. It is not supported on OCP.
     sc_run_as_user:
 
     ## Specify the fsGroup for the security context of the pod.  This is usually a numeric value that corresponds to a group ID.
-    ## For non-OCP (e.g., CNCF platforms such as EKS, AKS, GKE, etc.), this parameter is optional. It is not supported on OCP and ROKS.
+    ## For non-OCP (e.g., CNCF platforms such as EKS, AKS, GKE, etc.), this parameter is optional. It is not supported on OCP.
     sc_fs_group:
 
-    ## The platform to be deployed specified by the user.  Possible values are: OCP, ROKS, and other.
+    ## The platform to be deployed specified by the user.  Possible values are: OCP and other.
     sc_deployment_platform: "<Required>"
 
     ## OCP: Hostname suffix added to the default ingress hostname, this is optional, and the default hostname suffix will be {meta.namespace}.
@@ -278,9 +278,6 @@ spec:
 
     ## The port of the LDAP server to connect.  Some possible values are: 389, 636, etc.
     #lc_ldap_port: "<Required>"
-
-    ## The LDAP bind secret for LDAP authentication.  The secret is expected to have ldap<id_name>Username and ldap<id_name>Password keys.  Refer to IBM Documentation for more info.
-    #lc_bind_secret: ldap-bind-secret
 
     ## The LDAP base DN.  For example, "dc=example,dc=com", "dc=abc,dc=com", etc
     #lc_ldap_base_dn: "<Required>"

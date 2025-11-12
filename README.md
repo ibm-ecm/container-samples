@@ -1,10 +1,11 @@
-# IBM FileNet Content Manager 5.5.12 on Container Samples
+# IBM FileNet Content Manager 5.5.12 on Containers
 
 This repository includes folders and resources to help you install the IBM FileNet Content Manager capabilities.
 Installation of the capabilities is done with the operator.
 
 |      Release      | Github Tag  | CASE Version |      Date      |
 |:-----------------:|:-----------:|:------------:|:--------------:|
+|  FNCM 5.5.12-IF6  |  v5.5.12.6  |    1.8.8     | 11 / 19 / 2025 |
 |  FNCM 5.5.12-IF5  |  v5.5.12.5  |    1.8.7     | 06 / 27 / 2025 |
 |  FNCM 5.5.12-IF4  |  v5.5.12.4  |    1.8.6     | 02 / 28 / 2025 |
 |  FNCM 5.5.12-IF3  |  v5.5.12.3  |    1.8.5     | 12 / 03 / 2024 |

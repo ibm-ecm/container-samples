@@ -60,7 +60,7 @@ from helper_scripts.utilities.prerequisites_utilites import zip_folder, \
 from helper_scripts.utilities.utilities import read_version_toml, prereq_checks
 from helper_scripts.validate import validate as v
 
-__version__ = "6.0.0"
+__version__ = "6.0.2"
 
 app = typer.Typer()
 state = {
@@ -107,6 +107,8 @@ def main(ctx: typer.Context,
 
     # Read Version File
     version_path = os.path.join(os.path.dirname(os.getcwd()), "version.toml")
+    if not os.path.exists(version_path):
+        version_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "version.toml")
 
     if os.path.exists(version_path):
         state["version_data"] = read_version_toml(version_path, state["logger"])
@@ -260,9 +262,8 @@ def gather(
             clear(console)
             gather.collect_init_verify_content()
         else:
-            gather.collect_fncm_version()
+            gather.collect_license_model(state["version_data"])
             clear(console)
-            gather.collect_license_model()
 
             clear(console)
             gather.collect_platform_ingress()

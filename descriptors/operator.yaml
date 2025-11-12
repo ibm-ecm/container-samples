@@ -72,7 +72,7 @@ spec:
                       - ppc64le
       initContainers:
         - name: folder-prepare-container
-          image: "icr.io/cpopen/icp4a-content-operator:5.5.12-IF005"
+          image: "icr.io/cpopen/icp4a-content-operator@sha256:d4b0f2416381c3c93e4a84758b6071bb19575c7e3449ce99fe0f4c86181f1673"
           securityContext:
             allowPrivilegeEscalation: false
             privileged: false
@@ -106,8 +106,7 @@ spec:
               cp -rp /opt/ibm/* /ibm-folder
       containers:
         - name: operator
-          # Replace this with the built image name
-          image: "icr.io/cpopen/icp4a-content-operator:5.5.12-IF005"
+          image: "icr.io/cpopen/icp4a-content-operator@sha256:d4b0f2416381c3c93e4a84758b6071bb19575c7e3449ce99fe0f4c86181f1673"
           imagePullPolicy: "IfNotPresent"
           securityContext:
             allowPrivilegeEscalation: false
