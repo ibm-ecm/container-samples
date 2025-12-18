@@ -13,6 +13,7 @@ import platform
 import re
 import shutil
 import subprocess
+from urllib.parse import urlparse
 
 import requests
 import toml
@@ -30,14 +31,23 @@ from ..utilities import kubernetes_utilites as k
 
 
 # Function to log in to a registry using podman
-def login_to_registry_podman(registry, username, password, logger, ssl_enabled=False, ssl_cert_path=''):
+def login_to_registry_podman(registry_host, username, password, logger, ssl_enabled=False, ssl_cert_path='', registry_port='', registry_path='', tls_verify=True):
     try:
-        if ssl_enabled:
+        # Build the registry URL
+        registry = ""
+
+        if registry_host:
+            registry += registry_host
+        if registry_port:
+            registry += f":{registry_port}"
+        if registry_path:
+            registry += f"/{registry_path}"
+
+        if ssl_enabled and tls_verify:
             # Allow self-signed certificates
-            command = ["podman", "login", registry, "-u", username, "--password-stdin", "--cert-dir", ssl_cert_path,
-                       "--tls-verify=false"]
+            command = ["podman", "login", registry, "-u", username, "--password-stdin", "--cert-dir", ssl_cert_path, f"--tls-verify={tls_verify}"]
         else:
-            command = ["podman", "login", registry, "-u", username, "--password-stdin", "--tls-verify=false"]
+            command = ["podman", "login", registry, "-u", username, "--password-stdin", f"--tls-verify={tls_verify}"]
 
         # Using subprocess to run the Podman login command
         process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -47,7 +57,9 @@ def login_to_registry_podman(registry, username, password, logger, ssl_enabled=F
             logger.info("Login succeeded!")
             return True
         else:
-            logger.info(f"Login failed. Error: {error.decode()}")
+            logger.info(f"Login failed. {error.decode()}")
+            print()
+            print(Text(f"{error.decode()}", style="bold red"))
             return False
     except Exception as e:
         logger.info(f"Error: {e}")
@@ -78,7 +90,7 @@ def check_oc_plugins(logger, plugin):
 
 
 # Function to do the prerequisite checks before the script starts
-def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.6.0'):
+def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.7.0'):
     logger.info(f"Checking prerequisites ...")
     if prereqs is None:
         prereqs = []
@@ -414,7 +426,7 @@ def create_deployment_info(setup, version_data):
         type = "YAML"
 
         if setup.private_registry:
-            registry = setup.private_registry_server
+            registry = setup.private_registry_full_server
         else:
             registry = "icr.io"
 
@@ -517,6 +529,34 @@ def update_value_by_path(dictionary1, path, dictionary2, requests=False, limits=
             update_value_by_path(dictionary1[key], path[1:], dictionary2[key], requests, limits, logger=logger)
         else:
             raise KeyError(f"Key '{key}' not found in dictionary")
+
+def delete_key_by_path(dictionary, path_list, target_key, logger=None):
+    """
+    Deletes a key from a nested dictionary given a list of keys representing its path.
+
+    Args:
+        dictionary (dict): The dictionary to modify.
+        path_list (list): A list of keys representing the path to the key to be deleted.
+        target_key (str): The key to be deleted.
+        logger: Logger object for logging information.
+    """
+    if not path_list:
+        return
+
+    current_dict = dictionary
+    # Traverse to the parent dictionary of the key to be deleted
+    for key in path_list:
+        if not isinstance(current_dict, dict) or key not in current_dict:
+            # Handle cases where the path is invalid
+            logger.info(f"Path error: Key '{key}' not found or not a dictionary in the path.")
+            return
+        current_dict = current_dict[key]
+
+    # Delete the target key from its parent dictionary
+    if isinstance(current_dict, dict) and target_key in current_dict:
+        del current_dict[target_key]
+    else:
+        logger.info(f"Deletion error: Key '{target_key}' not found at the specified path.")
 
 
 def parse_yaml_for_keys(yaml_data, keys):
