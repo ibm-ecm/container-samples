@@ -10,6 +10,7 @@
 ###############################################################################
 import inspect
 import os
+from urllib.parse import urlparse
 
 import toml
 
@@ -24,13 +25,14 @@ class SilentGatherOptions(GatherOptions):
                                  "silent_install_cleandeployment.toml")
     _error_list = []
 
-    def __init__(self, logger, envfile_path=_envfile_path, script_type="cleanup", dev=False):
+    def __init__(self, logger, envfile_path=_envfile_path, script_type="cleanup", dev=False, tls_verify=True):
 
         super().__init__(logger=logger, console=None, script_type=script_type, dev=dev)
 
         self._envfile_path = envfile_path
         # Setting it to true so the gather class can accordingly skip the menu based questions
         self._silent_mode = True
+        self._tls_verify = tls_verify
         try:
             self._envfile = toml.loads(open(self._envfile_path, encoding="utf-8").read())
         except Exception as e:
@@ -46,7 +48,7 @@ class SilentGatherOptions(GatherOptions):
             "private_registry": self._private_registry,
             "private_registry_host": self._private_registry_host,
             "private_registry_port": self._private_registry_port,
-            "private_registry_server": self._private_registry_server,
+            "private_registry_full_server": self._private_registry_full_server,
             "private_registry_username": self._private_registry_username,
             "private_registry_password": self._private_registry_password,
             "private_registry_ssl_enabled": self._private_registry_ssl_enabled,
@@ -156,28 +158,8 @@ class SilentGatherOptions(GatherOptions):
 
         if self._platform == "other":
             if private_registry:
-                self._private_registry_host = self._envfile.get("PRIVATE_REGISTRY_HOST")
-                self._private_registry_port = self._envfile.get("PRIVATE_REGISTRY_PORT")
-                self._private_registry_server = f"{self._private_registry_host}:{self._private_registry_port}"
-                self._private_registry_username = self._envfile.get("PRIVATE_REGISTRY_USERNAME")
-                self._private_registry_password = self._envfile.get("PRIVATE_REGISTRY_PASSWORD")
-                if self._private_registry_server == "" or self._private_registry_server is None:
-                    self._error_list.append(
-                        f"ERROR with PRIVATE REGISTRY SERVER in silent mode configuration {self._envfile_path} file - Field Cannot be Empty")
+                self.silent_parse_private_registry_info()
 
-                if self._private_registry_username == "" or self._private_registry_server is None:
-                    self._error_list.append(
-                        f"ERROR with PRIVATE REGISTRY USER in silent mode configuration {self._envfile_path} file - Field Cannot be Empty")
-
-                if self._private_registry_password == "" or self._private_registry_server is None:
-                    self._error_list.append(
-                        f"ERROR with PRIVATE REGISTRY PASSWORD in silent mode configuration {self._envfile_path} file -  Field Cannot be Empty")
-                self._private_registry_ssl_enabled = self._envfile.get("PRIVATE_REGISTRY_SSL_ENABLED")
-                if self._private_registry_ssl_enabled:
-                    self._private_registry_ssl_cert = self._envfile.get("PRIVATE_REGISTRY_SSL_CRT_PATH")
-                    if self._private_registry_ssl_cert == "" or self._private_registry_server is None:
-                        self._error_list.append(
-                            f"ERROR with PRIVATE REGISTRY SSL CRT PATH in silent mode configuration {self._envfile_path} file -  Field Cannot be Empty if SSL is Enabled")
                 if self._error_list:
                     self.error_check()
                 else:
@@ -185,50 +167,73 @@ class SilentGatherOptions(GatherOptions):
             else:
                 self.error_check()
 
+    # Function to parse private registry info from silent install file
+    def silent_parse_private_registry_info(self):
+
+        private_reg_hostname_full = self._envfile.get("PRIVATE_REGISTRY_URL")
+        # Parse the remaining private registry url
+        # Split hostname into scheme, server, context and port using urlparse
+        if "://" not in private_reg_hostname_full:
+            private_reg_hostname_full_shema = "//" + private_reg_hostname_full
+        else:
+            private_reg_hostname_full_shema = private_reg_hostname_full
+
+        private_reg_parts = urlparse(private_reg_hostname_full_shema, scheme="https")
+
+        self._private_registry_full_server = private_reg_hostname_full
+        self._private_registry_host = private_reg_parts.hostname
+
+        # If no port is provided, default to 443 for https and 80 for http
+        # Use 443 if no schema is provided
+        private_reg_scheme = private_reg_parts.scheme
+        if private_reg_parts.port is None:
+            if private_reg_parts.scheme == "http":
+                self._private_registry_port = 80
+            else:
+                self._private_registry_port = 443
+        else:
+            self._private_registry_port = private_reg_parts.port
+
+        if private_reg_parts.path != "":
+            self._private_registry_path = private_reg_parts.path.lstrip('/')
+
+        self._private_registry_username = self._envfile.get("PRIVATE_REGISTRY_USERNAME")
+        self._private_registry_password = self._envfile.get("PRIVATE_REGISTRY_PASSWORD")
+        if self._private_registry_full_server == "" or self._private_registry_full_server is None:
+            self._error_list.append(
+                f"ERROR with PRIVATE REGISTRY URL in silent mode configuration {self._envfile_path} file - Field Cannot be Empty")
+
+        if self._private_registry_username == "" or self._private_registry_full_server is None:
+            self._error_list.append(
+                f"ERROR with PRIVATE REGISTRY USER in silent mode configuration {self._envfile_path} file - Field Cannot be Empty")
+
+        if self._private_registry_password == "" or self._private_registry_full_server is None:
+            self._error_list.append(
+                f"ERROR with PRIVATE REGISTRY PASSWORD in silent mode configuration {self._envfile_path} file -  Field Cannot be Empty")
+        self._private_registry_ssl_enabled = self._envfile.get("PRIVATE_REGISTRY_SSL_ENABLED")
+        if self._private_registry_ssl_enabled:
+            if not self._tls_verify:
+                self._private_registry_ssl_cert = self._envfile.get("PRIVATE_REGISTRY_SSL_CRT_PATH")
+                if self._private_registry_ssl_cert == "" or self._private_registry_full_server is None:
+                    self._error_list.append(
+                        f"ERROR with PRIVATE REGISTRY SSL CRT PATH in silent mode configuration {self._envfile_path} file -  Field Cannot be Empty if SSL is Enabled")
+
+
     # method to parse load images silent install file
     def silent_parse_load_images_file(self, airgap=False):
         self._entitlement_key = self._envfile.get("ENTITLEMENT_KEY")
         if self._entitlement_key == "" or self._entitlement_key is None:
             self._error_list.append(
                 f"ERROR with ENTITLEMENT KEY in silent mode configuration {self._envfile_path} file - Field Cannot be Empty")
-        self._private_registry_host = self._envfile.get("PRIVATE_REGISTRY_HOST")
-        self._private_registry_port = self._envfile.get("PRIVATE_REGISTRY_PORT")
-        self._private_registry_server = f"{self._private_registry_host}:{self._private_registry_port}"
-        self._private_registry_username = self._envfile.get("PRIVATE_REGISTRY_USERNAME")
-        self._private_registry_password = self._envfile.get("PRIVATE_REGISTRY_PASSWORD")
-        if self._private_registry_server == "" or self._private_registry_server is None:
-            self._error_list.append(
-                f"ERROR with PRIVATE REGISTRY SERVER in silent mode configuration {self._envfile_path} file - Field Cannot be Empty")
 
-        if self._private_registry_username == "" or self._private_registry_server is None:
-            self._error_list.append(
-                f"ERROR with PRIVATE REGISTRY USER in silent mode configuration {self._envfile_path} file - Field Cannot be Empty")
-
-        if self._private_registry_password == "" or self._private_registry_server is None:
-            self._error_list.append(
-                f"ERROR with PRIVATE REGISTRY PASSWORD in silent mode configuration {self._envfile_path} file -  Field Cannot be Empty")
-        self._private_registry_ssl_enabled = self._envfile.get("PRIVATE_REGISTRY_SSL_ENABLED")
-        if self._private_registry_ssl_enabled:
-            self._private_registry_ssl_cert = self._envfile.get("PRIVATE_REGISTRY_SSL_CRT_PATH")
-            if self._private_registry_ssl_cert == "" or self._private_registry_server is None:
-                self._error_list.append(
-                    f"ERROR with PRIVATE REGISTRY SSL CRT PATH in silent mode configuration {self._envfile_path} file -  Field Cannot be Empty if SSL is Enabled")
+        self.silent_parse_private_registry_info()
 
         if airgap:
-            self.silent_version()
             self._all_channels = gather_var(key="MIRROR_ALL_CHANNELS", valid_values=[True, False], _logger=self._logger, _envfile=self._envfile,
                                             _error_list=self._error_list)
 
 
         self.error_check()
-
-
-    def silent_version(self):
-        version = gather_var(key="FNCM_VERSION", valid_values=[1, 2, 3, 4, 5], _logger=self._logger,
-                             _envfile=self._envfile,
-                             _error_list=self._error_list)
-        if version:
-            self._fncm_version = self.Version.FNCMVersion(version).name
 
 
     def silent_parse_deploy_operator_file(self, validate=True):
@@ -240,28 +245,8 @@ class SilentGatherOptions(GatherOptions):
 
         if self._platform == "other":
             if private_registry:
-                self._private_registry_host = self._envfile.get("PRIVATE_REGISTRY_HOST")
-                self._private_registry_port = self._envfile.get("PRIVATE_REGISTRY_PORT")
-                self._private_registry_server = f"{self._private_registry_host}:{self._private_registry_port}"
-                self._private_registry_username = self._envfile.get("PRIVATE_REGISTRY_USERNAME")
-                self._private_registry_password = self._envfile.get("PRIVATE_REGISTRY_PASSWORD")
-                if self._private_registry_server == "" or self._private_registry_server is None:
-                    self._error_list.append(
-                        f"ERROR with PRIVATE REGISTRY SERVER in silent mode configuration {self._envfile_path} file - Field Cannot be Empty")
+                self.silent_parse_private_registry_info()
 
-                if self._private_registry_username == "" or self._private_registry_server is None:
-                    self._error_list.append(
-                        f"ERROR with PRIVATE REGISTRY USER in silent mode configuration {self._envfile_path} file - Field Cannot be Empty")
-
-                if self._private_registry_password == "" or self._private_registry_server is None:
-                    self._error_list.append(
-                        f"ERROR with PRIVATE REGISTRY PASSWORD in silent mode configuration {self._envfile_path} file -  Field Cannot be Empty")
-                self._private_registry_ssl_enabled = self._envfile.get("PRIVATE_REGISTRY_SSL_ENABLED")
-                if self._private_registry_ssl_enabled:
-                    self._private_registry_ssl_cert = self._envfile.get("PRIVATE_REGISTRY_SSL_CRT_PATH")
-                    if self._private_registry_ssl_cert == "" or self._private_registry_server is None:
-                        self._error_list.append(
-                            f"ERROR with PRIVATE REGISTRY SSL CRT PATH in silent mode configuration {self._envfile_path} file -  Field Cannot be Empty if SSL is Enabled")
                 if self._error_list:
                     self.error_check()
                 else:

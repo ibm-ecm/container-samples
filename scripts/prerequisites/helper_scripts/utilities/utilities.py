@@ -13,6 +13,7 @@ import platform
 import re
 import shutil
 import subprocess
+from urllib.parse import urlparse
 
 import requests
 import toml
@@ -30,14 +31,23 @@ from ..utilities import kubernetes_utilites as k
 
 
 # Function to log in to a registry using podman
-def login_to_registry_podman(registry, username, password, logger, ssl_enabled=False, ssl_cert_path=''):
+def login_to_registry_podman(registry_host, username, password, logger, ssl_enabled=False, ssl_cert_path='', registry_port='', registry_path='', tls_verify=True):
     try:
-        if ssl_enabled:
+        # Build the registry URL
+        registry = ""
+
+        if registry_host:
+            registry += registry_host
+        if registry_port:
+            registry += f":{registry_port}"
+        if registry_path:
+            registry += f"/{registry_path}"
+
+        if ssl_enabled and tls_verify:
             # Allow self-signed certificates
-            command = ["podman", "login", registry, "-u", username, "--password-stdin", "--cert-dir", ssl_cert_path,
-                       "--tls-verify=false"]
+            command = ["podman", "login", registry, "-u", username, "--password-stdin", "--cert-dir", ssl_cert_path, f"--tls-verify={tls_verify}"]
         else:
-            command = ["podman", "login", registry, "-u", username, "--password-stdin", "--tls-verify=false"]
+            command = ["podman", "login", registry, "-u", username, "--password-stdin", f"--tls-verify={tls_verify}"]
 
         # Using subprocess to run the Podman login command
         process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -47,7 +57,9 @@ def login_to_registry_podman(registry, username, password, logger, ssl_enabled=F
             logger.info("Login succeeded!")
             return True
         else:
-            logger.info(f"Login failed. Error: {error.decode()}")
+            logger.info(f"Login failed. {error.decode()}")
+            print()
+            print(Text(f"{error.decode()}", style="bold red"))
             return False
     except Exception as e:
         logger.info(f"Error: {e}")
@@ -414,7 +426,7 @@ def create_deployment_info(setup, version_data):
         type = "YAML"
 
         if setup.private_registry:
-            registry = setup.private_registry_server
+            registry = setup.private_registry_full_server
         else:
             registry = "icr.io"
 

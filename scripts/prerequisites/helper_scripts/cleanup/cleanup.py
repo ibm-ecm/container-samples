@@ -37,6 +37,7 @@ class CleanDeployment:
         self._cr_name = "fncmdeploy"
 
     def collect_cr_details(self):
+        self._logger.info(f"Collecting CR details")
         self._kube.get_deployment_cr(namespace=self._namespace, logger=self._logger)
         cr_details = self._kube.cr_details
         self._cr_details = cr_details
@@ -65,7 +66,9 @@ class CleanDeployment:
         # Attempt to list the CR in the specific namespace
         progress.log("Starting FileNet Content Manager Deployment Cleanup")
         progress.log()
+        self._logger.info(f"Starting FileNet Content Manager Deployment Cleanup")
         progress.log("Cleaning up namespace: " + self._namespace)
+        self._logger.info(f"Cleaning up namespace: {self._namespace}")
 
         self._custom_api.delete_namespaced_custom_object(group="fncm.ibm.com", version="v1",
                                                          namespace=self._namespace,
@@ -73,41 +76,49 @@ class CleanDeployment:
 
         progress.log()
         progress.log("Deleting CR...")
+        self._logger.info(f"Deleting CR")
         time.sleep(SLEEP_TIMER)
         progress.advance(task1)
 
         progress.log()
         progress.log("Deleting configmaps...")
+        self._logger.info(f"Deleting configmaps")
         time.sleep(SLEEP_TIMER)
         progress.advance(task1)
 
         progress.log()
         progress.log("Deleting generated secrets...")
+        self._logger.info(f"Deleting generated secrets")
         time.sleep(SLEEP_TIMER)
         progress.advance(task1)
 
         progress.log()
         progress.log("Deleting services...")
+        self._logger.info(f"Deleting services")
         time.sleep(SLEEP_TIMER)
         progress.advance(task1)
 
         progress.log()
         progress.log("Deleting deployments...")
+        self._logger.info(f"Deleting deployments")
         time.sleep(SLEEP_TIMER)
         progress.advance(task1)
 
         progress.log()
         progress.log("Deleting network policies...")
+        self._logger.info(f"Deleting network policies")
         time.sleep(SLEEP_TIMER)
         progress.advance(task1)
 
         progress.log()
         progress.log("Deleting routes or generated ingress...")
+        self._logger.info(f"Deleting routes or generated ingress")
         time.sleep(SLEEP_TIMER)
         progress.advance(task1)
 
         progress.log()
         progress.log("Waiting for pods to gracefully shutdown...")
+        self._logger.info(f"Waiting for pods to gracefully shutdown")
 
         # TODO: Check if the pods exists using labels query
         # TODO: Check logic if pods are sticking around
@@ -142,16 +153,22 @@ class CleanDeployment:
                 progress.log(Text("Timeout Waiting for Clean up of  IBM FileNet Content Manager Deployment pods\n"
                                   "Please check the status of the Pods by issuing the below command:\n"
                                   f"kubectl describe pod $(kubectl get pods -n {self._namespace} ",style("bold red")))
+                self._logger.info(f"Timeout waiting for cleanup of IBM FileNet Content Manager deployment pods. "
+                                    f"Please check pod status using: "
+                                    f'kubectl describe pod $(kubectl get pods -n {self._namespace} -o name)'
+                                )
                 exit(1)
         except Exception as e:
             self._logger.info("Error in logic for checking when resources are deleted -", e)
 
         progress.log()
         progress.log(Panel.fit(Text("All resources have been deleted successfully..."), style="bold green"))
+        self._logger.info(f"All resources have been deleted successfully")
         progress.advance(task1)
 
     def collect_operator_details(self):
         operator_deployment = "ibm-fncm-operator"
+        self._logger.info(f"Getting {operator_deployment} details")
         operator_details = self._kube.get_operator_details(self._namespace, operator_deployment)
         if not operator_details:
             return {}
@@ -192,26 +209,31 @@ class CleanDeployment:
 
             progress.log("Starting FileNet Content Manager Operator OLM Uninstallation")
             progress.log()
+            self._logger.info(f"Starting FNCM Operator OLM uninstallation")
             time.sleep(SLEEP_TIMER)
 
             progress.log()
             progress.log(f"Deleting Subscription...")
+            self._logger.info(f"Deleting Subscription")
             if subscription_name:
                 self._kube.delete_subscription(namespace=self._namespace, name=subscription_name)
             else:
                 progress.log()
                 progress.log(Panel.fit("Subscription not found", style="bold red"))
+                self._logger.info(f"Subscription not found")
             time.sleep(SLEEP_TIMER)
             progress.advance(task1)
 
             progress.log()
             progress.log(f"Deleting CSV...")
+            self._logger.info(f"Deleting CSV")
             if installed_csv:
                 self._kube.delete_clusterserviceversion(csv_name=installed_csv,
                                                     namespace=self._namespace)
             else:
                 progress.log()
                 progress.log(Panel.fit("CSV not found", style="bold red"))
+                self._logger.info(f"CSV not found")
             time.sleep(SLEEP_TIMER)
             progress.advance(task1)
 
@@ -222,6 +244,7 @@ class CleanDeployment:
                 progress.log("Deployed Operator Group is serving more than 1 Operator API")
                 progress.log()
                 progress.log("Updating Operator Group to remove the Operator API served by FileNet Content Manager Operator")
+                self._logger.info(f"Updating Operator Group to remove the Operator API served by FileNet Content Manager Operator")
 
                 self._kube.update_operator_group(namespace=self._namespace, operator_group=operator_group,
                                                  provided_apis=provided_apis)
@@ -231,11 +254,13 @@ class CleanDeployment:
             else:
                 progress.log()
                 progress.log("Deleting Operator Group...")
+                self._logger.info(f"Deleting Operator Group")
                 if operator_group:
                     self._kube.delete_operator_group(namespace=self._namespace, name=operator_group)
                 else:
                     progress.log()
                     progress.log(Panel.fit("Operator Group not found", style="bold red"))
+                    self._logger.info(f"Operator Group not found")
                 time.sleep(SLEEP_TIMER)
                 progress.advance(task1)
 
@@ -244,15 +269,18 @@ class CleanDeployment:
             if self._operator_details["catalogType"].lower() == "private":
                 progress.log()
                 progress.log("Deleting Catalog Source...")
+                self._logger.info(f"Deleting Catalog Source")
                 self._kube.delete_catalog_source(namespace=self._namespace, name=catalog_source)
                 time.sleep(SLEEP_TIMER)
             else:
                 progress.log()
                 progress.log("Skipping the Deletion of Catalog Source as it is installed in a global scope...")
+                self._logger.info(f"Skipping the Deletion of Catalog Source as it is installed in a global scope")
 
             progress.log()
             progress.log(Panel.fit("Uninstalling FileNet Content Manager Operator completed!", style="bold green"))
             progress.log()
+            self._logger.info(f"FNCM Operator uninstallation completed!")
             progress.advance(task1)
 
 
@@ -284,44 +312,53 @@ class CleanDeployment:
 
             progress.log("Starting FileNet Content Manager Operator Yaml Uninstallation")
             progress.log()
+            self._logger.info(f"Starting FNCM Operator yaml uninstallation")
             time.sleep(SLEEP_TIMER)
 
             progress.log()
             progress.log("Deleting Operator Deployment...")
+            self._logger.info(f"Deleting Operator Deployment")
             self._kube.delete_operator_deployment(namespace=self._namespace)
             time.sleep(SLEEP_TIMER)
             progress.advance(task1)
 
             progress.log()
             progress.log("Deleting Operator RoleBinding...")
+            self._logger.info(f"Deleting Operator RoleBinding")
             if rolebinding:
                 self._kube.delete_role_binding(namespace=self._namespace, name=rolebinding)
             else:
                 progress.log()
                 progress.log(Panel.fit("Rolebinding not found", style="bold red"))
+                self._logger.info(f"Rolebinding not found")
             time.sleep(SLEEP_TIMER)
             progress.advance(task1)
 
             progress.log()
             progress.log("Deleting Operator Role...")
+            self._logger.info(f"Deleting Operator Role")
             if role:
                 self._kube.delete_role(namespace=self._namespace, name=role)
             else:
                 progress.log()
                 progress.log(Panel.fit("Role not found", style="bold red"))
+                self._logger.info(f"Role not found")
             time.sleep(SLEEP_TIMER)
             progress.advance(task1)
 
             progress.log()
             progress.log("Deleting Operator Service Account...")
+            self._logger.info(f"Deleting Operator Service Account")
             if service_account:
                 self._kube.delete_service_account(namespace=self._namespace, name=service_account)
             else:
                 progress.log()
                 progress.log(Panel.fit("Service Account not found", style="bold red"))
+                self._logger.info(f"Service Account not found")
             time.sleep(SLEEP_TIMER)
             progress.advance(task1)
 
             progress.log()
             progress.log(Panel.fit("Uninstalling FileNet Content Manager Operator completed!", style="bold green"))
+            self._logger.info(f"FNCM Operator uninstallation completed!")
             progress.advance(task1)

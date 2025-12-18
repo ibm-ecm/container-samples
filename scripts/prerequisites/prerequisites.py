@@ -60,7 +60,7 @@ from helper_scripts.utilities.prerequisites_utilites import zip_folder, \
 from helper_scripts.utilities.utilities import read_version_toml, prereq_checks
 from helper_scripts.validate import validate as v
 
-__version__ = "6.0.2"
+__version__ = "7.0.0"
 
 app = typer.Typer()
 state = {
@@ -198,8 +198,9 @@ def display_mode_version(mode: str, description: str):
 
 @app.command()
 def gather(
-        move: str = typer.Option("", help="Folder location of the migration files", rich_help_panel="Mode Options",
-                                 dir_okay=True),
+        move: Annotated[str, typer.Option(help="Folder location of the migration files",
+                                          rich_help_panel="Mode Options",
+                                          dir_okay=True)] = "",
 ):
     """
     Gather the prerequisites for FileNet Content Manager Deployment.
@@ -217,7 +218,7 @@ def gather(
 
     if not state["silent"]:
         # this is the user details object
-        gather = g.GatherPrereqOptions(state["logger"], console)
+        gather = g.GatherPrereqOptions(logger=state["logger"], console=console)
 
         if move == '':
             gather.collect_license_model(state["version_data"])
@@ -435,11 +436,11 @@ def generate():
 
     if not state["silent"]:
         # this is the user details object
-        deploy1 = g.GatherPrereqOptions(state["logger"], console)
+        deploy1 = g.GatherPrereqOptions(logger=state["logger"], console=console)
         deploy1.collect_namespace()
     else:
-        deploy1 = sg.SilentGatherPrereqOptions(state["logger"],
-                                               os.path.join("silent_config", "silent_install_prerequisites.toml"))
+        deploy1 = sg.SilentGatherPrereqOptions(logger=state["logger"],
+                                               envfile_path=os.path.join("silent_config", "silent_install_prerequisites.toml"))
         # Individual components loaded:
         deploy1.silent_version(state["version_data"])
         deploy1.silent_namespace()
