@@ -234,7 +234,7 @@ def mustgather_details(cr_details: dict, components: [], operator_details: dict)
 
         summary_msg += ("- The FileNet Content Manager Custom Resource (CR) file\n"
                         "- Components Logs\n"
-                        "- Workloads: Deployment & Pod Details\n"
+                        "- Workloads: Deployment, Pods & PDB Details\n"
                         "- Networking: Route, Ingress & Services\n"
                         "- Storage: PVCs, PVs & StorageClasses\n"
                         "- Configuration: If approved, Configmaps and Secrets\n"

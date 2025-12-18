@@ -62,6 +62,7 @@ class MustGather:
             progress.log()
             progress.log(f"Collecting cluster version information")
             progress.log()
+            self._logger.info("Collecting cluster version information")
             path = os.path.join(
                 f"{cluster_folder_path}",
                 "cluster_version.yaml",
@@ -78,6 +79,7 @@ class MustGather:
 
         try:
             progress.log("Collecting cluster events")
+            self._logger.info("Collecting cluster events")
             progress.log()
             path = os.path.join(
                 f"{cluster_folder_path}",
@@ -98,6 +100,7 @@ class MustGather:
         try:
             progress.log("Collecting cluster node information")
             progress.log()
+            self._logger.info("Collecting cluster node information")
             path = os.path.join(
                 f"{cluster_folder_path}",
                 "nodes.yaml",
@@ -116,6 +119,7 @@ class MustGather:
         try:
             progress.log("Collecting node resource allocations and usage")
             progress.log()
+            self._logger.info("Collecting node resource allocations and usage")
             path = os.path.join(
                 f"{cluster_folder_path}",
                 "nodeusage.yaml",
@@ -143,10 +147,12 @@ class MustGather:
         try:
             progress.log(Panel.fit("Starting Secrets Information Collection", style="cyan"))
             progress.log()
+            self._logger.info("Starting secrets information collection")
 
             for secret in secrets:
                 progress.log(f"Collecting secret {secret}")
                 progress.log()
+                self._logger.info(f"Collecting secret: {secret} details")
                 path = os.path.join(
                     f"{secrets_folder_path}",
                     f"{secret}.yaml",
@@ -159,6 +165,7 @@ class MustGather:
 
             progress.log()
             progress.log(Panel.fit("Secrets Information Collection Completed", style="bold green"))
+            self._logger.info("Secrets information collection completed")
 
         except Exception as e:
             self._logger.info("Unable to retrieve secrets, caught %s Skipping...", e)
@@ -176,10 +183,12 @@ class MustGather:
         try:
             progress.log(Panel.fit("Starting ConfigMap Information Collection", style="cyan"))
             progress.log()
+            self._logger.info("Starting ConfigMap information collection")
 
             for configmap in configmaps:
                 progress.log(f"Collecting configmap {configmap}")
                 progress.log()
+                self._logger.info(f"Collecting configmap: {configmap} info")
                 path = os.path.join(
                     f"{configmap_folder_path}",
                     f"{configmap}.yaml",
@@ -192,6 +201,7 @@ class MustGather:
 
             progress.log()
             progress.log(Panel.fit("ConfigMap Information Collection Completed", style="bold green"))
+            self._logger.info("ConfigMap information collection completed")
 
         except Exception as e:
             self._logger.info("Unable to retrieve configmaps, caught %s Skipping...", e)
@@ -209,10 +219,12 @@ class MustGather:
         try:
             progress.log(Panel.fit("Starting Deployment Information Collection", style="cyan"))
             progress.log()
+            self._logger.info("Starting Deployment information collection")
 
             for deployment in deployments:
                 progress.log(f"Collecting deployment {deployment}")
                 progress.log()
+                self._logger.info(f"Collecting deployment: {deployment} info")
                 path = os.path.join(
                     f"{deployment_folder_path}",
                     f"{deployment}.yaml",
@@ -225,6 +237,7 @@ class MustGather:
 
             progress.log()
             progress.log(Panel.fit("Deployment Information Collection Completed", style="bold green"))
+            self._logger.info("Deployment information collection completed")
 
         except Exception as e:
             self._logger.info("Unable to retrieve deployments, caught %s Skipping...", e)
@@ -242,10 +255,12 @@ class MustGather:
         try:
             progress.log(Panel.fit("Starting Ingress Information Collection", style="cyan"))
             progress.log()
+            self._logger.info("Starting Ingress information collection")
 
             for ingress in ingresses:
                 progress.log(f"Collecting ingress {ingress}")
                 progress.log()
+                self._logger.info(f"Collecting ingress: {ingress} info")
                 path = os.path.join(
                     f"{ingress_folder_path}",
                     f"{ingress}.yaml",
@@ -258,6 +273,7 @@ class MustGather:
 
             progress.log()
             progress.log(Panel.fit("Ingress Information Collection Completed", style="bold green"))
+            self._logger.info("Ingress information collection completed")
 
         except Exception as e:
             self._logger.info("Unable to retrieve ingresses, caught %s Skipping...", e)
@@ -275,10 +291,12 @@ class MustGather:
         try:
             progress.log(Panel.fit("Starting Route Information Collection", style="cyan"))
             progress.log()
+            self._logger.info("Starting Routes information collection")
 
             for route in routes:
                 progress.log(f"Collecting route {route}")
                 progress.log()
+                self._logger.info(f"Collecting route: {route} info")
                 path = os.path.join(
                     f"{route_folder_path}",
                     f"{route}.yaml",
@@ -291,6 +309,7 @@ class MustGather:
 
             progress.log()
             progress.log(Panel.fit("Route Information Collection Completed", style="bold green"))
+            self._logger.info("Routes information collection completed")
 
         except Exception as e:
             self._logger.info("Unable to retrieve routes, caught %s Skipping...", e)
@@ -308,10 +327,12 @@ class MustGather:
         try:
             progress.log(Panel.fit("Starting HPA Information Collection", style="cyan"))
             progress.log()
+            self._logger.info("Starting HPA information collection")
 
             for hpa in hpas:
                 progress.log(f"Collecting HPA {hpa}")
                 progress.log()
+                self._logger.info(f"Collecting HPA: {hpa} info")
                 path = os.path.join(
                     f"{hpa_folder_path}",
                     f"{hpa}.yaml",
@@ -324,10 +345,45 @@ class MustGather:
 
             progress.log()
             progress.log(Panel.fit("HPA Information Collection Completed", style="bold green"))
+            self._logger.info("HPA information collection completed")
 
         except Exception as e:
             self._logger.info("Unable to retrieve HPAs, caught %s Skipping...", e)
             progress.log(Text(f"Unable to retrieve HPAs", style="bold red"))
+            progress.log()
+
+    # Function to collect all PodDisruptionBudget information
+    def collect_pdb_info(self, progress, pdbs=[]):
+        pdb_folder_path = os.path.join(self._mustgather_folder, "pdbs")
+        if not os.path.exists(pdb_folder_path):
+            os.makedirs(pdb_folder_path)
+
+        try:
+            progress.log(Panel.fit("Starting PDB Information Collection", style="cyan"))
+            progress.log()
+            self._logger.info("Starting PDB information collection")
+
+            for pdb in pdbs:
+                progress.log(f"Collecting PDB {pdb}")
+                progress.log()
+                self._logger.info(f"Collecting PDB: {pdb} info")
+                path = os.path.join(
+                    f"{pdb_folder_path}",
+                    f"{pdb}.yaml",
+                )
+                if os.path.isfile(path):
+                    self._logger.info("Already collected in the previous step. Skipping...")
+                else:
+                    pdb_response = self._kube.describe_pdb(pdb, self._namespace)
+                    write_yaml_to_file(pdb_response, path)
+
+            progress.log()
+            progress.log(Panel.fit("PDB Information Collection Completed", style="bold green"))
+            self._logger.info("PDB information collection completed")
+
+        except Exception as e:
+            self._logger.info("Unable to retrieve PDBs, caught %s Skipping...", e)
+            progress.log(Text(f"Unable to retrieve PDBs", style="bold red"))
             progress.log()
 
     # Function to collect Network Policy information
@@ -341,10 +397,12 @@ class MustGather:
         try:
             progress.log(Panel.fit("Starting Network Policy Information Collection", style="cyan"))
             progress.log()
+            self._logger.info("Starting Network Policy information collection")
 
             for network_policy in network_policies:
                 progress.log(f"Collecting network policy {network_policy}")
                 progress.log()
+                self._logger.info(f"Collecting network policy: {network_policy} info")
                 path = os.path.join(
                     f"{network_policy_folder_path}",
                     f"{network_policy}.yaml",
@@ -357,6 +415,7 @@ class MustGather:
 
             progress.log()
             progress.log(Panel.fit("Network Policy Information Collection Completed", style="bold green"))
+            self._logger.info("Network Policy information collection completed")
 
         except Exception as e:
             self._logger.info("Unable to retrieve network policies, caught %s Skipping...", e)
@@ -374,10 +433,12 @@ class MustGather:
         try:
             progress.log(Panel.fit("Starting Service Information Collection", style="cyan"))
             progress.log()
+            self._logger.info("Starting Service information collection")
 
             for service in services:
                 progress.log(f"Collecting service {service}")
                 progress.log()
+                self._logger.info(f"Collecting service: {service} info")
                 path = os.path.join(
                     f"{service_folder_path}",
                     f"{service}.yaml",
@@ -390,6 +451,7 @@ class MustGather:
 
             progress.log()
             progress.log(Panel.fit("Service Information Collection Completed", style="bold green"))
+            self._logger.info("Service information collection completed")
 
         except Exception as e:
             self._logger.info("Unable to retrieve services, caught %s Skipping...", e)
@@ -407,10 +469,12 @@ class MustGather:
         try:
             progress.log(Panel.fit("Starting PVC Information Collection", style="cyan"))
             progress.log()
+            self._logger.info("Starting PVC information collection")
 
             for pvc in pvcs:
                 progress.log(f"Collecting PVC {pvc}")
                 progress.log()
+                self._logger.info(f"Collecting PVC: {pvc} info")
                 path = os.path.join(
                     f"{pvc_folder_path}",
                     f"{pvc}.yaml",
@@ -423,6 +487,7 @@ class MustGather:
 
             progress.log()
             progress.log(Panel.fit("PVC Information Collection Completed", style="bold green"))
+            self._logger.info("PVC information collection completed")
 
         except Exception as e:
             self._logger.info("Unable to retrieve pvcs, caught %s Skipping...", e)
@@ -434,6 +499,7 @@ class MustGather:
         try:
             progress.log(Panel.fit("Collecting FNCM Custom Resource File", style="cyan"))
             progress.log()
+            self._logger.info("Collecting FNCM Custom Resource File")
             path = os.path.join(
                 f"{self._mustgather_folder}",
                 f"{self._cr_name}-cr.yaml",
@@ -444,9 +510,11 @@ class MustGather:
                 cr_response = self._kube.custom_resource
 
                 progress.log(f"Collecting custom resource {name}")
+                self._logger.info(f"Collecting custom resource: {name} info")
                 write_yaml_to_file(cr_response, path)
             progress.log()
             progress.log(Panel.fit("FNCM Custom Resource Collection Completed", style="bold green"))
+            self._logger.info("FNCM Custom Resource collection completed")
 
         except Exception as e:
             self._logger.info("Unable to retrieve CR, caught %s Skipping...", e)
@@ -464,10 +532,12 @@ class MustGather:
         try:
             progress.log(Panel.fit("Starting Storage Class Information Collection", style="cyan"))
             progress.log()
+            self._logger.info("Starting storage class information collection")
 
             for storage_class in storage_classes:
                 progress.log(f"Collecting storage class {storage_class}")
                 progress.log()
+                self._logger.info(f"Collecting storage class: {storage_class} info")
                 path = os.path.join(
                     f"{storageclass_folder_path}",
                     f"{storage_class}.yaml",
@@ -480,6 +550,7 @@ class MustGather:
 
             progress.log()
             progress.log(Panel.fit("Storage Class Information Collection Completed", style="bold green"))
+            self._logger.info("Storage class information collection completed")
 
         except Exception as e:
             self._logger.info("Unable to retrieve storage classes, caught %s Skipping...", e)
@@ -490,14 +561,17 @@ class MustGather:
         operator_pods = operator_details["pods"]
 
         try:
+            self._logger.info("Starting network policy templates collection")
             policies_folder_path = os.path.join(self._mustgather_folder, "templates")
             if not os.path.exists(policies_folder_path):
                 os.makedirs(policies_folder_path)
                 progress.log()
                 progress.log("Creating Network Policy Templates folder")
+                self._logger.info(f"Creating Network Policy Templates folder: {policies_folder_path}")
             else:
                 progress.log()
                 progress.log("Using existing Network Policy Templates folder")
+                self._logger.info(f"Using existing Network Policy Templates folder: {policies_folder_path}")
 
             progress.log()
             progress.log("Collecting Egress Network Policy Templates")
@@ -515,6 +589,8 @@ class MustGather:
 
             progress.log()
             progress.log(Panel.fit("Network Policy Templates Collection Completed", style="bold green"))
+            self._logger.info("Network policy templates collection completed.")
+
         except Exception as e:
             self._logger.info("Unable to retrieve Network Policy Templates, caught %s Skipping...", e)
             progress.log()
@@ -548,6 +624,7 @@ class MustGather:
 
         print()
         print(Panel.fit(Text(f"Applying Egress and Ingress Network Policies"), style="cyan"))
+        self._logger.info("Applying egress and ingress network policies")
 
         for file in egress_files:
             # Get Filename from path
@@ -588,6 +665,7 @@ class MustGather:
 
         print()
         print(Panel.fit(Text(f"Successfully applied Egress and Ingress Network Policies", style="bold green")))
+        self._logger.info("Applied egress and ingress network policies.")
 
     # Function to collect CPE information
     def collect_cpe_info(self, progress, collect_sensitive, pods=list, init_containers=list):
@@ -601,6 +679,7 @@ class MustGather:
 
         progress.log(Panel.fit("Starting CPE Information Collection", style="cyan"))
         progress.log()
+        self._logger.info(f"Starting CPE Information Collection")
 
         try:
             if len(cpe_pods) == 0:
@@ -612,6 +691,7 @@ class MustGather:
             # Collection from the first pods as this shared in a PVC
             progress.log(f"Collecting FileNet logs")
             progress.log()
+            self._logger.info(f"Collecting FileNet logs")
             path = os.path.join(
                 f"{cpe_folder_path}",
                 f"FileNet",
@@ -629,6 +709,7 @@ class MustGather:
             if collect_sensitive:
                 progress.log(f"Collecting CPE configuration files")
                 progress.log()
+                self._logger.info(f"Collecting CPE configuration files")
                 path = os.path.join(
                     f"{cpe_folder_path}",
                     f"ConfigDropins",
@@ -644,10 +725,12 @@ class MustGather:
             for pod in cpe_pods:
                 progress.log(Panel.fit(f"Collecting for CPE pod: {pod}", style="yellow"))
                 progress.log()
+                self._logger.info(f"Collecting for CPE pod: {pod}")
                 self.collect_pod_info(progress, cpe_folder_path, pod, init_containers, "cpe")
 
             progress.log(Panel.fit("CPE Information Collection Completed", style="bold green"))
             progress.log()
+            self._logger.info(f"CPE information collection completed.")
 
         except Exception as e:
             self._logger.info("Unable to retrieve CPE, caught %s Skipping...", e)
@@ -683,6 +766,7 @@ class MustGather:
         if component not in ["css", "operator", "iccsap"]:
             progress.log(f"Collecting Liberty logs")
             progress.log()
+            self._logger.info(f"Collecting liberty logs for component: {component}")
 
             self._kube.copy_files_from_pod(pod_name=pod, namespace=self._namespace,
                                                     src_path=f"/opt/ibm/wlp/usr/servers/defaultServer/logs/{pod}",
@@ -693,6 +777,7 @@ class MustGather:
         for container in init_containers:
             progress.log(f"Collecting init-container logs: {container}")
             progress.log()
+            self._logger.info(f"Collecting init-container logs: {container}")
             path = os.path.join(
                 f"{pod_path}",
                 f"{container}.log",
@@ -721,6 +806,7 @@ class MustGather:
 
         progress.log(Panel.fit("Starting IER Information Collection", style="cyan"))
         progress.log()
+        self._logger.info(f"Starting IER Information Collection")
 
         try:
             if len(ier_pods) == 0:
@@ -731,6 +817,7 @@ class MustGather:
             if collect_sensitive:
                 progress.log(f"Collecting IER configuration files")
                 progress.log()
+                self._logger.info(f"Collecting IER configuration files")
                 path = os.path.join(
                     f"{ier_folder_path}",
                     f"ConfigDropins",
@@ -746,11 +833,13 @@ class MustGather:
             for pod in ier_pods:
                 progress.log(Panel.fit(f"Collecting for IER pod: {pod}", style="yellow"))
                 progress.log()
+                self._logger.info(f"Collecting informations and logs for IER pod: {pod}")
 
                 self.collect_pod_info(progress, ier_folder_path, pod, init_containers, "ier")
 
                 progress.log(f"Collecting IER Plugin Configuration")
                 progress.log()
+                self._logger.info(f"Collecting IER Plugin Configuration")
 
                 # Collect plugin-cfg.xml
                 command = ["cat", "/opt/ibm/wlp/usr/servers/defaultServer/logs/state/plugin-cfg.xml"]
@@ -763,6 +852,7 @@ class MustGather:
 
             progress.log(Panel.fit("IER Information Collection Completed", style="bold green"))
             progress.log()
+            self._logger.info(f"IER information collection completed.")
 
         except Exception as e:
             self._logger.info("Unable to retrieve IER, caught %s Skipping...", e)
@@ -781,6 +871,7 @@ class MustGather:
 
         progress.log(Panel.fit("Starting ICCSAP Information Collection", style="cyan"))
         progress.log()
+        self._logger.info(f"Starting ICCSAP Information Collection")
 
         try:
 
@@ -788,6 +879,7 @@ class MustGather:
             if collect_sensitive:
                 progress.log(f"Collecting ICCSAP configuration files")
                 progress.log()
+                self._logger.info(f"Collecting ICCSAP configuration files")
                 path = os.path.join(
                     f"{iccsap_folder_path}",
                     f"ConfigDropins",
@@ -804,6 +896,7 @@ class MustGather:
             for pod in iccsap_pods:
                 progress.log(Panel.fit(f"Collecting for ICCSAP pod: {pod}", style="yellow"))
                 progress.log()
+                self._logger.info(f"Collecting informations and logs for ICCSAP pod: {pod}")
 
                 pod_path = os.path.join(f"{iccsap_folder_path}", "pods", pod)
                 if not os.path.exists(pod_path):
@@ -819,6 +912,7 @@ class MustGather:
 
             progress.log(Panel.fit("ICCSAP Information Collection Completed", style="bold green"))
             progress.log()
+            self._logger.info(f"ICCSAP information collection completed.")
 
         except Exception as e:
             self._logger.info("Unable to retrieve ICCSAP, caught %s Skipping...", e)
@@ -837,16 +931,19 @@ class MustGather:
 
         progress.log(Panel.fit(f"Starting CSS Information Collection: css-deploy-{deployment_num}", style="cyan"))
         progress.log()
+        self._logger.info(f"Starting CSS Information Collection: css-deploy-{deployment_num}")
 
         try:
             if len(css_pods) == 0:
                 progress.log(Text(f"No CSS pods found", style="bold red"))
                 progress.log()
+                self._logger.info(f"No CSS pods found!")
                 return
             # Collect Configuration Files
             if collect_sensitive:
                 progress.log(f"Collecting CSS configuration files")
                 progress.log()
+                self._logger.info(f"Collecting CSS configuration files")
                 path = os.path.join(
                     f"{css_folder_path}",
                     f"Configuration",
@@ -863,6 +960,7 @@ class MustGather:
             for pod in css_pods:
                 progress.log(Panel.fit(f"Collecting for CSS pod: {pod}", style="yellow"))
                 progress.log()
+                self._logger.info(f"Collecting information and logs for CSS pod: {pod}")
 
                 pod_path = os.path.join(f"{css_folder_path}", "pods", pod)
                 if not os.path.exists(pod_path):
@@ -878,6 +976,7 @@ class MustGather:
 
             progress.log(Panel.fit("CSS Information Collection Completed", style="bold green"))
             progress.log()
+            self._logger.info(f"CSS information collection completed.")
 
         except Exception as e:
             self._logger.info("Unable to retrieve CSS, caught %s Skipping...", e)
@@ -896,16 +995,19 @@ class MustGather:
 
         progress.log(Panel.fit("Starting GraphQL Information Collection", style="cyan"))
         progress.log()
+        self._logger.info(f"Starting GraphQL Information Collection")
 
         try:
             if len(graphql_pods) == 0:
                 progress.log(Text(f"No GraphQL pods found", style="bold red"))
                 progress.log()
+                self._logger.info(f"No GraphQL pods found")
                 return
             # Collect Configuration Files
             if collect_sensitive:
                 progress.log(f"Collecting GraphQL configuration files")
                 progress.log()
+                self._logger.info(f"Collecting GraphQL configuration files")
                 path = os.path.join(
                     f"{graphql_folder_path}",
                     f"ConfigDropins",
@@ -921,11 +1023,13 @@ class MustGather:
             for pod in graphql_pods:
                 progress.log(Panel.fit(f"Collecting for GraphQL pod: {pod}", style="yellow"))
                 progress.log()
+                self._logger.info(f"Collecting information and logs for GraphQL pod: {pod}")
 
                 self.collect_pod_info(progress, graphql_folder_path, pod, init_containers, "graphql")
 
             progress.log(Panel.fit("GraphQL Information Collection Completed", style="bold green"))
             progress.log()
+            self._logger.info(f"GraphQL information collection completed.")
 
         except Exception as e:
             self._logger.info("Unable to retrieve GraphQL, caught %s Skipping...", e)
@@ -944,16 +1048,19 @@ class MustGather:
 
         progress.log(Panel.fit("Starting ExternalShare Information Collection", style="cyan"))
         progress.log()
+        self._logger.info(f"Starting ExternalShare Information Collection")
 
         try:
             if len(externalshare_pods) == 0:
                 progress.log(Text(f"No ExternalShare pods found", style="bold red"))
                 progress.log()
+                self._logger.info(f"No ExternalShare pods found")
                 return
             # Collect Configuration Files
             if collect_sensitive:
                 progress.log(f"Collecting ExternalShare configuration files")
                 progress.log()
+                self._logger.info(f"Collecting ExternalShare configuration files")
                 path = os.path.join(
                     f"{externalshare_folder_path}",
                     f"ConfigDropins",
@@ -970,11 +1077,13 @@ class MustGather:
             for pod in externalshare_pods:
                 progress.log(Panel.fit(f"Collecting for ExternalShare pod: {pod}", style="yellow"))
                 progress.log()
+                self._logger.info(f"Collecting information and logs for ExternalShare pod: {pod}")
 
                 self.collect_pod_info(progress, externalshare_folder_path, pod, init_containers, "es")
 
             progress.log(Panel.fit("ExternalShare Information Collection Completed", style="bold green"))
             progress.log()
+            self._logger.info(f"ExternalShare information collection completed.")
 
         except Exception as e:
             self._logger.info("Unable to retrieve ExternalShare, caught %s Skipping...", e)
@@ -993,16 +1102,19 @@ class MustGather:
 
         progress.log(Panel.fit("Starting CMIS Information Collection", style="cyan"))
         progress.log()
+        self._logger.info(f"Starting CMIS Information Collection")
 
         try:
             if len(cmis_pods) == 0:
                 progress.log(Text(f"No CMIS pods found", style="bold red"))
                 progress.log()
+                self._logger.info(f"No CMIS pods found")
                 return
             # Collect Configuration Files
             if collect_sensitive:
                 progress.log(f"Collecting CMIS configuration files")
                 progress.log()
+                self._logger.info(f"Collecting CMIS configuration files")
                 path = os.path.join(
                     f"{cmis_folder_path}",
                     f"ConfigDropins",
@@ -1019,11 +1131,13 @@ class MustGather:
             for pod in cmis_pods:
                 progress.log(Panel.fit(f"Collecting for CMIS pod: {pod}", style="yellow"))
                 progress.log()
+                self._logger.info(f"Collecting information and logs for CMIS pod: {pod}")
 
                 self.collect_pod_info(progress, cmis_folder_path, pod, init_containers, "cmis")
 
             progress.log(Panel.fit("CMIS Information Collection Completed", style="bold green"))
             progress.log()
+            self._logger.info(f"CMIS information collection completed.")
 
         except Exception as e:
             self._logger.info("Unable to retrieve CMIS, caught %s Skipping...", e)
@@ -1042,16 +1156,19 @@ class MustGather:
 
         progress.log(Panel.fit("Starting TaskManager Information Collection", style="cyan"))
         progress.log()
+        self._logger.info(f"Starting TaskManager Information Collection")
 
         try:
             if len(taskmanager_pods) == 0:
                 progress.log(Text(f"No TaskManager pods found", style="bold red"))
                 progress.log()
+                self._logger.info(f"No TaskManager pods found")
                 return
             # Collect Configuration Files
             if collect_sensitive:
                 progress.log(f"Collecting TaskManager configuration files")
                 progress.log()
+                self._logger.info(f"Collecting TaskManager configuration files")
                 path = os.path.join(
                     f"{taskmanager_folder_path}",
                     f"ConfigDropins",
@@ -1068,11 +1185,13 @@ class MustGather:
             for pod in taskmanager_pods:
                 progress.log(Panel.fit(f"Collecting for TaskManager pod: {pod}", style="yellow"))
                 progress.log()
+                self._logger.info(f"Collecting information and logs for TaskManager pod: {pod}")
 
                 self.collect_pod_info(progress, taskmanager_folder_path, pod, init_containers, "tm")
 
             progress.log(Panel.fit("TaskManager Information Collection Completed", style="bold green"))
             progress.log()
+            self._logger.info(f"TaskManager information collection completed.")
 
         except Exception as e:
             self._logger.info("Unable to retrieve TaskManager, caught %s Skipping...", e)
@@ -1091,16 +1210,19 @@ class MustGather:
 
         progress.log(Panel.fit("Starting Navigator Information Collection", style="cyan"))
         progress.log()
+        self._logger.info(f"Starting Navigator Information Collection")
 
         try:
             if len(navigator_pods) == 0:
                 progress.log(Text(f"No Navigator pods found", style="bold red"))
                 progress.log()
+                self._logger.info(f"No Navigator pods found")
                 return
             # Collect Configuration Files
             if collect_sensitive:
                 progress.log(f"Collecting Navigator configuration files")
                 progress.log()
+                self._logger.info(f"Collecting Navigator configuration files")
                 path = os.path.join(
                     f"{navigator_folder_path}",
                     f"ConfigDropins",
@@ -1117,11 +1239,13 @@ class MustGather:
             for pod in navigator_pods:
                 progress.log(Panel.fit(f"Collecting for Navigator pod: {pod}", style="yellow"))
                 progress.log()
+                self._logger.info(f"Collecting information and logs for Navigator pod: {pod}")
 
                 self.collect_pod_info(progress, navigator_folder_path, pod, init_containers, "ban")
 
             progress.log(Panel.fit("Navigator Information Collection Completed", style="bold green"))
             progress.log()
+            self._logger.info(f"Navigator information collection completed.")
 
         except Exception as e:
             self._logger.info("Unable to retrieve Navigator, caught %s Skipping...", e)
@@ -1140,12 +1264,14 @@ class MustGather:
 
         progress.log(Panel.fit("Starting FNCM Operator Information Collection", style="cyan"))
         progress.log()
+        self._logger.info(f"Starting FNCM Operator Information Collection")
 
         try:
             # Collect Deployment Information
             deployment = operator_details["deployment"]
             progress.log(f"Collecting deployment {deployment}")
             progress.log()
+            self._logger.info(f"Collecting information on deployment: {deployment}")
             path = os.path.join(
                 f"{operator_folder_path}",
                 f"{deployment}.yaml",
@@ -1175,6 +1301,7 @@ class MustGather:
                 subscription = operator_details["subscription"]
                 progress.log(f"Collecting subscription {subscription}")
                 progress.log()
+                self._logger.info(f"Collecting information on subscription: {subscription}")
                 path = os.path.join(
                     f"{operator_folder_path}",
                     f"subscription.yaml",
@@ -1189,6 +1316,7 @@ class MustGather:
                 catalogsource_namespace = operator_details["sourceNamespace"]
                 progress.log(f"Collecting catalogsource {catalogsource}")
                 progress.log()
+                self._logger.info(f"Collecting information on catalogsource: {catalogsource}")
                 path = os.path.join(
                     f"{operator_folder_path}",
                     f"catalogsource.yaml",
@@ -1201,6 +1329,7 @@ class MustGather:
                 operator_group = operator_details["operatorGroup"]
                 progress.log(f"Collecting operator group {operator_group}")
                 progress.log()
+                self._logger.info(f"Collecting information on operator group: {operator_group}")
                 path = os.path.join(
                     f"{operator_folder_path}",
                     f"operatorgroup.yaml",
@@ -1213,6 +1342,7 @@ class MustGather:
             if len(operator_pods) == 0:
                 progress.log(Text(f"No Content Operator pods found", style="bold red"))
                 progress.log()
+                self._logger.info(f"No Content Operator pods found")
                 return
 
             for pod in operator_pods:
@@ -1223,6 +1353,7 @@ class MustGather:
 
                 progress.log(Panel.fit(f"Collecting for Content Operator pod: {pod}", style="yellow"))
                 progress.log()
+                self._logger.info(f"Collecting information for Content Operator pod: {pod}")
 
                 init_containers = operator_details["init_containers"]
 
@@ -1230,6 +1361,7 @@ class MustGather:
 
             progress.log(f"Collecting FNCM Operator Ansible logs")
             progress.log()
+            self._logger.info(f"Collecting logs for FNCM Operator Ansible logs")
             path = os.path.join(
                 f"{operator_folder_path}",
                 f"logs"
@@ -1258,6 +1390,7 @@ class MustGather:
 
                 progress.log(f"No completed Ansible logs found in /logs folder. Downloading the in progress logs from /tmp folder")
                 progress.log()
+                self._logger.info(f"No completed Ansible logs found in /logs folder. Downloading the in progress logs from /tmp folder")
 
                 self._kube.copy_files_from_pod(pod_name=operator_pods[0], namespace=self._namespace,
                                                src_path=f'/tmp/ansible-operator/runner/fncm.ibm.com/v1/FNCMCluster/{self._namespace}/{self._cr_name}/artifacts',
@@ -1267,6 +1400,7 @@ class MustGather:
 
             progress.log(Panel.fit("Content Operator Information Collection Completed", style="bold green"))
             progress.log()
+            self._logger.info(f"Content operator information collection completed.")
 
         except Exception as e:
             self._logger.info("Unable to retrieve Content Operator, caught %s Skipping...", e)
@@ -1278,6 +1412,7 @@ class MustGather:
         try:
             progress.log(f"Collecting environment variables")
             progress.log()
+            self._logger.info(f"Collecting environment variables")
             command = ["printenv"]
             env_vars = self._kube.pod_exec(pod, self._namespace, command)
             local_path = os.path.join(
@@ -1300,6 +1435,7 @@ class MustGather:
         try:
             progress.log(f"Collecting component version")
             progress.log()
+            self._logger.info(f"Collecting component version for {pod}")
             command = ["cat", "/opt/ibm/version.txt"]
             version = self._kube.pod_exec(pod, self._namespace, command)
             local_path = os.path.join(
@@ -1322,6 +1458,7 @@ class MustGather:
         try:
             progress.log(f"Collecting liberty version")
             progress.log()
+            self._logger.info(f"Collecting liberty version for {pod}")
             command = ["/opt/ibm/wlp/bin/server", "version"]
             version = self._kube.pod_exec(pod, self._namespace, command)
             local_path = os.path.join(
@@ -1344,6 +1481,7 @@ class MustGather:
         try:
             progress.log(f"Collecting jvm.options")
             progress.log()
+            self._logger.info(f"Collecting jvm options for {pod}")
             command = ["cat", "/opt/ibm/wlp/usr/servers/defaultServer/jvm.options"]
             options = self._kube.pod_exec(pod, self._namespace, command)
             local_path = os.path.join(
@@ -1366,6 +1504,7 @@ class MustGather:
         try:
             progress.log(f"Collecting IBM Java version")
             progress.log()
+            self._logger.info(f"Collecting IBM Java version for {pod}")
             command = ["java", "-version"]
             version = self._kube.pod_exec(pod, self._namespace, command)
             local_path = os.path.join(

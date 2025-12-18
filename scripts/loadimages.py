@@ -39,7 +39,7 @@ from helper_scripts.utilities.interface import clear, display_issues, display_pr
 from helper_scripts.utilities.utilities import validate_image_details_file, prereq_checks, read_version_toml, \
     validate_airgap_details_file
 
-__version__ = "6.0.2"
+__version__ = "7.0.0"
 
 app = typer.Typer()
 
@@ -52,7 +52,8 @@ state = {
     "image_details": "",
     "dryrun": False,
     "airgap": False,
-    "version_data": {}
+    "version_data": {},
+    "tls_verify": True
 }
 
 console = Console(record=True)
@@ -91,7 +92,7 @@ def version_callback(value: bool):
 
 def push_airgap_images():
     load = le.LoadExtract(console, state["logger"], silent=state["silent"], dev=state["dev"], airgap=state["airgap"],
-                          folder_path=state["image_details"], version_data=state["version_data"])
+                          folder_path=state["image_details"], version_data=state["version_data"], tls_verify=state["tls_verify"])
 
     # Check and validate the airgap details file
     airgap_detail_file = os.path.join(state["image_details"], "airgap_variables.sh")
@@ -114,6 +115,7 @@ def push_airgap_images():
     print()
     print(Panel.fit(Text("Starting Airgap Mirror Manifest Generation"), style="cyan"))
     print()
+    state["logger"].info(f"Starting Airgap Mirror Manifest Generation")
 
     with Progress(SpinnerColumn(),
                   TextColumn("[progress.description]{task.description}"),
@@ -131,10 +133,12 @@ def push_airgap_images():
 
     if not oc_enabled:
         print(Text("OC Mirror tool is not available. Please install the tool and try again.", style("bold red")))
+        state["logger"].info(f"OC Mirror tool is not available. Please install the tool and try again.")
         exit(1)
 
     if not manifest_results:
         print(Text("Mirror manifest failed to generate. Please check error logs for more information", style("bold red")))
+        state["logger"].info(f"Mirror manifest failed to generate.")
         exit(1)
 
     clear(console)
@@ -159,6 +163,7 @@ def push_airgap_images():
     clear(console)
 
     print(Panel.fit("Starting FileNet Content Manager Airgap Image Mirror", style="cyan"))
+    state["logger"].info(f"Starting FileNet Content Manager Airgap Image Mirroring")
     with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -211,6 +216,7 @@ def push_cncf_images():
     clear(console)
 
     print(Panel.fit("Starting FileNet Content Manager Image Push", style="cyan"))
+    state["logger"].info(f"Starting FileNet Content Manager Image Push")
     with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -232,7 +238,7 @@ def push_cncf_images():
 
 def generate_cncf_images():
     extract = le.LoadExtract(console, state["logger"], silent=state["silent"], dev=state["dev"], airgap=state["airgap"],
-                             folder_path=state["image_details"])
+                             folder_path=state["image_details"], version_data=state["version_data"], tls_verify=state["tls_verify"])
     extract.parse_content_template()
     extract.parse_operator_template()
     extract.create_image_details_file()
@@ -243,22 +249,35 @@ def generate_cncf_images():
 
 def generate_airgap_images():
     extract = le.LoadExtract(console, state["logger"], silent=state["silent"], dev=state["dev"], airgap=state["airgap"],
-                             folder_path=state["image_details"], version_data=state["version_data"])
+                             folder_path=state["image_details"], version_data=state["version_data"], tls_verify=state["tls_verify"])
 
-    # Collect CASEPackage Version from version.toml
-    # Collect base version from version.toml
+    # Determine CASE Package version to download
+    # Check if version was provided via CLI
+    casepackage_version = state.get("casepackage_version", "")
 
-    if state["version_data"]:
-        fncm_version = state["version_data"]["VERSION"].split('-')[0]
-        extract.fncm_version = fncm_version
-        if "CASE_VERSION" in state["version_data"]:
-            casepackage_version = state["version_data"]["CASE_VERSION"]
+    # If not, check if version was provided via version file
+    if not casepackage_version:
+        # Collect CASEPackage Version from version.toml
+        # Collect base version from version.toml
+        if state["version_data"]:
+            fncm_version = state["version_data"]["VERSION"].split('-')[0]
+            extract.fncm_version = fncm_version
+            if "CASE_VERSION" in state["version_data"]:
+                casepackage_version = state["version_data"]["CASE_VERSION"]
 
-    # Collect CASEPackage Version index.yaml
-    # Query user on what version to download
+    # If still not set, exit with error
+    if not casepackage_version:
+        print(Text("CASE Package version not specified. Please provide a version via --casepackage-version or "
+                   "in the version.toml file.", style="bold red"))
+        exit(1)
+
+    # Validate the provided CASE Package version from the index.yaml download
+    # Retrieve available CASE Package versions in a list
     extract.collect_case_versions()
     if extract.case_versions:
-        casepackage_version = extract.select_case_package_version()
+        extract.validate_case_package_version(casepackage_version)
+
+    casepackage_version = extract.casepackage_version
 
     extract.ibmpak_home = os.path.join(os.getcwd())
 
@@ -340,6 +359,12 @@ def display_mode_version(mode: str, description: str):
     if state["silent"]:
         msg += "\nSilent Mode Enabled"
 
+    if state["verbose"]:
+        msg += "\nVerbose Logging Enabled"
+
+    if not state["tls_verify"]:
+        msg += "\nTLS Verification Disabled for Podman Operations"
+
     print(Panel.fit(msg, title="FileNet Content Manager Load Images CLI", border_style="green"))
     print()
 
@@ -379,12 +404,18 @@ def main(ctx: typer.Context,
          verbose: Annotated[bool, typer.Option(
              help="Enable verbose logging.",
              rich_help_panel="Customization and Utils")] = False,
+         tls_verify: Annotated[bool, typer.Option(
+             help="Enable TLS verification for Podman operations.",
+             rich_help_panel="Customization and Utils")] = True,
          airgap: Annotated[bool, typer.Option(
              help="Enable OCP Airgap mode.",
              rich_help_panel="Customization and Utils")] = False,
          dryrun: Annotated[bool, typer.Option(
              help="Perform a dry run",
              rich_help_panel="Customization and Utils")] = False,
+         casepackage_version: Annotated[str, typer.Option(
+                help="Specify CASE Package version to download (Airgap mode only).",
+                rich_help_panel="Customization and Utils")] = "",
          dev: Annotated[bool, typer.Option(hidden=True)] = False):
     """
         FileNet Content Manager Load Images CLI.
@@ -406,6 +437,10 @@ def main(ctx: typer.Context,
         state["dryrun"] = True
     if airgap:
         state["airgap"] = True
+    if casepackage_version:
+        state["casepackage_version"] = casepackage_version
+    if not tls_verify:
+        state["tls_verify"] = False
 
     if airgap:
         state["image_details"] = os.path.join(os.getcwd(), "airgapDetails")
@@ -470,6 +505,8 @@ def main(ctx: typer.Context,
 
     # Read Version File
     version_path = os.path.join(os.path.dirname(os.getcwd()), "version.toml")
+    if not os.path.exists(version_path):
+        version_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "version.toml")
 
     if os.path.exists(version_path):
         state["version_data"] = read_version_toml(version_path, state["logger"])
@@ -479,13 +516,13 @@ def main(ctx: typer.Context,
 
     if not state["silent"]:
         # this is the user details object which does pre-checks and collects some necessary details
-        state["setup"] = g.GatherOptions(state["logger"], console, script_type="load_extract", dev=state["dev"])
+        state["setup"] = g.GatherOptions(state["logger"], console, script_type="load_extract", dev=state["dev"], tls_verify=state["tls_verify"])
 
         state["setup"].podman_available = results["podman"]
     else:
         # this is the user details object which does pre-checks and collects some necessary details
         silent_path = os.path.join("silent_config", "silent_install_loadimages.toml")
-        state["setup"] = sg.SilentGatherOptions(state["logger"], silent_path, script_type="load_extract", dev=state["dev"])
+        state["setup"] = sg.SilentGatherOptions(state["logger"], silent_path, script_type="load_extract", dev=state["dev"], tls_verify=state["tls_verify"])
         state["setup"].silent_parse_load_images_file(airgap)
 
         # Retrieve silent version and channel selection

@@ -229,58 +229,70 @@ class Upgrade:
 
         progress.log(Panel.fit("Starting FileNet Operator YAML Deployment Cleanup", style="cyan"))
         progress.log()
+        self._logger.info(f"Starting clean-up of FNCM Operator YAML Deployment.")
         try:
             progress.log()
             progress.log("Deleting Operator Deployment...")
+            self._logger.info(f"Deleting Operator deployment.")
             self._kube.delete_operator_deployment(namespace=self._namespace)
             sleep(SLEEP_TIMER)
             progress.advance(task)
 
             progress.log()
             progress.log("Deleting Operator RoleBinding...")
+            self._logger.info(f"Deleting Operator role-binding.")
             if rolebinding:
                 self._kube.delete_role_binding(namespace=self._namespace, name=rolebinding)
             else:
                 progress.log()
                 progress.log(Panel.fit("Rolebinding not found", style="bold red"))
+                self._logger.info(f"Rolebinding: {rolebinding} not found.")
             sleep(SLEEP_TIMER)
             progress.advance(task)
 
             progress.log()
             progress.log("Deleting Operator Role...")
+            self._logger.info(f"Deleting Operator role.")
             if role:
                 self._kube.delete_role(namespace=self._namespace, name=role)
             else:
                 progress.log()
                 progress.log(Panel.fit("Role not found", style="bold red"))
+                self._logger.info(f"Role: {role} not found.")
             sleep(SLEEP_TIMER)
             progress.advance(task)
 
             progress.log()
             progress.log("Deleting Operator Service Account...")
+            self._logger.info(f"Deleting Operator service account.")
             if service_account:
                 self._kube.delete_service_account(namespace=self._namespace, name=service_account)
             else:
                 progress.log()
                 progress.log(Panel.fit("Service Account not found", style="bold red"))
+                self._logger.info(f"Service Account: {service_account} not found.")
             sleep(SLEEP_TIMER)
             progress.advance(task)
 
             progress.log(Panel.fit("FileNet Operator YAML Deployment Cleanup Completed", style="bold green"))
             progress.log()
+            self._logger.info(f"Completed clean up of FNCM Operator YAML Deployment")
 
         except Exception as e:
             progress.log(Text(f"Error occurred while removing the resources: {e}", style="bold red"))
+            self._logger.info(f"Error occurred while removing the resources: {e}")
 
     def apply_cncf(self, progress, task):
         try:
             # Number of Tasks = 4
             progress.log(Panel.fit("Starting CRD and Permission Upgrade", style="cyan"))
             progress.log()
+            self._logger.info(f"Starting CRD and Permission Upgrade")
 
             # Apply the CRD
             progress.log(f"Applying/Patching Custom Resource Definition")
             progress.log()
+            self._logger.info(f"Applying/Patching Custom Resource Definition")
             self._kube.apply_cluster_resource_files(
                 resource_file=self.required_file_paths["fncm_v1_fncm_crd.yaml"],
                 resource_type="Custom Resource Definition")
@@ -289,6 +301,7 @@ class Upgrade:
             # Apply the Cluster Role
             progress.log(f"Applying/Patching Cluster Role")
             progress.log()
+            self._logger.info(f"Applying/Patching Custom Role")
             self._kube.apply_cluster_resource_files(
                 resource_file=self.required_file_paths["service_account.yaml"],
                 resource_type="Service Account", namespace=self._setup.namespace)
@@ -297,6 +310,7 @@ class Upgrade:
             # Apply the Role
             progress.log(f"Applying/Patching Role")
             progress.log()
+            self._logger.info(f"Applying/Patching Role")
             self._kube.apply_cluster_resource_files(
                 resource_file=self.required_file_paths["role.yaml"], resource_type="Role",
                 namespace=self._setup.namespace)
@@ -305,28 +319,34 @@ class Upgrade:
             # Apply the Role Binding
             progress.log(f"Applying/Patching Role Binding")
             progress.log()
+            self._logger.info(f"Applying/Patching Role Binding")
             self._kube.apply_role_binding(
                 namespace=self._setup.namespace, resource_file=self.required_file_paths["role_binding.yaml"])
             progress.update(task, advance=1)
 
             progress.log(Panel.fit("CRD and Permission Upgrade Completed", style="bold green"))
             progress.log()
+            self._logger.info(f"CRD and Permission Upgrade Completed")
         except Exception as e:
             progress.log(Text(f"Error occurred while applying the resources: {e}", style="bold red"))
+            self._logger.info(f"Error occurred while applying the resources: {e}")
 
     def apply_olm(self, progress, task):
         # Number of tasks = 3
         try:
             progress.log(Panel.fit("Starting OLM Upgrade", style="cyan"))
             progress.log()
+            self._logger.info(f"Starting OLM Upgrade")
             if self._catalog_type == "Private":
                 self._catalog_namespace = self._namespace
                 progress.log(f"Using private catalog namespace: {self._catalog_namespace}")
                 progress.log()
+                self._logger.info(f"Using private catalog namespace: {self._catalog_namespace}")
 
             else:
                 progress.log(f"Using global catalog namespace (GCN): {self._catalog_namespace}")
                 progress.log()
+                self._logger.info(f"Using global catalog namespace (GCN): {self._catalog_namespace}")
             replace_namespace_in_file(project_name=self._catalog_namespace,
                                       input_file=self.required_file_paths["catalogsource.yaml"],
                                       output_file=self.tmp_file_paths["catalogsource.yaml"],
@@ -334,6 +354,7 @@ class Upgrade:
 
             progress.log(f"Applying/Patching Catalog Source")
             progress.log()
+            self._logger.info(f"Applying/Patching Catalog Source")
 
             self._kube.apply_cluster_resource_files(
                 resource_file=self.tmp_file_paths["catalogsource.yaml"],
@@ -343,6 +364,7 @@ class Upgrade:
             retries = 0
             progress.log(f"Waiting for IBM FileNet Content Manager Operator Catalog Pod to start")
             progress.log()
+            self._logger.info(f"Waiting for IBM FileNet Content Manager Operator Catalog Pod to start")
             while retries < 40:
                 pods = self._core_v1_api.list_namespaced_pod(self._catalog_namespace)
                 running_pods = [pod.metadata.name for pod in pods.items if
@@ -351,6 +373,7 @@ class Upgrade:
                     progress.log(
                         Text(f"IBM FileNet Content Manager Operator Catalog Pod is running.", style="bold green"))
                     progress.log()
+                    self._logger.info(f"IBM FileNet Content Manager Operator Catalog pod is up and running.")
                     progress.update(task, advance=1)
                     break
                 else:
@@ -363,21 +386,25 @@ class Upgrade:
                 progress.log(Text("Timeout Waiting for IBM FileNet Content Manager Operator Catalog pod to start",
                                   style="bold red"))
                 progress.log()
+                self._logger.info(f"Timeout Waiting for IBM FileNet Content Manager Operator Catalog pod to start")
 
                 progress.log("Please check the status of Pod by issuing the below command:")
                 progress.log()
                 progress.log(Syntax(
-                    f"kubectl describe pod $(kubectl get pod -n {self._catalog_namespace} | grep ibm-fncm-operator-catalog | awk '{{print $1}}') -n ${self._catalog_namespace}",
+                    f"kubectl describe pod $(kubectl get pod -n {self._catalog_namespace} | grep ibm-fncm-operator-catalog | awk '{{print $1}}') -n {self._catalog_namespace}",
                     "bash"))
 
             # Collect Operator Group
+            self._logger.info(f"Creating operator group.")
             operator_group = self._kube.get_operator_group(self._namespace)
             if operator_group:
                 progress.log(f"Operator Group already exists")
                 progress.log()
+                self._logger.info(f"Operator Group already exists")
             else:
                 progress.log("Applying/Patching Operator Group")
                 progress.log()
+                self._logger.info(f"Applying/Patching Operator Group")
                 replace_namespace_in_file(project_name=self._namespace,
                                           input_file=self.required_file_paths["operator_group.yaml"],
                                           output_file=self.tmp_file_paths["operator_group.yaml"],
@@ -391,8 +418,10 @@ class Upgrade:
 
             progress.log(Panel.fit("OLM Installation Completed", style="bold green"))
             progress.log()
+            self._logger.info(f"OLM Installation Completed")
         except Exception as e:
             progress.log(Text(f"Error occurred while applying the resources: {e}", style="bold red"))
+            self._logger.info(f"Error occurred while applying the resources: {e}")
 
     def wait_for_operator(self, progress, task):
         try:
@@ -402,6 +431,7 @@ class Upgrade:
             retries = 0
             progress.log(f"Checking rollout status of FileNet Content Management Operator deployment")
             progress.log()
+            self._logger.info(f"Checking rollout status of FileNet Content Management Operator deployment")
             while retries < 40:
                 pods = self._core_v1_api.list_namespaced_pod(self._namespace)
                 running_pods = [pod.metadata.name for pod in pods.items if
@@ -411,6 +441,7 @@ class Upgrade:
                     progress.log(
                         Text(f"IBM FileNet Content Manager Operator Pod is running.", style="bold green"))
                     progress.log()
+                    self._logger.info(f"IBM FileNet Content Manager Operator Pod is running.")
                     progress.update(task, advance=1)
                     break
                 else:
@@ -423,11 +454,12 @@ class Upgrade:
                 progress.log(Text("Timeout Waiting for IBM FileNet Content Manager Operator pod to start",
                                   style="bold red"))
                 progress.log()
+                self._logger.info(f"Timeout Waiting for IBM FileNet Content Manager Operator pod to start")
 
                 progress.log("Please check the status of Pod by issuing the below command:")
                 progress.log()
                 progress.log(Syntax(
-                    f"kubectl describe pod $(kubectl get pods -n {self._namespace} -l 'name=ibm-fncm-operator' | awk '{{print $1}}') -n ${self._namespace}",
+                    f"kubectl describe pod $(kubectl get pods -n {self._namespace} -l 'name=ibm-fncm-operator' | awk '{{print $1}}') -n {self._namespace}",
                     "bash"))
                 exit()
 
@@ -436,15 +468,18 @@ class Upgrade:
         except Exception as e:
             progress.log(Text(f"Error occurred while applying the resources: {e}", style="bold red"))
             progress.log()
+            self._logger.info(f"Error occurred while waiting for the operator: {e}")
 
     def upgrade_operator_olm(self, progress, task):
         # Number of tasks = 2
 
         progress.log(Panel.fit("Starting IBM FileNet Content Manager Operator Upgrade", style="cyan"))
         progress.log()
+        self._logger.info(f"Starting IBM FileNet Content Manager Operator Upgrade")
 
         progress.log(f"Scaling down older operator pod before upgrading")
         progress.log()
+        self._logger.info(f"Scaling down older operator pod prior to the upgrade")
 
         # Scale down older operator pod before upgrading
         # If moving from Yaml deployment, the deployment will not exist
@@ -455,6 +490,7 @@ class Upgrade:
 
         progress.log(f"Applying/Patching Subscription")
         progress.log()
+        self._logger.info(f"Applying/Patching the subscription")
 
         if self._catalog_type == "Private":
             replace_namespace_in_file(project_name=self._namespace,
@@ -464,6 +500,7 @@ class Upgrade:
                                       private=True)
             progress.log(f"Using private catalog namespace: {self._namespace}")
             progress.log()
+            self._logger.info(f"Using private catalog namespace: {self._namespace}")
             progress.update(task, advance=1)
         else:
             replace_namespace_in_file(project_name=self._namespace,
@@ -471,8 +508,10 @@ class Upgrade:
                                       output_file=self.tmp_file_paths["subscription.yaml"],
                                       resource_type="subscription")
             progress.log(f"Using global catalog namespace (GCN): {self._catalog_namespace}")
+            self._logger.info(f"Using global catalog namespace (GCN): {self._catalog_namespace}")
             progress.update(task, advance=1)
 
+        self._logger.info(f"Applying the custom resource files")
         self._kube.apply_cluster_resource_files(
             resource_file=self.tmp_file_paths["subscription.yaml"],
             namespace=self._namespace,
@@ -487,6 +526,7 @@ class Upgrade:
         # Number of tasks = 2
         progress.log(Panel.fit("Starting IBM FileNet Content Manager Operator Upgrade", style="cyan"))
         progress.log()
+        self._logger.info(f"Starting IBM FileNet Content Manager Operator Upgrade")
 
         shutil.copy(self.required_file_paths["operator.yaml"], self.tmp_file_paths["operator.yaml"])
         with open(self.tmp_file_paths["operator.yaml"], 'r') as file:
@@ -494,6 +534,7 @@ class Upgrade:
 
         progress.log("Setting license acceptance to 'accept' in the operator file")
         progress.log()
+        self._logger.info(f"Setting license acceptance to 'accept' in the operator file")
 
         # Update the 'fncm_license' value to 'accept'
         content = re.sub(r'fncm_license:\n  value:.*', 'fncm_license:\n  value: accept', content)
@@ -509,8 +550,9 @@ class Upgrade:
         if self._setup.private_registry_valid:
             progress.log("FileNet Content Management Operator is being upgraded using a private registry")
             progress.log()
+            self._logger.info(f"FileNet Content Management Operator is being upgraded using a private registry")
             pattern = re.compile(re.escape(registry_in_file) + r'\b')
-            replacement = self._setup.private_registry_server
+            replacement = self._setup.private_registry_full_server
             content = pattern.sub(replacement, content)
 
             # Write the modified content back to the temporary operator file
@@ -519,9 +561,11 @@ class Upgrade:
         else:
             progress.log("FileNet Content Management Operator is being upgraded using the IBM Entitlement Registry")
             progress.log()
+            self._logger.info(f"FileNet Content Management Operator is being upgraded using the IBM Entitlement Registry")
             if self._setup.runtime_mode == "dev":
                 progress.log("Using dev registry for FileNet Content Management Operator upgrade")
                 progress.log()
+                self._logger.info(f"Using dev registry for FileNet Content Management Operator upgrade")
                 pattern = re.compile(re.escape(registry_in_file + '/cpopen') + r'\b')
                 replacement = "cp.stg.icr.io" + '/cp'
                 content = pattern.sub(replacement, content)
@@ -532,6 +576,7 @@ class Upgrade:
 
         progress.log(f"Applying/Patching FileNet Operator Deployment")
         progress.log()
+        self._logger.info(f"Applying/Patching FileNet Operator Deployment")
 
         self._kube.apply_cluster_resource_files(
             resource_file=self.tmp_file_paths["operator.yaml"], resource_type="Deployment",
@@ -646,17 +691,22 @@ class Upgrade:
             progress.log()
             progress.log(Panel.fit("Starting Network Policy Patch", style="cyan"))
             progress.log()
+            self._logger.info(f"Starting Network Policy Patch")
+
             for network_policy in resource_type_dict["network_policy"]:
                 self._kube.remove_network_policy_owner_reference(progress= progress,network_policy_name= network_policy,namespace= self._namespace)
             if resource_type_dict["network_policy"] :
                 progress.log(Panel.fit("Network Policy Information Collection Completed", style="bold green"))
                 progress.log(Panel.fit("Owner references for existing Network policy has been removed", style="bold green"))
                 progress.log()
+                self._logger.info(f"All network policy information is collected and owner references for existing network policies have been removed.")
             else:
                 progress.log(Panel.fit("There exists no network policy managed by the FileNet Content Manager Operator", style="bold green"))
                 progress.log()
+                self._logger.info(f"There exists no network policy managed by the FileNet Content Manager Operator")
         except Exception as e:
             self._logger.info("Unable to retrieve network policies, caught %s Skipping...", e)
+            self._logger.info(f"An error occured while retrieving the network policies: {e}")
 
     def remove_custom_ssl_secrets(self, progress):
         resource_type_dict = self._kube.resource_type_dict
@@ -673,19 +723,21 @@ class Upgrade:
                 progress.log()
                 progress.log(Panel.fit("Starting Custom SSL Certificates Patch", style="cyan"))
                 progress.log()
+                self._logger.info(f"Patching custom ssl certificates")
                 for secret in secrets:
                     if secret in resource_type_dict["secret"]:
                         self._kube.delete_secret(namespace=self._namespace, name=secret )
                         progress.log(f"Secret '{secret}' patched successfully.")
                         progress.log()
+                        self._logger.info(f"Secret '{secret}' patched successfully.")
                 
                 progress.log(Panel.fit("Custom SSL Certificates Patch Completed", style="bold green"))
                 progress.log()
+                self._logger.info(f"Completed patching of custom ssl certificates")
         
         except Exception as e:
             self._logger.info(f"Unable to retrieve secrets: {e}")
         
-
 
 
     # Function to update certain CR parameters , used in the upgrade script
@@ -704,12 +756,14 @@ class Upgrade:
         tuple: A tuple containing the updated CR details and a list of updates made.
         """
         try:
+            self._logger.info(f"Updating parameters in the current CR with latest values")
             cr_details = self._current_cr.copy()
             fc_template_cr = self.required_file_paths["ibm_fncm_cr_production_FC_content.yaml"]
             update_list = []
 
             try:
                 # Get the Full Custom Resource Template for updated release
+                self._logger.info(f"Gettin full CR template for the current release")
                 with open(fc_template_cr, 'r') as yaml_file:
                     fc_template_cr_details = yaml.safe_load(yaml_file)
             except Exception as e:
@@ -717,6 +771,7 @@ class Upgrade:
 
             # TODO: Check for "int" type resource values and update to string
             # Update release
+            self._logger.info(f"Updating release label")
             if is_key_present(dictionary=cr_details, key="release"):
                 release = fc_template_cr_details["metadata"]["labels"][
                     "release"]
@@ -724,6 +779,7 @@ class Upgrade:
                 update_list.append(f"Updated release label to {release}")
 
             # Update AppVersion
+            self._logger.info(f"Updating release appVersion and license")
             if is_key_present(dictionary=cr_details, key="appVersion"):
                 if cr_details["spec"]["appVersion"] == "21.0.3":
                     cr_details["spec"]["license"] = {}
@@ -734,6 +790,7 @@ class Upgrade:
                 update_list.append(f"Updated appVersion to {app_version}")
 
             # Remove the image tags if present in the CR
+            self._logger.info(f"Removing image tags")
             if is_key_present(cr_details, "tag"):
                 key_results = find_keys_and_structures(dictionary=cr_details, key="tag")
                 self._logger.info(key_results)
@@ -745,6 +802,7 @@ class Upgrade:
                 update_list.append("Removed older tag")
             
             # Check if component boolean list exists 
+            self._logger.info(f"Updating component list")
             if not is_key_present(cr_details, key="content_optional_components"):
                 self._logger.info("No content_optional_components found in custom resource file")
                 # Copy entire component boolean structure 
@@ -782,6 +840,7 @@ class Upgrade:
 
             # Update resource requests and limits
             # TODO: Make sure limits are higher than currently listed
+            self._logger.info(f"Updated component resource requests and limits")
             if is_key_present(cr_details, key="requests") and is_key_present(cr_details, key="limits"):
                 update_list.append("Updated component resource requests and limits")
                 resources_results = find_keys_and_structures(dictionary=cr_details, key="requests")
@@ -814,6 +873,7 @@ class Upgrade:
 
             # Disable init and verify
             # Takes into account the OLM and script format
+            self._logger.info(f"Disabling initialization and verification")
             try:
                 if is_key_present(cr_details, key="olm_sc_content_initialization"):
                     update_list.append("Disabled Content Initialization")
@@ -842,6 +902,7 @@ class Upgrade:
                     "Exception while updating the initialization and verification fields and sections", e)
 
             # Removing the existing resource version and uid
+            self._logger.info(f"Removing exisitng status field")
             if is_key_present(cr_details, key="status"):
                 update_list.append("Removed status field")
                 cr_details.pop("status")
@@ -865,6 +926,7 @@ class Upgrade:
         None
         """
 
+        self._logger.info(f"Preparing for upgrade")
         self._current_cr = self._kube.get_deployment_cr(
             namespace=self._namespace, logger=self._logger)
         if not self._current_cr:
@@ -909,9 +971,11 @@ class Upgrade:
                                                                f"fncm_{upgrade_version}_cr.yaml")
 
         # Writing the current cr to a file
+        self._logger.info(f"Writing the current cr to {self._current_cr_template_save_location}")
         write_yaml_to_file(self._current_cr, self._current_cr_template_save_location)
 
         # Generate the updated CR
+        self._logger.info(f"Generating the updated cr at: {self._updated_cr_template_save_location}")
         updated_cr, update_list = self.update_cr_values()
 
         self._updates_list = update_list
@@ -928,6 +992,7 @@ class Upgrade:
 
             progress.log()
             progress.log(Panel.fit("Scaling down IBM FileNet Content Manager Deployments", style="green"))
+            self._logger.info(f"Scaling down IBM FileNet Content Manager Deployments")
 
             cr_name = self._cr_details["name"]
             deployments = self._kube.get_deployments_by_owner_reference(
@@ -936,6 +1001,7 @@ class Upgrade:
 
             progress.log()
             progress.log(f"Scaling down current FileNet Content Manager Operator pod before upgrading")
+            self._logger.info(f"Scaling down current FileNet Content Manager Operator pod before upgrading")
 
             # Scale down older operator pod before upgrading
             operator_deployment = self._operator_details["deployment"]
@@ -947,22 +1013,26 @@ class Upgrade:
             progress.log()
             progress.log(
                 Text(f"Error in scaling down pods function - {e}", style="bold red"))
+            self._logger.info(f"Error in scaling down pods function - {e}")
 
     # Ask if the CR should be updated, if user does not want to update CR we will just update the Operators
     # IF CR is to be updated then we will scale pods down , apply the latest CR and then upgrade the operator
     def apply_upgraded_cr(self, progress=None):
         progress.log()
         progress.log(Panel.fit("Applying Upgraded FNCM Custom Resource", style="cyan"))
+        self._logger.info(f"Applying Upgraded FNCM Custom Resource")
         cr_applied = self._kube.apply_cluster_resource_files(
             resource_file=self._updated_cr_template_save_location, resource_type="Custom Resource",
             namespace=self._namespace)
         if not cr_applied:
             progress.log()
             progress.log(Text("Error occurred while applying the upgraded Custom Resource", style="bold red"))
+            self._logger.info(f"Error occurred while applying the upgraded Custom Resource")
             exit(1)
         else:
             progress.log()
             progress.log(Text("Upgraded Custom Resource applied successfully", style="bold green"))
+            self._logger.info(f"Upgraded Custom Resource applied successfully")
 
     # Function to display the post upgrade steps
     # Jason to fill this up as part of the upgrade steps
