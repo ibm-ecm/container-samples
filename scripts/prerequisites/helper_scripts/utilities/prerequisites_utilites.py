@@ -507,7 +507,10 @@ def check_java_version(fncm_version):
         return False
 
 def create_ssl_context(client_cert_file=None) :
-    context = ssl.create_default_context(cafile=client_cert_file)
+    if client_cert_file:
+        context = ssl.create_default_context(cafile=client_cert_file)
+    else:
+        context = ssl.create_default_context()
     context.verify_flags &= ~ssl.VERIFY_X509_STRICT
     context.set_ciphers(_CIPHERS.decode('utf-8'))
     context.minimum_version = ssl.TLSVersion.TLSv1_2
@@ -556,8 +559,11 @@ def connect_to_server(host, port, ssl=False, client_cert_file=None, pg=False, pr
         # Create an SSL context
         if ssl:
             logger.info(f"Connecting to {host}:{port} with SSL")
-            logger.info(f"Using SSL certificate {client_cert_file}")
-            context = create_ssl_context(client_cert_file)
+            if client_cert_file:
+                logger.info(f"Using SSL certificate {client_cert_file}")
+                context = create_ssl_context(client_cert_file)
+            else:
+                context = create_ssl_context()
             # Create an SSL socket
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0) as sock:
                 conn = context.wrap_socket(socket.socket(socket.AF_INET),
