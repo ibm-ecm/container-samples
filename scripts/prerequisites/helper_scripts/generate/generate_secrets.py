@@ -43,6 +43,7 @@ class GenerateSecrets:
         self._generate_secrets_folder = os.path.join(self._generate_folder, "secrets")
         self._generate_ssl_secrets_folder = os.path.join(self._generate_folder, "ssl")
         self._generate_trusted_secrets_folder = os.path.join(self._generate_ssl_secrets_folder, "trusted-certs")
+        self._icc_folder = os.path.join(os.getcwd(), "propertyFile",namespace, "icc")
 
         self._secret_template_folder = os.path.join(os.getcwd(), "helper_scripts", "generate", "templates")
 

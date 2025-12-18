@@ -30,11 +30,12 @@ class SilentGatherPrereqOptions(GatherPrereqOptions):
                                  "silent_install_prerequisites.toml")
     _error_list = []
 
-    def __init__(self, logger, envfile_path=_envfile_path):
+    def __init__(self, logger, envfile_path=_envfile_path, tls_verify=True):
 
         super().__init__(logger, console=None)
 
         self._envfile_path = envfile_path
+        self._tls_verify = tls_verify
 
         try:
             self._envfile = toml.loads(open(self._envfile_path, encoding="utf-8").read())

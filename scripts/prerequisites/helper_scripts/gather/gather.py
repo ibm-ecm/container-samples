@@ -11,6 +11,7 @@
 
 import os
 from enum import Enum
+from urllib.parse import urlparse
 
 from rich import print
 from rich.panel import Panel
@@ -52,7 +53,7 @@ class GatherOptions:
             self._fncm_version = fncm_version
 
     # Script type options are cleanup,deploy,load_extract and upgrade
-    def __init__(self, logger, console, script_type="cleanup", dev=False):
+    def __init__(self, logger, console, script_type="cleanup", dev=False, tls_verify=True):
         self._script_type = script_type
         self._ocp_logged_in = False
         self._namespace = None
@@ -71,11 +72,12 @@ class GatherOptions:
         self._private_registry_valid = False
         self._private_registry_host = ''
         self._private_registry_port = 5000
-        self._private_registry_server = ''
         self._private_registry_username = ''
         self._private_registry_password = ''
         self._private_registry_ssl_enabled = False
         self._private_registry_ssl_cert = ''
+        self._private_registry_full_server = ''
+        self._private_registry_path = ''
         self._private_catalog = True
         self._all_channels = False
         self._components = set()
@@ -89,6 +91,7 @@ class GatherOptions:
         self._silent_mode = False
         # Initialize Kubernetes client
         self._k = KubernetesUtilities(self._logger)
+        self._tls_verify = tls_verify
 
     @property
     def fncm_version(self):
@@ -134,14 +137,17 @@ class GatherOptions:
     def private_registry(self, value):
         self._private_registry = value
 
+    @property
+    def private_registry_full_server(self):
+        return self._private_registry_full_server
+
+    @private_registry_full_server.setter
+    def private_registry_full_server(self, value):
+        self._private_registry_full_server = value
 
     @property
     def private_registry_server(self):
-        return self._private_registry_server
-
-    @private_registry_server.setter
-    def private_registry_server(self, value):
-        self._private_registry_server = value
+        return self._private_registry_full_server
 
     @property
     def platform(self):
@@ -685,10 +691,11 @@ class GatherOptions:
                         continue
                     else:
                         self._logger.info("Collected IBM Entitlement Registry key.")
-                        self._entitlement_key_valid = login_to_registry_podman(registry=self._registry,
-                                                                                   username=username,
-                                                                                   password=self._entitlement_key,
-                                                                                   logger=self._logger)
+                        self._entitlement_key_valid = login_to_registry_podman(registry_host=self._registry,
+                                                                               username=username,
+                                                                               password=self._entitlement_key,
+                                                                               logger=self._logger,
+                                                                               tls_verify=False)
 
                     if not self._entitlement_key_valid:
                         print()
@@ -742,12 +749,15 @@ class GatherOptions:
                     ssl_folder = os.path.dirname(self._private_registry_ssl_cert)
                 else:
                     ssl_folder = ""
-                self._private_registry_valid = login_to_registry_podman(registry=self._private_registry_server,
+                self._private_registry_valid = login_to_registry_podman(registry_host=self._private_registry_host,
+                                                                        registry_port=self._private_registry_port,
+                                                                        registry_path=self._private_registry_path,
                                                                         username=self._private_registry_username,
                                                                         password=self._private_registry_password,
                                                                         logger=self._logger,
                                                                         ssl_enabled=self._private_registry_ssl_enabled,
-                                                                        ssl_cert_path=ssl_folder)
+                                                                        ssl_cert_path=ssl_folder,
+                                                                        tls_verify=self._tls_verify)
 
                 if not self._private_registry_valid:
                     print()
@@ -775,12 +785,15 @@ class GatherOptions:
                 ssl_folder = os.path.dirname(self._private_registry_ssl_cert)
             else:
                 ssl_folder = ""
-            self._private_registry_valid = login_to_registry_podman(registry=self._private_registry_server,
+            self._private_registry_valid = login_to_registry_podman(registry_host=self._private_registry_host,
+                                                                    registry_port=self._private_registry_port,
+                                                                    registry_path=self._private_registry_path,
                                                                     username=self._private_registry_username,
                                                                     password=self._private_registry_password,
                                                                     logger=self._logger,
                                                                     ssl_enabled=self._private_registry_ssl_enabled,
-                                                                    ssl_cert_path=ssl_folder)
+                                                                    ssl_cert_path=ssl_folder,
+                                                                    tls_verify=self._tls_verify)
 
             if not self._private_registry_valid:
                 print()
@@ -853,33 +866,77 @@ class GatherOptions:
                                 print(Panel.fit(Syntax("python3 loadimages.py --airgap", "python")))
                                 exit(1)
 
+                    print()
+                    print(Text("Tip: To disable the SSL verification set the --no-tls-verify flag", style="cyan"))
+                    print()
+
                     while True:
                         print()
-                        private_reg_hostname = Prompt.ask(
-                            "Enter the private registry hostname")
-                        if private_reg_hostname == "":
+                        private_reg_hostname_full = Prompt.ask(
+                            "Enter the private registry URL")
+                        if private_reg_hostname_full == "":
+                            print()
                             print("[prompt.invalid]Private registry hostname can't be empty. Please try again.")
                             continue
 
+                        # Split hostname into scheme, server, context and port using urlparse
+                        # Following the syntax specifications in RFC 1808, urlparse recognizes a netloc only if it is properly introduced by ‘//’.
+                        if "://" not in private_reg_hostname_full:
+                            private_reg_hostname_full_shema = "//" + private_reg_hostname_full
+                        else:
+                            private_reg_hostname_full_shema = private_reg_hostname_full
+
+                        private_reg_parts = urlparse(url=private_reg_hostname_full_shema, scheme="https")
+                        self._logger.info(f"Private registry URL parts: {private_reg_parts}")
+                        if not private_reg_parts.hostname:
+                            print()
+                            print("[prompt.invalid]Private registry URL must include a hostname. Please try again.")
+                            continue
+
+                        self._private_registry_host = private_reg_parts.hostname
+
+                        # If no port is provided, default to 443 for https and 80 for http
+                        # Use 443 if no schema is provided
+                        private_reg_scheme = private_reg_parts.scheme
+                        if private_reg_parts.port is None:
+                            if private_reg_parts.scheme == "http":
+                                self._private_registry_port = 80
+                            else:
+                                self._private_registry_port = 443
+                        else:
+                            self._private_registry_port = private_reg_parts.port
+
+                        # Ask if SSL is to be used for private registry
+                        if private_reg_scheme == "https":
+                            self._private_registry_ssl_enabled = True
+                        else:
+                            # Query user if they want to use SSL
+                            print()
+                            self._private_registry_ssl_enabled = Confirm.ask(
+                                "Do you want to use SSL to connect to the private registry?", default=False)
+
+                        self._private_registry_full_server = f"{private_reg_hostname_full}"
+                        if private_reg_parts.path != "":
+                            self._private_registry_path = private_reg_parts.path.lstrip('/')
+
                         print()
-                        private_reg_port = IntPrompt.ask("Enter the private registry port number", default=5000)
-
-                        self._private_registry_server = f"{private_reg_hostname}:{private_reg_port}"
-
-                        print()
-                        self._private_registry_ssl_enabled = Confirm.ask(
-                            "Do you want to enable SSL for the private registry?")
-
+                        # Ask if SSL is to be used for private registry
+                        # If tls_verify is False we wont ask for the SSL certificate
                         if self._private_registry_ssl_enabled:
-                            self.collect_private_registry_ssl_details()
+                            if not self._tls_verify:
+                                print()
+                                print(Text("TLS verification is disabled. Podman login will attempt without supplying an SSL certificate", style="yellow"))
+                                print()
+                            else:
+                                self.collect_private_registry_ssl_details()
 
                         # Test for SSL connections
                         # Return a connection object, RTT and a boolean indicating if the connection was successful
-                        if self._private_registry_ssl_enabled:
-                            conn_result, rtt, connected = connect_to_server(private_reg_hostname, int(private_reg_port),
+                        if self._private_registry_ssl_enabled and self._tls_verify:
+                            conn_result, rtt, connected = connect_to_server(self._private_registry_host, int(self._private_registry_port),
                                                                             True, self._private_registry_ssl_cert, logger=self._logger)
                         else:
-                            conn_result, rtt, connected = connect_to_server(private_reg_hostname, int(private_reg_port), logger=self._logger)
+                            conn_result, rtt, connected = connect_to_server(self._private_registry_host, int(self._private_registry_port), logger=self._logger)
 
                         if not connected:
                             print()
@@ -899,11 +956,17 @@ class GatherOptions:
                     break
             else:
                 if self._private_registry_ssl_enabled:
-                    self.collect_private_registry_ssl_details()
+                    self._logger.info(f"TLS verification is set to {self._tls_verify} for private registry SSL connection")
+                    if not self._tls_verify:
+                        print()
+                        print(Text("TLS verification is disabled. Podman login will attempt without supplying an SSL certificate", style="yellow"))
+                        print()
+                    else:
+                        self.collect_private_registry_ssl_details()
 
                 # Test for SSL connections
                 # Return a connection object, RTT and a boolean indicating if the connection was successful
-                if self._private_registry_ssl_enabled:
+                if self._private_registry_ssl_enabled and self._tls_verify:
                     conn_result, rtt, connected = connect_to_server(self._private_registry_host,
                                                                     int(self._private_registry_port), True,
                                                                     self._private_registry_ssl_cert, logger=self._logger)
