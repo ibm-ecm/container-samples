@@ -46,6 +46,7 @@ class KubernetesUtilities:
 
         self._core_v1 = client.CoreV1Api()
         self._apps_v1 = client.AppsV1Api()
+        self._policy_v1 = client.PolicyV1Api()
         self._rbac_v1 = client.RbacAuthorizationV1Api()
         self._networking_v1 = client.NetworkingV1Api()
         self._auto_scaling_v2 = client.AutoscalingV2Api()
@@ -86,6 +87,10 @@ class KubernetesUtilities:
     @property
     def apps_v1(self):
         return self._apps_v1
+    
+    @property
+    def policy_v1(self):
+        return self._policy_v1
 
     @property
     def networking_v1(self):
@@ -466,6 +471,7 @@ class KubernetesUtilities:
             ]
             networking_v1_resource_types = ["ingress", "network_policy"]
             auto_scaling_v2_resource_types = ["horizontal_pod_autoscaler"]
+            policy_v1_resource_types = ["pod_disruption_budget"]
             resource_type_dict = {}
             for resource_type in app_v1_resource_types:
                 resource_type_dict[resource_type] = []
@@ -487,7 +493,9 @@ class KubernetesUtilities:
                                                                                     plural="routes", name="")
                     resource_type_dict["routes"] = []
                     for item in resource_routes["items"]:
-                        if item["metadata"]["ownerReferences"] is not None:
+                        # Check if owner references exist
+                        reference = item["metadata"].get("ownerReferences", None)
+                        if reference is not None:
                             if item["metadata"]["ownerReferences"][0]["name"] == filter:
                                 resource_type_dict["routes"].append(item["metadata"]["name"])
                 except Exception as e:
@@ -506,6 +514,30 @@ class KubernetesUtilities:
                                 if item.metadata.labels['app.kubernetes.io/instance'] == filter:
                                     resource_type_dict[resource_type].append(item.metadata.name)
                         resource_type_dict[resource_type] = list(set(resource_type_dict[resource_type]))
+                except client.exceptions.ApiException as e:
+                    self._logger.info(f"Error listing {resource_type}: {e}")
+
+            for resource_type in policy_v1_resource_types:
+                resource_type_dict[resource_type] = []
+                try:
+                    response = getattr(
+                        self._policy_v1,
+                        f"list_namespaced_{resource_type}"
+                    )(namespace=namespace)
+
+                    for item in response.items:
+                        if item.metadata.owner_references is not None:
+                            if item.metadata.owner_references[0].name == filter:
+                                resource_type_dict[resource_type].append(item.metadata.name)
+
+                        if item.metadata.labels is not None:
+                            if item.metadata.labels.get("app.kubernetes.io/instance") == filter:
+                                resource_type_dict[resource_type].append(item.metadata.name)
+
+                    resource_type_dict[resource_type] = list(
+                        set(resource_type_dict[resource_type])
+                    )
+
                 except client.exceptions.ApiException as e:
                     self._logger.info(f"Error listing {resource_type}: {e}")
 
@@ -1021,6 +1053,20 @@ class KubernetesUtilities:
             return hpa
         except Exception as e:
             self._logger.info(f"Error in utilities.py from the describe_hpa: {e}")
+            return {}
+        
+    # Function to describe PodDisruptionBudget
+    def describe_pdb(self, pdb_name, namespace):
+        try:
+            pdb = self.policy_v1.read_namespaced_pod_disruption_budget(
+                name=pdb_name,
+                namespace=namespace,
+            )
+            return pdb
+        except Exception as e:
+            self._logger.info(
+                f"Error in utilities.py from the describe_pdb: {e}"
+            )
             return {}
 
     def describe_network_policy(self, network_policy_name, namespace):

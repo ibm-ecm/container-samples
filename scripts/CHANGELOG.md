@@ -1,3 +1,18 @@
+## 7.0.0 (2025-12-17)
+
+### Fix
+
+- update to python libraries
+- OCP airgap loadimages script environment variable fix for updated tool binaries: ibm-pak, oc-mirror
+
+### Feature
+
+- additional logging added for mustgather, upgrade and loadimages scripts
+- tls-verify flag added for loadimages, deploy and upgrade script to skip tls verification for registry connections through podman 
+- casepackage version is now auto-detected
+- casepackage version flag has been added to override auto-detection
+- context path support added for registry connections in loadimages script
+
 ## 6.0.2 (2025-11-10)
 
 ### Fix

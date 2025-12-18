@@ -29,7 +29,7 @@ from helper_scripts.utilities.interface import clear, display_issues, display_pr
 from helper_scripts.utilities.utilities import prereq_checks, read_version_toml, create_deployment_info, \
     create_version_info
 
-__version__ = "6.0.2"
+__version__ = "7.0.0"
 
 app = typer.Typer()
 state = {
@@ -40,7 +40,8 @@ state = {
     "silent": False,
     "version": None,
     "dryrun": False,
-    "validate": True
+    "validate": True,
+    "tls_verify": True
 }
 
 console = Console(record=True)
@@ -79,6 +80,9 @@ def display_mode_version(mode: str, description: str):
     if not state["validate"]:
         msg += "\nValidation of entitlement key and private registry is disabled"
     state["logger"].info("Validation of entitlement key and private registry is disabled")
+
+    if not state["tls_verify"]:
+        msg += "\nTLS Verification Disabled for Podman Operations"
 
 
     print(Panel.fit(msg, title="FileNet Content Manager Deploy Operator CLI", border_style="green"))
@@ -128,6 +132,8 @@ def deploy():
 
     # Read Version File
     version_path = os.path.join(os.path.dirname(os.getcwd()), "version.toml")
+    if not os.path.exists(version_path):
+        version_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "version.toml")
 
     if os.path.exists(version_path):
         version_data = read_version_toml(version_path, state["logger"])
@@ -153,7 +159,7 @@ def deploy():
         print(prereq_summary)
         print()
     if not state["silent"]:
-        state["setup"] = g.GatherOptions(state["logger"], console, script_type="deploy", dev=state["dev"])
+        state["setup"] = g.GatherOptions(state["logger"], console, script_type="deploy", dev=state["dev"], tls_verify=state["tls_verify"])
         state["setup"].podman_available = results["podman"]
         state["setup"].collect_license_model(version_data)
         state["setup"].collect_platform()
@@ -163,7 +169,7 @@ def deploy():
     else:
         silent_path = os.path.join("silent_config", "silent_install_deployoperator.toml")
         state["setup"] = sg.SilentGatherOptions(state["logger"],
-                                                silent_path, script_type="deploy", dev=state["dev"])
+                                                silent_path, script_type="deploy", dev=state["dev"], tls_verify=state["tls_verify"])
         state["setup"].podman_available = results["podman"]
         state["setup"].silent_parse_deploy_operator_file(state["validate"])
 
@@ -231,6 +237,9 @@ def main(version: Annotated[bool, typer.Option(
          verbose: Annotated[bool, typer.Option(
              help="Enable verbose logging.",
              rich_help_panel="Customization and Utils")] = False,
+         tls_verify: Annotated[bool, typer.Option(
+             help="Enable TLS verification for Podman operations.",
+             rich_help_panel="Customization and Utils")] = True,
          dryrun: Annotated[bool, typer.Option(
              help="Perform a dry run",
              rich_help_panel="Customization and Utils")] = False,
@@ -261,6 +270,9 @@ def main(version: Annotated[bool, typer.Option(
 
     if not validate:
         state["validate"] = False
+
+    if not tls_verify:
+        state["tls_verify"] = False
 
     clear(console)
     display_mode_version("Deploy FileNet Operator",

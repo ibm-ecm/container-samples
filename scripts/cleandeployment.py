@@ -38,7 +38,7 @@ from helper_scripts.utilities.interface import display_prereq_passed, display_is
     display_deployment_resources
 from helper_scripts.utilities.utilities import prereq_checks, create_version_info, read_version_toml
 
-__version__ = "6.0.2"
+__version__ = "7.0.0"
 
 app = typer.Typer()
 
@@ -118,6 +118,8 @@ def operator():
         print()
         print(Panel.fit("FileNet Content Manager Operator not found in {namespace}".format(
             namespace=state["clean"]._deployment_prerequisites.namespace), border_style="red"))
+        namespace = state["clean"]._deployment_prerequisites.namespace
+        state['logger'].info(f"FileNet Content Manager Operator not found in {namespace}")
         exit()
 
     cleanup_summary = display_deployment_resources(logger=state['logger'],
@@ -177,6 +179,8 @@ def deployment():
             "FileNet Content Manager Deployment not found in {namespace}".format(
                 namespace=state["clean"]._deployment_prerequisites.namespace),
             border_style="red"))
+        namespace = state["clean"]._deployment_prerequisites.namespace
+        state['logger'].info(f"FileNet Content Manager Deployment not found in {namespace}")
         exit()
 
     cleanup_summary = display_deployment_resources(logger=state['logger'],
@@ -202,6 +206,7 @@ def deployment():
         clear(console)
 
         print(Panel.fit("Starting FileNet Content Manager Deployment Cleanup", style="cyan"))
+        state['logger'].info(f"Starting FileNet Content Manager Deployment Cleanup")
         with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
@@ -250,12 +255,15 @@ def main(ctx: typer.Context,
     if ctx.invoked_subcommand is None:
         display_mode_version("Deployment and Operator Cleanup",
                              "Clean up of the FNCM Deployment and FileNet Content Manager Operator")
+        state['logger'].info(f"Cleaning up of both the FNCM Deployment and FileNet Content Manager Operator")
 
     elif ctx.invoked_subcommand == "operator":
         display_mode_version("Operator Cleanup", "Clean up of the FNCM Operator Only")
+        state['logger'].info(f"Cleaning up of the FNCM Operator Only")
 
     elif ctx.invoked_subcommand == "deployment":
         display_mode_version("Deployment Cleanup", "Clean up of the FNCM Deployment Only")
+        state['logger'].info(f"Cleaning up of the FNCM Deployment Only")
 
     checks = ["connection","podman"]
     missing_tools, results, files = prereq_checks(logger=state["logger"], prereqs=checks)
@@ -271,7 +279,10 @@ def main(ctx: typer.Context,
         print()
 
     # Read Version File
+    state['logger'].info(f"Reading version details")
     version_path = os.path.join(os.path.dirname(os.getcwd()), "version.toml")
+    if not os.path.exists(version_path):
+        version_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "version.toml")
 
     if os.path.exists(version_path):
         state["version_data"] = read_version_toml(version_path, state["logger"])
@@ -289,7 +300,9 @@ def main(ctx: typer.Context,
     else:
         state["setup"] = g.GatherOptions(state["logger"], console, script_type="cleanup")
         state["setup"].podman_available = results["podman"]
+        state['logger'].info(f"Collecting platform details")
         state["setup"].collect_platform()
+        state['logger'].info(f"Collecting namespace")
         state["setup"].collect_namespace()
 
     state["clean"] = dc.CleanDeployment(console, state["setup"], state["logger"], silent=state["silent"])
@@ -303,6 +316,8 @@ def main(ctx: typer.Context,
             print()
             print(Panel.fit("FileNet Content Manager Operator or Deployment not found in {namespace}".format(
                 namespace=state["clean"]._deployment_prerequisites.namespace), border_style="red"))
+            namespace = state["clean"]._deployment_prerequisites.namespace
+            state['logger'].info(f"FMCM Operator or Deployment is not found in the namespace: {namespace}")
             exit(1)
         cleanup_summary = display_deployment_resources(logger=state['logger'],
                                                        deployment_resources=resource_dict,
@@ -338,6 +353,7 @@ def main(ctx: typer.Context,
                 operator_task_num = 5
 
             print(Panel.fit("Starting FileNet Content Manager Deployment and Operator Cleanup", style="cyan"))
+            state['logger'].info(f"Starting FileNet Content Manager Deployment and Operator Cleanup")
             with Progress(
                     SpinnerColumn(),
                     TextColumn("[progress.description]{task.description}"),

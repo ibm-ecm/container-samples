@@ -88,15 +88,15 @@ class Deploy:
     def create_entitlement_key_secret(self, progress, task):
         try:
             if self._setup.private_registry_valid:
-                self._logger.info(f"Creating image pull secret for private registry: {self._setup.private_registry_server}")
+                self._logger.info(f"Creating image pull secret for private registry: {self._setup.private_registry_full_server}")
                 progress.log(
-                    f"Creating image pull secret for private registry: {self._setup.private_registry_server}")
+                    f"Creating image pull secret for private registry: {self._setup.private_registry_full_server}")
                 progress.log()
                 data = {
                     '.dockerconfigjson': base64.b64encode(
                         bytes(
                             '{{"auths": {{"{}": {{"username": "{}", "password": "{}", "email": "example@example.com"}}}}}}'.format(
-                                self._setup.private_registry_server,
+                                self._setup.private_registry_full_server,
                                 self._setup.private_registry_username,
                                 self._setup.private_registry_password),
                             'utf-8'
@@ -464,7 +464,7 @@ class Deploy:
             progress.log("FileNet Content Management Operator is being installed using a private registry")
             progress.log()
             pattern = re.compile(re.escape(registry_in_file) + r'\b')
-            replacement = self._setup.private_registry_server
+            replacement = self._setup.private_registry_full_server
             content = pattern.sub(replacement, content)
 
             # Write the modified content back to the temporary operator file

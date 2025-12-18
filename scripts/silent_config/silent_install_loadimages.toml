@@ -19,11 +19,14 @@ ENTITLEMENT_KEY = "<IBMEntitlementKey>"
 
 # CNCF Only: Pull images from a pirvate registry
 # OCP deployment, use Airgap deployment method
-PRIVATE_REGISTRY_HOST = "<RegistryHost>"
 
-PRIVATE_REGISTRY_PORT = 5000
+# Hostname, context path and port of the private registry
+# Example 1: myprivateregistry.com:5000/registrypath
+# Example 2: myprivateregistry.com:5000
+# Example 3: myprivateregistry.com/registrypath
+PRIVATE_REGISTRY_URL = "<RegistryURL>"
 
-PRIVATE_REGISTRY_USERNAME = "<RegistryUser>"
+PRIVATE_REGISTRY_USERNAME = "<RegistryUsername>"
 
 PRIVATE_REGISTRY_PASSWORD = "<RegistryPassword>"
 
@@ -33,24 +36,12 @@ PRIVATE_REGISTRY_SSL_ENABLED = true
 # File Path to the ssl cert of the private registry
 # Required Field only if PRIVATE_REGISTRY_SSL_ENABLED is true
 # Cerificates needs to in PEM format
-PRIVATE_REGISTRY_SSL_CRT_PATH = "/path/to/crt/certificate.pem"
+# Disable certificate verification by using the --no-tls-verify flag
+PRIVATE_REGISTRY_SSL_CRT_PATH = "/path/to/my/certificate.crt"
 
 # ####################################################
 # ##          Airgap Mirroring Info                 ##
 # ####################################################
-
-# ####################################################
-# ##     Filenet Content Manager Version            ##
-# ####################################################
-# Filenet Content Manager CASE Package version - Valid values: [1; 2; 3; 4; 5, 6]
-# The latest CASE Package for that version will be pulled
-# 1. 5.5.9
-# 2. 5.5.10
-# 3. 5.5.11
-# 4. 5.5.12
-# 5. 5.6.0
-# 6. 5.7.0
-FNCM_VERSION = 6
 
 # ####################################################
 # ##       Airgap Channel Mirror Configuration      ##

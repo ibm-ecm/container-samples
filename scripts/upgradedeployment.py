@@ -33,7 +33,7 @@ from helper_scripts.utilities.interface import clear, display_issues, display_pr
 from helper_scripts.utilities.utilities import prereq_checks, read_version_toml, create_deployment_info, \
     create_version_info, create_current_operator_info
 
-__version__ = "6.0.2"
+__version__ = "7.0.0"
 
 app = typer.Typer()
 
@@ -46,7 +46,8 @@ state = {
     "version_details": {},
     "deployment_details": {},
     "dev": False,
-    "dryrun": False
+    "dryrun": False,
+    "tls_verify": True
 }
 
 console = Console(record=True)
@@ -103,6 +104,12 @@ def display_mode_version(mode: str, description: str):
     if state["silent"]:
         msg += "\nSilent Mode Enabled"
 
+    if state["verbose"]:
+        msg += "\nVerbose Logging Enabled"
+
+    if not state["tls_verify"]:
+        msg += "\nTLS Verification Disabled for Podman Operations"
+
     print(Panel.fit(msg, title="FileNet Content Manager Upgrade CLI", border_style="green"))
     print()
 
@@ -150,6 +157,7 @@ def deployment():
     if not state["dryrun"]:
         clear(console)
         print(Panel.fit("Starting FNCM Deployment Upgrade", style="cyan"))
+        state["logger"].info(f"Starting FNCM Deployment Upgrade")
         with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
@@ -393,6 +401,9 @@ def main(ctx: typer.Context,
          verbose: Annotated[bool, typer.Option(
              help="Enable verbose logging.",
              rich_help_panel="Customization and Utils")] = False,
+         tls_verify: Annotated[bool, typer.Option(
+             help="Enable TLS verification for Podman operations.",
+             rich_help_panel="Customization and Utils")] = True,
          dryrun: Annotated[bool, typer.Option(
              help="Perform a dry run",
              rich_help_panel="Customization and Utils")] = False,
@@ -413,6 +424,9 @@ def main(ctx: typer.Context,
     if dev:
         state["dev"] = True
 
+    if not tls_verify:
+        state["tls_verify"] = False
+
     state["logger"] = setup_logger(FILE_LOG_LEVEL)
 
     files = [
@@ -431,14 +445,17 @@ def main(ctx: typer.Context,
     descriptor_path = os.path.join(os.path.dirname(os.getcwd()), "descriptors")
 
     if ctx.invoked_subcommand is None:
+        state["logger"].info(f"Upgrade of both the FNCM Operator and Deployment")
         display_mode_version("Operator and Deployment Upgrade",
                              "Upgrade of the FNCM Operator and Deployment")
         files.append("ibm_fncm_cr_production_FC_content.yaml")
 
     elif ctx.invoked_subcommand == "operator":
+        state["logger"].info(f"Upgrade of the FNCM Operator only")
         display_mode_version("Operator Upgrade", "Upgrade for the FNCM Operator Only")
 
     elif ctx.invoked_subcommand == "deployment":
+        state["logger"].info(f"Upgrade of the FNCM Deployment only")
         display_mode_version("Deployment Upgrade", "Upgrade for the FNCM Deployment Only")
         files.append("ibm_fncm_cr_production_FC_content.yaml")
 
@@ -446,6 +463,7 @@ def main(ctx: typer.Context,
     for file in files:
         required_files.append(os.path.join(descriptor_path, file))
 
+    state["logger"].info(f"Checking pre-requisite tools")
     checks = ["connection","podman"]
     missing_tools, results, files = prereq_checks(logger=state["logger"], prereqs=checks, files=required_files)
 
@@ -460,7 +478,10 @@ def main(ctx: typer.Context,
         print()
 
     # Read Version File
+    # Get path to version.toml in parent directory or parent of parent directory
     version_path = os.path.join(os.path.dirname(os.getcwd()), "version.toml")
+    if not os.path.exists(version_path):
+        version_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "version.toml")
 
     if os.path.exists(version_path):
         version_data = read_version_toml(version_path, state["logger"])
@@ -472,14 +493,14 @@ def main(ctx: typer.Context,
         state["setup"] = sg.SilentGatherOptions(state["logger"],
                                                 os.path.join("silent_config",
                                                              "silent_install_upgradedeployment.toml"),
-                                                script_type="upgrade", dev=state["dev"])
+                                                script_type="upgrade", dev=state["dev"], tls_verify=state["tls_verify"])
         state["setup"]._podman_available = results["podman"]
         state["setup"].silent_parse_upgrade_variables()
         state["upgrade"] = u.Upgrade(console, state["setup"], state["logger"], silent=True,
                                      required_files=required_files)
 
     else:
-        state["setup"] = g.GatherOptions(state["logger"], console, script_type="upgrade", dev=state["dev"])
+        state["setup"] = g.GatherOptions(state["logger"], console, script_type="upgrade", dev=state["dev"], tls_verify=state["tls_verify"])
         state["setup"]._podman_available = results["podman"]
         state["setup"].collect_license_model(version_data)
         state["setup"].collect_platform()
@@ -502,6 +523,7 @@ def main(ctx: typer.Context,
                 "A valid FNCM Operator or FNCM Deployment is required for this mode".format(
                     namespace=state["setup"]._namespace),
                 border_style="red"))
+            state["logger"].info(f"FNCM Operator or FNCM Deployment not found in {state['setup'].namespace}")
             exit(1)
 
         deployment()
