@@ -362,37 +362,37 @@ class Upgrade:
             progress.update(task, advance=1)
 
             retries = 0
+            catalogsource_name = "ibm-fncm-operator-catalog"
             progress.log(f"Waiting for IBM FileNet Content Manager Operator Catalog Pod to start")
             progress.log()
             self._logger.info(f"Waiting for IBM FileNet Content Manager Operator Catalog Pod to start")
-            while retries < 40:
-                pods = self._core_v1_api.list_namespaced_pod(self._catalog_namespace)
-                running_pods = [pod.metadata.name for pod in pods.items if
-                                "ibm-fncm-operator-catalog" in pod.metadata.name and pod.status.phase == "Running"]
-                if running_pods:
+            while retries < 80:
+                catalog_ready = self._kube.check_catalogsource_rollout_status(catalogsource_name,
+                                                                              self._catalog_namespace)
+
+                if catalog_ready:
                     progress.log(
                         Text(f"IBM FileNet Content Manager Operator Catalog Pod is running.", style="bold green"))
                     progress.log()
-                    self._logger.info(f"IBM FileNet Content Manager Operator Catalog pod is up and running.")
-                    progress.update(task, advance=1)
                     break
                 else:
                     retries = retries + 1
-                    progress.log(f"FileNet Content Management Catalog deployment in progress ({retries + 1}/40) ")
+                    progress.log(f"IBM FileNet Content Manager Operator deployment in progress ({retries + 1}/40) ")
                     progress.log()
                     sleep(5)
 
-            if retries == 40:
+            if retries == 80:
                 progress.log(Text("Timeout Waiting for IBM FileNet Content Manager Operator Catalog pod to start",
                                   style="bold red"))
                 progress.log()
-                self._logger.info(f"Timeout Waiting for IBM FileNet Content Manager Operator Catalog pod to start")
 
                 progress.log("Please check the status of Pod by issuing the below command:")
                 progress.log()
                 progress.log(Syntax(
-                    f"kubectl describe pod $(kubectl get pod -n {self._catalog_namespace} | grep ibm-fncm-operator-catalog | awk '{{print $1}}') -n {self._catalog_namespace}",
+                    f"kubectl describe pod $(kubectl get pod -n {self._catalog_namespace} | grep ibm-fncm-operator-catalog | awk '{{print $1}}') -n ${self._catalog_namespace}",
                     "bash"))
+
+            progress.update(task, advance=1)
 
             # Collect Operator Group
             self._logger.info(f"Creating operator group.")
@@ -429,15 +429,15 @@ class Upgrade:
             # Number of tasks = 1
             attempts = 0
             retries = 0
+            deployment_name = self._operator_details["deployment"]
             progress.log(f"Checking rollout status of FileNet Content Management Operator deployment")
             progress.log()
             self._logger.info(f"Checking rollout status of FileNet Content Management Operator deployment")
             while retries < 40:
-                pods = self._core_v1_api.list_namespaced_pod(self._namespace)
-                running_pods = [pod.metadata.name for pod in pods.items if
-                                "ibm-fncm-operator" in pod.metadata.name and "catalog" not in pod.metadata.name and pod.status.phase == "Running" and
-                                pod.status.container_statuses[0].ready]
-                if running_pods:
+
+                updated = self._kube.check_deployment_rollout_status(deployment_name, self._namespace)
+
+                if updated:
                     progress.log(
                         Text(f"IBM FileNet Content Manager Operator Pod is running.", style="bold green"))
                     progress.log()
