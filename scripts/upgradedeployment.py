@@ -334,6 +334,10 @@ def operator():
                 state["upgrade"].catalog_namespace = namespace
                 state["upgrade"].catalog_type = "Private"
                 state["deployment_details"]["catalogType"] = "Private"
+            else:
+                state["upgrade"].catalog_namespace = 'openshift-marketplace'
+                state["upgrade"].catalog_type = "Global"
+                state["deployment_details"]["catalogType"] = "Global"
 
     else:
         private_registry = convert_private_registry()

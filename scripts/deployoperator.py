@@ -84,7 +84,6 @@ def display_mode_version(mode: str, description: str):
     if not state["tls_verify"]:
         msg += "\nTLS Verification Disabled for Podman Operations"
 
-
     print(Panel.fit(msg, title="FileNet Content Manager Deploy Operator CLI", border_style="green"))
     print()
 

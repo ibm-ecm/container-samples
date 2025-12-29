@@ -25,10 +25,10 @@ from rich import print
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.panel import Panel
-from rich.text import Text
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, MofNCompleteColumn, \
     TimeElapsedColumn
 from rich.prompt import Confirm
+from rich.text import Text
 from typing_extensions import Annotated
 
 from helper_scripts.gather import gather as g
