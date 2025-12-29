@@ -13,7 +13,6 @@ import platform
 import re
 import shutil
 import subprocess
-from urllib.parse import urlparse
 
 import requests
 import toml
@@ -28,7 +27,6 @@ from .prerequisites_utilites import command_available, check_java_version, \
     get_skopeo_version, filepath_validate, get_ibm_pak_version, get_oc_version, get_mirror_version
 from ..property.read_prop import ReadPropImageTag
 from ..utilities import kubernetes_utilites as k
-
 
 # Function to log in to a registry using podman
 def login_to_registry_podman(registry_host, username, password, logger, ssl_enabled=False, ssl_cert_path='', registry_port='', registry_path='', tls_verify=True):
@@ -142,6 +140,7 @@ def prereq_checks(logger, prereqs=None, files=None, fncm_version='5.7.0'):
                 logger.info("Podman available")
                 logger.info("Using Podman Daemon")
                 prereq_summary["podman"] = True
+
             else:
                 logger.info("Podman Daemon not present")
                 missing_tools.append("Podman CLI")
@@ -426,7 +425,7 @@ def create_deployment_info(setup, version_data):
         type = "YAML"
 
         if setup.private_registry:
-            registry = setup.private_registry_full_server
+            registry = f'{setup.private_registry_server}'
         else:
             registry = "icr.io"
 

@@ -12,6 +12,9 @@
 - casepackage version is now auto-detected
 - casepackage version flag has been added to override auto-detection
 - context path support added for registry connections in loadimages script
+- enhanced catalog source and deployment rollout checks
+- added support for rbac permissions collection in mustgather 
+- added support for pdb and hpa collection in mustgather
 
 ## 6.0.2 (2025-11-10)
 
