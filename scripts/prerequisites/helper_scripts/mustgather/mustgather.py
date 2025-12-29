@@ -1252,6 +1252,86 @@ class MustGather:
             progress.log(Text(f"Unable to retrieve Navigator Logs", style="bold red"))
             progress.log()
 
+        # Collect RBAC Information
+
+    def collect_rbac_info(self, progress, operator_details=dict):
+        # Create folder for RBAC if it does not exist
+        rbac_folder_path = os.path.join(self._mustgather_folder, "rbac")
+        if not os.path.exists(rbac_folder_path):
+            os.makedirs(rbac_folder_path)
+
+        progress.log(Panel.fit("Starting RBAC Information Collection", style="cyan"))
+        progress.log()
+
+        try:
+            # Collect Role Information
+            role = operator_details["role"]
+            progress.log(f"Collecting role {role}")
+            progress.log()
+            path = os.path.join(
+                f"{rbac_folder_path}",
+                f"role.yaml",
+            )
+            if os.path.isfile(path):
+                self._logger.info("Log already collected in the previous step. Skipping...")
+            else:
+                role_response = self._kube.describe_role(role, self._namespace)
+                if role_response is None or not role_response:
+                    progress.log(Text(f"Role {role} not found", style="bold red"))
+                    progress.log()
+                    self._logger.info(f"Role {role} not found in namespace {self._namespace}. Skipping...")
+                else:
+                    write_yaml_to_file(role_response, path)
+
+            # Collect RoleBinding Information
+            role_binding = operator_details["rolebinding"]
+            progress.log(f"Collecting role binding {role_binding}")
+            progress.log()
+            path = os.path.join(
+                f"{rbac_folder_path}",
+                f"role_binding.yaml",
+            )
+            if os.path.isfile(path):
+                self._logger.info("Log already collected in the previous step. Skipping...")
+            else:
+                role_binding_response = self._kube.describe_role_binding(role_binding, self._namespace)
+                if role_binding_response is None or not role_binding_response:
+                    progress.log(Text(f"RoleBinding {role_binding} not found", style="bold red"))
+                    progress.log()
+                    self._logger.info(
+                        f"RoleBinding {role_binding} not found in namespace {self._namespace}. Skipping...")
+                else:
+                    write_yaml_to_file(role_binding_response, path)
+
+            # Collect ServiceAccount Information
+            service_account = operator_details["service_account"]
+            progress.log(f"Collecting service account {service_account}")
+            progress.log()
+            path = os.path.join(
+                f"{rbac_folder_path}",
+                f"service_account.yaml",
+            )
+            if os.path.isfile(path):
+                self._logger.info("Log already collected in the previous step. Skipping...")
+            else:
+                service_account_response = self._kube.describe_service_account(service_account, self._namespace)
+
+                if service_account_response is None or not service_account_response:
+                    progress.log(Text(f"ServiceAccount {service_account} not found", style="bold red"))
+                    progress.log()
+                    self._logger.info(
+                        f"ServiceAccount {service_account} not found in namespace {self._namespace}. Skipping...")
+                else:
+                    write_yaml_to_file(service_account_response, path)
+
+            progress.log(Panel.fit("RBAC Information Collection Completed", style="bold green"))
+            progress.log()
+
+        except Exception as e:
+            self._logger.info("Unable to retrieve RBAC information, caught %s Skipping...", e)
+            progress.log(Text(f"Unable to retrieve RBAC information", style="bold red"))
+            progress.log()
+
     # Function to collect Content Operator information
     def collect_operator_info(self, progress, collect_sensitive, operator_details=dict):
 
