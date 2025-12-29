@@ -385,8 +385,10 @@ class GatherOptions:
                 print()
                 try:
                     self._current_namespace = self._k.current_namespace
+                    self._logger.info(f"Current namespace from kubeconfig: {self._current_namespace}")
                 except Exception as e:
                     self._current_namespace = None
+                    self._logger.info("Gathering namespace information failed")
 
 
             if self._platform in ["OCP"]:
@@ -867,7 +869,7 @@ class GatherOptions:
                                 exit(1)
 
                     print()
-                    print(Text("Tip: To disable the SSL verification set the --no-tls-verify flag", style="cyan"))
+                    print(Text("Tip: To disable the SSL verification set the --tls-verify flag to false", style="cyan"))
                     print()
 
                     while True:

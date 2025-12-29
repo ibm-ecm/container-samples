@@ -51,7 +51,7 @@ Follow the steps below to prepare your python environment::
 1. Extract the contents of the container Github repo to a directory of your choice.
 2. Open a terminal or command prompt and navigate to the directory where the installer package was extracted::
 
-    cd ibm-fncm-containers/scripts
+    cd container-samples/scripts
 
 4. Run the following command to install the required Python packages from the `requirements.txt` file::
 

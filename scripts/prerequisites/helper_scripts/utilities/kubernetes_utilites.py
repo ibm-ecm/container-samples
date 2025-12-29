@@ -374,6 +374,50 @@ class KubernetesUtilities:
             self._logger.info(f"Error calculating deployed components: {e}")
             return {}
 
+    # Function to check the status of catalog source upgrade rollout
+    def check_catalogsource_rollout_status(self, name="ibm-fncm-operator-catalog", namespace=""):
+        try:
+            catalog_source = self._custom_api.get_namespaced_custom_object(
+                group="operators.coreos.com",
+                version="v1alpha1",
+                namespace=namespace,
+                plural="catalogsources",
+                name=name
+            )
+            status = catalog_source.get("status", {})
+            connection = status.get("connectionState", {})
+
+            self._logger.info(f"Catalog source '{name}' status: {connection}")
+
+            if connection.get("lastObservedState").lower() in ["ready", "healthy", "idle"]:
+                return True
+
+            return False
+        except Exception as e:
+            self._logger.info(f"Error checking catalog source rollout status: {e}")
+            return False
+
+    # Function to check the status of a deployment upgrade rollout
+    def check_deployment_rollout_status(self, deployment_name, namespace):
+        try:
+            deployment = self._apps_v1.read_namespaced_deployment(name=deployment_name, namespace=namespace)
+            status = deployment.status
+            spec = deployment.spec
+
+            self._logger.info(f"Deployment '{deployment_name}' status: {status}\n"
+                              f"Replicas Spec: {spec.replicas}")
+
+            if (status.updated_replicas == spec.replicas and
+                status.replicas == spec.replicas and
+                status.available_replicas == spec.replicas and
+                status.observed_generation >= deployment.metadata.generation):
+                    return True
+
+            return False
+        except Exception as e:
+            self._logger.info(f"Error checking deployment rollout status: {e}")
+            return False
+
     # Function to extract storage classes from the CR
     def extract_storage_classes(self):
         try:
@@ -1207,7 +1251,7 @@ class KubernetesUtilities:
     # Function to get Operator Group details
     def describe_operator_group(self, name, namespace):
         try:
-            og = self._custom_api.read_namespaced_custom_object(
+            og = self._custom_api.get_namespaced_custom_object(
                 group="operators.coreos.com",
                 version="v1",
                 namespace=namespace,
@@ -1403,7 +1447,7 @@ class KubernetesUtilities:
         except client.ApiException as e:
             if e.status == 403:
                 if self._in_cluster:
-                    self._logger.info("Namespace is it where the pod is running")
+                    self._logger.info("Namespace is where the pod is running")
                     return True
                 return False
             if e.status == 404:
