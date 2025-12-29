@@ -39,7 +39,6 @@ from helper_scripts.utilities.interface import (
     display_issues,
     display_prereq_passed, mustgather_details, mustgather_network_results)
 from helper_scripts.utilities.utilities import prereq_checks
-from pathlib import Path
 
 __version__ = "7.0.0"
 
@@ -61,17 +60,17 @@ console = Console(record=True)
 def setup_logger(file_log_level):
     # Create a logger object
     logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(file_log_level)
 
     # Setup console logger
     shell_handler = RichHandler()
-    shell_handler.setLevel(file_log_level)
+    shell_handler.setLevel(logging.WARNING)
     formatter_rich = logging.Formatter("%(message)s")
     shell_handler.setFormatter(formatter_rich)
 
     # Setup file logger
     file_handler = logging.FileHandler("mustgather.log")
-    file_handler.setLevel(logging.DEBUG)
+    file_handler.setLevel(file_log_level)
     formatter_file = logging.Formatter(
         "%(asctime)s - %(levelname)s - %(message)-100s - %(filename)s:%(lineno)d", "%Y-%m-%d %H:%M:%S")
     file_handler.setFormatter(formatter_file)
@@ -222,7 +221,7 @@ def main(
         state["verbose"] = True
         FILE_LOG_LEVEL = logging.DEBUG
     else:
-        FILE_LOG_LEVEL = logging.WARNING
+        FILE_LOG_LEVEL = logging.INFO
 
     state["logger"] = setup_logger(FILE_LOG_LEVEL)
 
@@ -399,6 +398,9 @@ def main(
             progress.update(task1, total=2, completed=2)
 
             if operator_details:
+                # Collect RBAC Info
+                must_gather.collect_rbac_info(progress, operator_details)
+                # Collect Operator Info
                 must_gather.collect_operator_info(progress, collect_sensitive_data, operator_details)
 
                 progress.update(task2, total=1, completed=1)
@@ -627,22 +629,23 @@ def networkpolicy(apply: bool = typer.Option(False, help="Apply all generated ne
         prereq_summary = display_prereq_passed(results)
         print(prereq_summary)
         print()
-    if apply:
-        setup = g.GatherOptions(state["logger"], console, script_type="must_gather")
-        setup.collect_namespace()
-        kube = k.KubernetesUtilities(state["logger"])
-        deployment_details = {}
 
-        # Collect Operator details
-        operator_deployment = "ibm-fncm-operator"
-        namespace = setup.namespace
-        operator_details = kube.get_operator_details(namespace, operator_deployment)
-        if operator_details['release'] not in ['5.7.0']:
-            print(Text(f"Current operator release is {operator_details['release']}\n"
-                    f"Only operators from 5.7.0 and later releases will generate network policy templates", style="red"))
-            raise typer.Exit()
-        np_folder = os.path.join(os.getcwd(), "FNCMNetworkPolicies", namespace)
-        must_gather = mg.MustGather(console, namespace, state["logger"], np_folder, deployment_details, operator_details, kube)
+    setup = g.GatherOptions(state["logger"], console, script_type="must_gather")
+    setup.collect_namespace()
+    kube = k.KubernetesUtilities(state["logger"])
+    deployment_details = {}
+
+    # Collect Operator details
+    operator_deployment = "ibm-fncm-operator"
+    namespace = setup.namespace
+    operator_details = kube.get_operator_details(namespace, operator_deployment)
+    if operator_details['release'] not in ['5.7.0']:
+        print(Text(f"Current operator release is {operator_details['release']}\n"
+                f"Only operators from 5.7.0 and later releases will generate network policy templates", style="red"))
+        raise typer.Exit()
+    np_folder = os.path.join(os.getcwd(), "FNCMNetworkPolicies", namespace)
+    must_gather = mg.MustGather(console, namespace, state["logger"], np_folder, deployment_details, operator_details, kube)
+    if apply:
         if os.path.exists(np_folder):
             print()
             print(Panel.fit(Text(f"Found {os.path.basename(np_folder)} Folder. Applying existing network policies"), style="cyan"))
