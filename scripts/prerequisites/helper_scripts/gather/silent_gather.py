@@ -83,7 +83,7 @@ class SilentGatherOptions(GatherOptions):
     def silent_platform(self):
         self._logger.info("Gather platform details")
         try:
-            platform = gather_var(key="PLATFORM", valid_values=[1, 2, 3], _logger=self._logger, _envfile=self._envfile,
+            platform = gather_var(key="PLATFORM", valid_values=[1, 2], _logger=self._logger, _envfile=self._envfile,
                                   _error_list=self._error_list)
             if platform is not None:
                 if platform:
