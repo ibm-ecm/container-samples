@@ -89,6 +89,7 @@ rules:
   - delete
   - update
   - patch
+  - watch
 
 - apiGroups:
   - networking.k8s.io
@@ -102,6 +103,7 @@ rules:
   - delete
   - update
   - patch
+  - watch
 
 - apiGroups:
   - rbac.authorization.k8s.io
@@ -116,6 +118,7 @@ rules:
   - delete
   - update
   - patch
+  - watch
 
 - apiGroups:
   - batch
