@@ -332,6 +332,10 @@ class GenerateCR:
                     "user_identity_to_create_subject"] = \
                     self._idp_properties[key]["USER_IDENTIFIER_TO_CREATE_SUBJECT"]
 
+                # Always add token endpoint url, needed for jaas login module
+                idp_section["spec"]["shared_configuration"]["open_id_connect_providers"][idx]["token_endpoint_url"] = \
+                    self._idp_properties[key]["TOKEN_ENDPOINT"]
+
                 # Discovery URL is used by liberty and all required info is fetched
                 if "DISCOVERY_ENDPOINT" in self._idp_properties[key]:
                     idp_section["spec"]["shared_configuration"]["open_id_connect_providers"][idx][
@@ -340,8 +344,6 @@ class GenerateCR:
 
                     # Remove token and issuer endpoints if discovery endpoint is provided
                     idp_section["spec"]["shared_configuration"]["open_id_connect_providers"][idx].pop(
-                        "token_endpoint_url", None)
-                    idp_section["spec"]["shared_configuration"]["open_id_connect_providers"][idx].pop(
                         "issuer_identifier", None)
 
                 else:
@@ -349,8 +351,6 @@ class GenerateCR:
                     idp_section["spec"]["shared_configuration"]["open_id_connect_providers"][idx].pop(
                         "discovery_endpoint_url")
 
-                    idp_section["spec"]["shared_configuration"]["open_id_connect_providers"][idx]["token_endpoint_url"] = \
-                        self._idp_properties[key]["TOKEN_ENDPOINT"]
                     idp_section["spec"]["shared_configuration"]["open_id_connect_providers"][idx]["issuer_identifier"] = \
                         self._idp_properties[key]["ISSUER"]
 
