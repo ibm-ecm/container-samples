@@ -1061,10 +1061,10 @@ class GatherPrereqOptions:
             print(Panel.fit("License and Version"))
             print()
 
-            version = version_data.get("VERSION", '5.7.0' )
-            self._fncm_version = version
+            self._fncm_version = version_data.get("VERSION", '5.7.0')
+            display = version_data.get("DISPLAY", '5.7.0')
 
-            print(Panel.fit(Text(f"Detected IBM FileNet Content Manager Version: {version}"), style="bold cyan"))
+            print(Panel.fit(Text(f"Detected IBM FileNet Content Manager Version: {display}"), style="bold cyan"))
             print()
 
             if self._fncm_version == "5.5.8":
