@@ -670,7 +670,7 @@ def display_prereq_passed(prereqs=None):
 
         if 'java' in prereqs:
             if prereqs['java']:
-                java_version = prereqs.get('java_version', '').split()[0]
+                java_version = prereqs.get('java_version', '').split('.')[0]
                 expected_java_version = prereqs.get('expected_java_version', '')
 
                 if java_version and expected_java_version and java_version != expected_java_version:
