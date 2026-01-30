@@ -13,6 +13,7 @@ import binascii
 import inspect
 import json
 import os
+from pathlib import Path
 import platform
 import re
 import secrets
@@ -54,11 +55,36 @@ def zip_folder(zip_file_name: str, folder_path: str) -> str:
     zip_file = shutil.make_archive(zip_file_name, "zip", folder_path, )
     return zip_file
 
+def collect_visible_folders(directory_path='.'):
+    """
+    Returns a list of visible (non-hidden) folders using pathlib.
+
+    Filters based on Unix-style dot-files. For Windows attributes, 
+    additional checks (not shown here for simplicity) may be needed.
+    """
+    p = Path(directory_path)
+    # Use list comprehension to iterate through items and filter out dot-files
+    visible_folders = [item for item in p.iterdir() if item.is_dir() and not item.name.startswith('.')]
+    # Return the list of visible folders names
+    return [item.name for item in visible_folders]
+
+def collect_visible_files(directory_path='.'):
+    """
+    Returns a list of visible (non-hidden) files using pathlib.
+    Filters based on Unix-style dot-files. For Windows attributes,  
+    additional checks (not shown here for simplicity) may be needed.
+    """
+    p = Path(directory_path)
+    # Use list comprehension to iterate through items and filter out dot-files
+    visible_files = [item for item in p.iterdir() if item.is_file() and not item.name.startswith('.')]
+    # Return the list of visible files names
+    return [item.name for item in visible_files]
+
 
 # Adding idp certificate to trusted certificates folder
 def add_idp_to_trusted_certs(ssl_cert_folder, trusted_certs_folder):
     if os.path.exists(ssl_cert_folder):
-        ssl_folders = collect_visible_files(ssl_cert_folder)
+        ssl_folders = collect_visible_folders(ssl_cert_folder)
 
         # remove any hidden files that might be picked up and remove the trusted-certs folder
         for folder in ssl_folders:
@@ -105,6 +131,7 @@ def parse_required_fields(required_fields):
 
 # Function to check if private key is of pem format
 def check_pem_key_format(ssl_cert,passkey=None):
+    data = None
     try:
         with open(ssl_cert, 'rb') as file:
             data = file.read()
@@ -112,17 +139,21 @@ def check_pem_key_format(ssl_cert,passkey=None):
         if passkey:
             serialization.load_pem_private_key(data, password=passkey.encode("utf-8"), backend=default_backend())
         else:
-            serialization.load_pem_public_key(data, backend=default_backend())
+            serialization.load_pem_private_key(data, password=None, backend=default_backend())
         # If successful, it's a valid PEM file
         return True
-    except Exception as e:
-        try:
-            # Attempt to load it as a public key
-            serialization.load_pem_public_key(data, backend=default_backend())
-            # If successful, it's a valid PEM file
-            return True
-        except Exception:
-            # Not a valid PEM file
+    except Exception:
+        if data is not None:
+            try:
+                # Attempt to load it as a public key
+                serialization.load_pem_public_key(data, backend=default_backend())
+                # If successful, it's a valid PEM file
+                return True
+            except Exception:
+                # Not a valid PEM file
+                return False
+        else:
+            # File could not be read
             return False
 
 
@@ -159,7 +190,7 @@ def check_ssl_folders(db_prop=None, ldap_prop=None, ssl_cert_folder=None, deploy
     incorrect_cert = {}
     # if any ssl cert folders exists that means ssl was enabled for either ldap or DB
     if os.path.exists(ssl_cert_folder):
-        ssl_folders = collect_visible_files(ssl_cert_folder)
+        ssl_folders = collect_visible_folders(ssl_cert_folder)
 
         # remove any hidden files that might be picked up and remove the trusted-certs folder
         for folder in ssl_folders.copy():
@@ -196,7 +227,7 @@ def check_ssl_folders(db_prop=None, ldap_prop=None, ssl_cert_folder=None, deploy
                 for folder in db_folders:
 
                     sub_folder_path = os.path.join(ssl_cert_folder, folder)
-                    sub_folders = collect_visible_files(sub_folder_path)
+                    sub_folders = collect_visible_folders(sub_folder_path)
 
                     server_ca = False
                     clientkey = False
@@ -472,13 +503,6 @@ def check_db_ssl_mode(db_prop, deploy_prop):
             if db_prop["SSL_MODE"].lower() != "require":
                 correct_ssl_mode = False
     return correct_ssl_mode
-
-
-def collect_visible_files(folder_path: str) -> list:
-    # Check if folder is a folder
-    if not os.path.isdir(folder_path):
-        return []
-    return [file for file in os.listdir(folder_path) if not file.startswith('.')]
 
 
 def get_skopeo_version(logger):
@@ -1023,7 +1047,9 @@ def ensure_base64(value: str) -> str:
 def encode_secret_contents(input_dict: dict) -> dict:
     result = {}
     for key, value in input_dict.items():
-        result[key] = base64.b64encode(value.encode('utf-8')).decode('utf-8')
+        if isinstance(value, str):
+            value = value.encode('utf-8')
+        result[key] = base64.b64encode(value).decode('utf-8')
 
     return result
 

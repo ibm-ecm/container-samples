@@ -426,7 +426,7 @@ class Validate:
 
             if not connected:
                 progress.log(Panel.fit(
-                    Text(f"Reachability over SSL failed. Falling back to non-SSL connection."), style="bold yellow"))
+                    Text(f"Reachability over SSL failed. Attempting connection without certificate verification."), style="bold yellow"))
                 progress.log()
 
                 if db_type == 'postgresql':
@@ -807,6 +807,17 @@ class Validate:
                                                  port=ldap_port, ssl_enabled=ssl_enabled,
                                                  cert_path=cert_folder, display_rtt=True)
 
+                if not validated:
+                    progress.log(Panel.fit(
+                        Text(f"Reachability over SSL failed. Attempting connection without certificate verification."), style="bold yellow"))
+                    progress.log()
+
+                    validated = self.validate_server(progress=progress, server=ldap_host,
+                                                     port=ldap_port, ssl_enabled=False,
+                                                     display_rtt=False)
+
+                check_list.append(validated)
+
                 if ldap_type == "microsoft active directory":
                     # For Microsoft Active Directory we need to check the Global Catalog (GC) port and host
                     # If GC port or host is defined, we need to take from the toml file else we default
@@ -834,6 +845,16 @@ class Validate:
                     validated = self.validate_server(progress=progress, server=gc_host,
                                                         port=gc_port, ssl_enabled=ssl_enabled,
                                                         cert_path=cert_folder, display_rtt=False)
+
+                    if not validated:
+                        progress.log(Panel.fit(
+                            Text(f"Reachability over SSL failed. Attempting connection without certificate verification."),
+                            style="bold yellow"))
+                        progress.log()
+
+                        validated = self.validate_server(progress=progress, server=ldap_host,
+                                                         port=ldap_port, ssl_enabled=False,
+                                                         display_rtt=False)
 
                     check_list.append(validated)
 
@@ -1878,7 +1899,7 @@ class Validate:
 
             if not server_reachability and ssl_enabled:
                 progress.log(Panel.fit(
-                    Text(f"Reachability over SSL failed. Falling back to non-SSL connection.",
+                    Text(f"Reachability over SSL failed. Attempting connection without certificate verification.",
                          style="bold yellow"), style="bold yellow"))
                 progress.log()
 
