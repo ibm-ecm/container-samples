@@ -297,6 +297,11 @@ def read_version_toml(file_path, logger):
         logger.info(f"Reading version data from from file: {file_path}")
         version_data = toml.loads(open(file_path, encoding="utf-8").read())
         logger.info(f"Version data read: {version_data}")
+
+        display = version_data.get("VERSION", "5.7.0")
+        version =  display.split("-")[0]
+        version_data["VERSION"] = version
+        version_data["DISPLAY"] = display
         return version_data
     except FileNotFoundError:
         logger.error(f"File not found: {file_path}")

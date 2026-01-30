@@ -60,7 +60,7 @@ from helper_scripts.utilities.prerequisites_utilites import zip_folder, \
 from helper_scripts.utilities.utilities import read_version_toml, prereq_checks
 from helper_scripts.validate import validate as v
 
-__version__ = "7.0.0"
+__version__ = "7.1.5"
 
 app = typer.Typer()
 state = {
@@ -112,7 +112,6 @@ def main(ctx: typer.Context,
 
     if os.path.exists(version_path):
         state["version_data"] = read_version_toml(version_path, state["logger"])
-        state["version_data"]["VERSION"] = state["version_data"]["VERSION"].split('-')[0]
     else:
         state["version_data"] = {}
 
@@ -201,6 +200,8 @@ def gather(
         move: Annotated[str, typer.Option(help="Folder location of the migration files",
                                           rich_help_panel="Mode Options",
                                           dir_okay=True)] = "",
+        fncm_version: Annotated[str, typer.Option(help="FNCM version override",
+                                             rich_help_panel="Mode Options")] = ""
 ):
     """
     Gather the prerequisites for FileNet Content Manager Deployment.
@@ -215,6 +216,9 @@ def gather(
 
     move_db = False
     move_ldap = False
+
+    if fncm_version != '':
+        state["version_data"]["VERSION"] = fncm_version
 
     if not state["silent"]:
         # this is the user details object

@@ -17,4 +17,4 @@ spec:
   displayName: ibm-fncm-operator
   publisher: IBM
   sourceType: grpc
-  image: icr.io/cpopen/ibm-fncm-catalog@sha256:1d707f32472dd8ac20334cc131e349acc185020b56d7028035e07c03f20f99fa
+  image: icr.io/cpopen/ibm-fncm-catalog@sha256:4341a54d195f8645d52286cb9707ef690a0abfefcf676b1c2de74683ea59d4a2
