@@ -1,3 +1,26 @@
+## 7.1.6 (2026-02-05)
+
+### Fix
+
+- gather mode with move option now asks for namespace 
+
+## 7.1.5 (2026-01-28)
+
+### Fix
+
+- java version checks improved
+- update to python libraries
+- non-certificate validation fall back enabled for LDAP reachability
+- added token_url endpoint to the generated CR even if discovery url is provided
+- fixed for private RSA key (with password) handling in certificate PEM format check
+- fixed check for hidden folders and files 
+- converted all secret creation to jinja2 templates for consistency
+
+### Feature
+
+- fncm version is now auto-detected for prerequisite scripts
+- fncm version flag has been added to override auto-detection
+
 ## 7.0.0 (2025-12-17)
 
 ### Fix
