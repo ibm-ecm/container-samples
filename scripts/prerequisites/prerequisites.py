@@ -60,7 +60,7 @@ from helper_scripts.utilities.prerequisites_utilites import zip_folder, \
 from helper_scripts.utilities.utilities import read_version_toml, prereq_checks
 from helper_scripts.validate import validate as v
 
-__version__ = "7.1.5"
+__version__ = "7.1.6"
 
 app = typer.Typer()
 state = {
@@ -270,16 +270,18 @@ def gather(
             gather.collect_license_model(state["version_data"])
             clear(console)
 
+            gather.collect_namespace()
             clear(console)
+
             gather.collect_platform_ingress()
-
             clear(console)
+
             gather.collect_auth_type()
-
             clear(console)
+
             gather.collect_optional_components()
-
             clear(console)
+
             # Get all files in the directory as list by type
             files = collect_visible_files(move)
             gcd_file = fnmatch.filter(files, "*gcd*.xml")

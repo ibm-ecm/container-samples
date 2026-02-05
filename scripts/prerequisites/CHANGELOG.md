@@ -1,4 +1,10 @@
-## 7.1.5 (2026-02-28)
+## 7.1.6 (2026-02-05)
+
+### Fix
+
+- gather mode with move option now asks for namespace 
+
+## 7.1.5 (2026-01-28)
 
 ### Fix
 
