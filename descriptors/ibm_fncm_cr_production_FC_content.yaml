@@ -1810,7 +1810,7 @@ spec:
     image:
       # The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/ier/ier
-      tag: ga-5218-if009-ier-2400-if008
+      tag: ga-5218-if010-ier-2400-if008
 
       # This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
