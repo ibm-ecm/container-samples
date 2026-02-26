@@ -545,7 +545,7 @@ class Upgrade:
 
         with open(self.tmp_file_paths["operator.yaml"], 'r') as file:
             content = file.read()
-        registry_in_file = "icr.io"
+        registry_in_file = "icr.io/cpopen"
 
         if self._setup.private_registry_valid:
             progress.log("FileNet Content Management Operator is being upgraded using a private registry")
@@ -566,7 +566,7 @@ class Upgrade:
                 progress.log("Using dev registry for FileNet Content Management Operator upgrade")
                 progress.log()
                 self._logger.info(f"Using dev registry for FileNet Content Management Operator upgrade")
-                pattern = re.compile(re.escape(registry_in_file + '/cpopen') + r'\b')
+                pattern = re.compile(re.escape(registry_in_file) + r'\b')
                 replacement = "cp.stg.icr.io" + '/cp'
                 content = pattern.sub(replacement, content)
 
