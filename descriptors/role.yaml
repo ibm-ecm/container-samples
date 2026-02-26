@@ -68,7 +68,8 @@ rules:
 - apiGroups:
   - fncm.ibm.com
   resources:
-  - '*'
+  - fncmclusters
+  - fncmclusters/status
   verbs:
   - get
   - list
@@ -147,6 +148,15 @@ rules:
   - watch
   - update
   - patch
+
+- apiGroups:
+    - operators.coreos.com
+  resources:
+    - clusterserviceversions
+  verbs:
+    - get
+    - list
+    - watch
 
 - apiGroups:
   - extensions

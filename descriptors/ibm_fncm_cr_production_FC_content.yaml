@@ -71,6 +71,18 @@ spec:
     ## The deployment type as selected.
     sc_deployment_type: production
 
+    ## Values in this field will be used as annotations in all generated pods, and it must be valid annotation key value pairs.
+    # Example:
+    # customAnnotationKey: customAnnotationValue
+    ## This can be overwritten by component level definition for example ecm_configuration.cpe.custom_annotations.
+    ## To include '{{ }}' in annotation like '{{example}}', add a backward slash before curly brace like '\{\{example\}\}'.
+    custom_annotations: { }
+    ## Values in this field will be used as labels in all generated pods, and it must be valid label key value pairs
+    # Example:
+    # customLabelKey: customLabelValue
+    ## This can be overwritten by component level definition for example ecm_configuration.cpe.custom_labels.
+    custom_labels: { }
+
     ## Optional setting for secure computing mode (seccomp) profile for FNCM containers.  The default seccomp profile is RuntimeDefault on OCP 4.11 (k8s v1.24) or higher. seccomp profile won't be created on OCP 4.10 (k8s v1.23) or lower.
     ## For more information on seccomp please refer to https://kubernetes.io/docs/tutorials/security/seccomp/ and https://docs.openshift.com/container-platform/4.12/security/seccomp-profiles.html
     ## NOTE: Defining a custom, localhost seccomp profile that is stricter than the default RuntimeDefault profile may cause our pods fail to start.  This custom profile should be created at the worker nodes.
@@ -170,7 +182,7 @@ spec:
     images:
       keytool_init_container:
         repository: cp.icr.io/cp/cp4a/common/dba-keytool-initcontainer
-        tag: "25.0.0-IF003"
+        tag: "25.0.0-IF004"
     
     ## This is necessary if you want to use your own JDBC drivers and/or need to provide ICCSAP drivers.  If you are providing multiple JDBC drivers and ICCSAP drivers, 
     ## all the files must be compressed in a single file.
@@ -791,7 +803,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cpe
-        tag: ga-570-p8cpe-if002
+        tag: ga-570-p8cpe-if003
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -962,7 +974,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/css
-        tag: ga-570-p8css-if002
+        tag: ga-570-p8css-if003
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -983,10 +995,25 @@ spec:
           memory: "4096Mi"
           ephemeral_storage: "1.5Gi"
 
+      ## This flag enables or disables Pod Disruption Budget (PDB) creation for CSS component. It overrides the shared_configuration.sc_enable_pdb flag. Default value is true.
+      ## A PDB for CSS will be created with a `minAvailable: 1` only if the CSS replica count is greater than 1.  Otherwise, if the replica is 1 the PDB will have `minAvailable: 0`.
+      enable_pdb: true
+
       ## CSS Production setting
       css_production_setting:
         ## The maximum percentage of available memory to use.
         jvm_max_heap_percentage: 50
+
+        ## Use this "jvm_customize_options" parameter to specify JVM arguments using comma separation. For example, if you want to set the following JVM arguments:
+        ##  -Dmy.test.jvm.arg1=123
+        ##  -Dmy.test.jvm.arg2=abc
+        ##  -XX:+SomeJVMSettings
+        ##  -XshowSettings:vm"
+        ## Then set the following: jvm_customize_options: "-Dmy.test.jvm.arg1=123,-Dmy.test.jvm.arg2=abc,-XX:+SomeJVMSettings,-XshowSettings:vm"
+        ## If your JVM option contains comma then you have to include 'DELIM=;' to use a different separator, for example jvm_customize_options: "DELIM=;-Dmy.test.jvm.arg1=123;-Dcom.filenet.authentication.wsi.AuthTokenOrder=oauth,oidc,ltpa". Semicolon can be replaced with any other char.
+        ## If your JVM option contains double quotes then you need to escape it like this: jvm_customize_options: "-Dsettings.navigator.default=logging.level={\"_value\":\"4\",\"_mergeOption\":\"replace\"}"
+
+        jvm_customize_options:
 
         # The license must be set to "accept" in order for the component to install.  This is the default value.
         license: accept
@@ -1060,7 +1087,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cmis
-        tag: ga-307-cmis-la1102
+        tag: ga-307-cmis-la1201
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1090,8 +1117,8 @@ spec:
         ## This is the default cpu percentage before autoscaling occurs.
         target_cpu_utilization_percentage: "<Required>"
 
-      ## This flag enable or disable Pod Disruption Budget (PDB) creation for cmis component.  This flag will override the shared_configuration.sc_enable_pdb flag.  Default is true
-      ## A PDB for cmis will be created with a `minAvailable: 1` only if the cmis replica count is greater than 1.  Otherwise, the PDB will have `minAvailable: 0` if the replica is 1.
+      ## This flag enable or disable Pod Disruption Budget (PDB) creation for CMIS component.  This flag will override the shared_configuration.sc_enable_pdb flag.  Default is true
+      ## A PDB for CMIS will be created with a `minAvailable: 1` only if the CMIS replica count is greater than 1.  Otherwise, the PDB will have `minAvailable: 0` if the replica is 1.
       enable_pdb: true
 
       ## Below are the default CMIS Production settings.  Make the necessary changes as you see fit.  Refer to IBM Documentation for details.
@@ -1225,7 +1252,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/graphql
-        tag: ga-570-p8cgql-if002
+        tag: ga-570-p8cgql-if003
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1350,7 +1377,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/extshare
-        tag: ga-320-es-if003
+        tag: ga-320-es-if004
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1462,7 +1489,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/taskmgr
-        tag: ga-320-tm-if003
+        tag: ga-320-tm-if004
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1613,7 +1640,7 @@ spec:
     image:
       ## The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/ban/navigator
-      tag: ga-320-icn-if003
+      tag: ga-320-icn-if004
 
       ## This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
@@ -1821,7 +1848,7 @@ spec:
     image:
       # The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/ier/ier
-      tag: ga-5218-if009-ier-2500-if003
+      tag: ga-5218-if010-ier-2500-if004
 
       # This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
@@ -1851,6 +1878,10 @@ spec:
         ## This is the default cpu percentage before autoscaling occurs.
         target_cpu_utilization_percentage: "<Required>"
 
+    ## This flag enables or disables Pod Disruption Budget (PDB) creation for IER component. It overrides the shared_configuration.sc_enable_pdb flag. Default value is true.
+    ## A PDB for IER will be created with a `minAvailable: 1` only if the IER replica count is greater than 1.  Otherwise, if the replica is 1 the PDB will have `minAvailable: 0`.
+    enable_pdb: true
+
     node_affinity:
       #-------------------------------------
       # custom_node_selector_match_expression will be added in node selector match expressions.
@@ -1876,7 +1907,6 @@ spec:
 
     ## Below are the default IER Production settings.  Make the necessary changes as you see fit.  Refer to IBM Documentation for details.
     ier_production_setting:
-      time_zone: Etc/UTC
 
       ## The initial use of available memory.
       jvm_initial_heap_percentage: 40
@@ -1944,7 +1974,7 @@ spec:
     image:
       ## The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/iccsap/iccsap
-      tag: ga-iccsap-4004-if020-2500_if003
+      tag: ga-iccsap-4004-if020-2500_if004
 
       ## This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
@@ -1973,6 +2003,10 @@ spec:
       min_replicas: "<Required>"
       ## This is the default cpu percentage before autoscaling occurs.
       target_cpu_utilization_percentage: "<Required>"
+
+    ## This flag enables or disables Pod Disruption Budget (PDB) creation for ICCSAP component. It overrides the shared_configuration.sc_enable_pdb flag. Default value is true.
+    ## A PDB for ICCSAP will be created with a `minAvailable: 1` only if the ICCSAP replica count is greater than 1.  Otherwise, if the replica is 1 the PDB will have `minAvailable: 0`.
+    enable_pdb: true
 
     node_affinity:
       #-------------------------------------

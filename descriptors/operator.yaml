@@ -2,7 +2,7 @@
 #
 # Licensed Materials - Property of IBM
 #
-# (C) Copyright IBM Corp. 2023. All Rights Reserved.
+# (C) Copyright IBM Corp. 2026. All Rights Reserved.
 #
 # US Government Users Restricted Rights - Use, duplication or
 # disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
@@ -48,41 +48,54 @@ spec:
       hostIPC: false
       securityContext:
         runAsNonRoot: true
+        # Uncomment to specify the RunAsUser for the security context of the pod.
+        # This is usually a numeric value that corresponds to a user ID.
+        # runAsUser: 1001
+        # Uncomment to specify the fsGroup for the security context of the pod.
+        # fsGroup: 0
+        # Uncomment this to enable seccomp profile on OCP 4.12+
+        # seccompProfile:
+        #   type: RuntimeDefault
       serviceAccountName: ibm-fncm-operator
       affinity:
         nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - preference:
+              matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+                - s390x
+                - ppc64le
+            weight: 3
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
-              - matchExpressions:
-                  - key: kubernetes.io/arch
-                    operator: In
-                    values:
-                      - amd64
-                      - s390x
-                      - ppc64le
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 3
-              preference:
-                matchExpressions:
-                  - key: kubernetes.io/arch
-                    operator: In
-                    values:
-                      - amd64
-                      - s390x
-                      - ppc64le
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+                - s390x
+                - ppc64le
       initContainers:
         - name: folder-prepare-container
-          image: "icr.io/cpopen/icp4a-content-operator:5.7.0-IF002"
+          image: "icr.io/cpopen/icp4a-content-operator:5.7.0-IF003"
+          imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
-            privileged: false
-            readOnlyRootFilesystem: true
             capabilities:
               drop:
               - ALL
-          ## Uncomment this to enable seccomp profile on OCP 4.12+
-          #  seccompProfile:
-          #    type: RuntimeDefault
+            privileged: false
+            readOnlyRootFilesystem: true
+          resources:
+            limits:
+              cpu: "1"
+              memory: 2Gi
+            requests:
+              cpu: 500m
+              memory: 256Mi
           volumeMounts:
             - name: license-folder-pvc
               mountPath: /license-folder
@@ -106,31 +119,44 @@ spec:
               cp -rp /opt/ibm/* /ibm-folder
       containers:
         - name: operator
-          # Replace this with the built image name
-          image: "icr.io/cpopen/icp4a-content-operator:5.7.0-IF002"
-          imagePullPolicy: "IfNotPresent"
+          image: "icr.io/cpopen/icp4a-content-operator:5.7.0-IF003"
+          imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
-            privileged: false
-            readOnlyRootFilesystem: true
             capabilities:
               drop:
               - ALL
-          ## Uncomment to specify the RunAsUser for the security context of the pod.
-          ## This is usually a numeric value that corresponds to a user ID.
-          #  runAsUser: 1001
-          ## Uncomment this to enable seccomp profile on OCP 4.12+
-          #  seccompProfile:
-          #    type: RuntimeDefault
+            privileged: false
+            readOnlyRootFilesystem: true
           resources:
             limits:
-              cpu: '1'
+              cpu: "1"
               memory: 2Gi
             requests:
               cpu: 500m
               memory: 256Mi
           args:
-          - '--zap-encoder=console'
+            - --zap-encoder=console
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /healthz
+              port: 6789
+              scheme: HTTP
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /readyz
+              port: 6789
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
           env:
             - name: WATCH_NAMESPACE
               valueFrom:
@@ -145,7 +171,7 @@ spec:
             - name: MAX_CONCURRENT_RECONCILES_ICP4ACLUSTER_ICP4A_IBM_COM
               value: "10"
             - name: ANSIBLE_GATHERING
-              value: smart
+              value: "smart"
             # MUST exist, used to accept dba license, valid value only can be "accept"
             - name: fncm_license
               value: "accept"
@@ -160,6 +186,7 @@ spec:
               mountPath: /logs
             - name: ibm-folder-pvc
               mountPath: /opt/ibm
+
       imagePullSecrets:
       - name: "ibm-entitlement-key"
       - name: "admin.registrykey"
