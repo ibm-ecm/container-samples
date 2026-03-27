@@ -118,6 +118,10 @@ spec:
     ## Optional: You can specify a profile size for CloudPak - valid values are small,medium,large - default is small.
     sc_deployment_profile_size: "small"
     
+    ## The global flag to enable or disable Pod Disruption Budget (PDB) creation across all components.  This flag can be overridden at specific configuration sections (eg: ecm_configuration.cpe.enable_pdb).  Default is true
+    ## A PDB will be created with a `minAvailable: 1` only if the replica count of a particular deployment is greater than 1.  Otherwise, the PDB will have `minAvailable: 0` if the replica is 1.
+    sc_enable_pdb: true
+
     ## Specify the RunAsUser for the security context of the pod.  This is usually a numeric value that corresponds to a user ID.
     ## For non-OCP (e.g., CNCF platforms such as EKS, AKS, GKE, etc.), this parameter is optional. It is not supported on OCP.
     sc_run_as_user:
@@ -157,7 +161,7 @@ spec:
     images:
       keytool_init_container:
         repository: cp.icr.io/cp/cp4a/common/dba-keytool-initcontainer
-        tag: "5.5.12-IF006"
+        tag: "5.5.12-IF007"
     
     ## This is necessary if you want to use your own JDBC drivers and/or need to provide ICCSAP drivers.  If you are providing multiple JDBC drivers and ICCSAP drivers, 
     ## all the files must be compressed in a single file.
@@ -748,7 +752,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cpe
-        tag: ga-5512-p8cpe-if006
+        tag: ga-5512-p8cpe-if007
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -790,6 +794,10 @@ spec:
         min_replicas: "<Required>"
         ## This is the default cpu percentage before autoscaling occurs.
         target_cpu_utilization_percentage: "<Required>"
+
+      ## This flag enable or disable Pod Disruption Budget (PDB) creation for CPE component.  This flag will override the shared_configuration.sc_enable_pdb flag.  Default is true
+      ## A PDB for CPE will be created with a `minAvailable: 1` only if the CPE replica count is greater than 1.  Otherwise, the PDB will have `minAvailable: 0` if the replica is 1.
+      enable_pdb: true
    
       ## Use these parameters to configure Content Federation Services for Image Services (CFS-IS).  These entries will be added as host alias.  Refer to IBM Documentation for details.
       # content_federation_image_services:
@@ -919,7 +927,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/css
-        tag: ga-5512-p8css-if006
+        tag: ga-5512-p8css-if007
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -940,10 +948,25 @@ spec:
           memory: "4096Mi"
           ephemeral_storage: "1.5Gi"
 
+      ## This flag enables or disables Pod Disruption Budget (PDB) creation for CSS component. It overrides the shared_configuration.sc_enable_pdb flag. Default value is true.
+      ## A PDB for CSS will be created with a `minAvailable: 1` only if the CSS replica count is greater than 1.  Otherwise, the PDB will have `minAvailable: 0`if the replica is 1.
+      enable_pdb: true
+
       ## CSS Production setting
       css_production_setting:
         ## The maximum percentage of available memory to use.
         jvm_max_heap_percentage: 50
+
+        ## Use this "jvm_customize_options" parameter to specify JVM arguments using comma separation. For example, if you want to set the following JVM arguments:
+        ##  -Dmy.test.jvm.arg1=123
+        ##  -Dmy.test.jvm.arg2=abc
+        ##  -XX:+SomeJVMSettings
+        ##  -XshowSettings:vm"
+        ## Then set the following: jvm_customize_options: "-Dmy.test.jvm.arg1=123,-Dmy.test.jvm.arg2=abc,-XX:+SomeJVMSettings,-XshowSettings:vm"
+        ## If your JVM option contains comma then you have to include 'DELIM=;' to use a different separator, for example jvm_customize_options: "DELIM=;-Dmy.test.jvm.arg1=123;-Dcom.filenet.authentication.wsi.AuthTokenOrder=oauth,oidc,ltpa". Semicolon can be replaced with any other char.
+        ## If your JVM option contains double quotes then you need to escape it like this: jvm_customize_options: "-Dsettings.navigator.default=logging.level={\"_value\":\"4\",\"_mergeOption\":\"replace\"}"
+
+        jvm_customize_options:
 
         # The license must be set to "accept" in order for the component to install.  This is the default value.
         license: accept
@@ -1017,7 +1040,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cmis
-        tag: ga-307-cmis-la1103
+        tag: ga-307-cmis-la1301
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1047,6 +1070,10 @@ spec:
         ## This is the default cpu percentage before autoscaling occurs.
         target_cpu_utilization_percentage: "<Required>"
 
+      ## This flag enable or disable Pod Disruption Budget (PDB) creation for CMIS component.  This flag will override the shared_configuration.sc_enable_pdb flag.  Default is true
+      ## A PDB for CMIS will be created with a `minAvailable: 1` only if the CMIS replica count is greater than 1.  Otherwise, the PDB will have `minAvailable: 0` if the replica is 1.
+      enable_pdb: true
+      
       ## Below are the default CMIS Production settings.  Make the necessary changes as you see fit.  Refer to IBM Documentation for details.
       cmis_production_setting:
         ## By default, this parameter is set by the Operator using the CPE service endpoint (e.g., "https://{{ meta.name }}-cpe-stateless-svc:9443/wsi/FNCEWS40MTOM")
@@ -1178,7 +1205,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/graphql
-        tag: ga-5512-p8cgql-if006
+        tag: ga-5512-p8cgql-if007
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1207,6 +1234,10 @@ spec:
         min_replicas: "<Required>"
         ## This is the default cpu percentage before autoscaling occurs.
         target_cpu_utilization_percentage: "<Required>"
+
+      ## This flag enable or disable Pod Disruption Budget (PDB) creation for GraphQL component.  This flag will override the shared_configuration.sc_enable_pdb flag.  Default is true
+      ## A PDB for graphql will be created with a `minAvailable: 1` only if the GraphQL replica count is greater than 1.  Otherwise, the PDB will have `minAvailable: 0` if the replica is 1.
+      enable_pdb: true
 
       ## Below are the default CMIS Production settings.  Make the necessary changes as you see fit.  Refer to IBM Documentation for details.
       graphql_production_setting:
@@ -1299,7 +1330,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/extshare
-        tag: ga-3015-es-if008
+        tag: ga-3015-es-if009
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1324,6 +1355,10 @@ spec:
         min_replicas: "<Required>"
         ## This is the default cpu percentage before autoscaling occurs.
         target_cpu_utilization_percentage: "<Required>"
+      
+      ## This flag enable or disable Pod Disruption Budget (PDB) creation for ExtShare component.  This flag will override the shared_configuration.sc_enable_pdb flag.  Default is true
+      ## A PDB for ExtShare will be created with a `minAvailable: 1` only if the ExtShare replica count is greater than 1.  Otherwise, the PDB will have `minAvailable: 0` if the replica is 1.
+      enable_pdb: true
 
       ## Below are the default External Share Production settings.  Make the necessary changes as you see fit.  Refer to IBM Documentation for details.
       es_production_setting:
@@ -1407,7 +1442,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/taskmgr
-        tag: ga-3015-tm-if008
+        tag: ga-3015-tm-if009
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1432,6 +1467,10 @@ spec:
         min_replicas: "<Required>"
         ## This is the default cpu percentage before autoscaling occurs.
         target_cpu_utilization_percentage: "<Required>"
+
+      ## This flag enable or disable Pod Disruption Budget (PDB) creation for Task Manager component.  This flag will override the shared_configuration.sc_enable_pdb flag.  Default is true
+      ## A PDB for TM will be created with a `minAvailable: 1` only if the TM replica count is greater than 1.  Otherwise, the PDB will have `minAvailable: 0` if the replica is 1.
+      enable_pdb: true
 
       ## Below are the default TM Production settings.  Make the necessary changes as you see fit.  Refer to IBM Documentation for details.
       tm_production_setting:
@@ -1554,7 +1593,7 @@ spec:
     image:
       ## The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/ban/navigator
-      tag: ga-3015-icn-if008
+      tag: ga-3015-icn-if009
 
       ## This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
@@ -1629,6 +1668,10 @@ spec:
       # Defines behavior for changing ownership and permission of the volume before being exposed inside a Pod. This field has two possible values (Always,OnRootMismatch)
       # For example fs_groupchangepolicy: "OnRootMismatch"
       fs_groupchangepolicy:
+
+    ## This flag enables or disables Pod Disruption Budget (PDB) creation for Navigator component. It overrides the shared_configuration.sc_enable_pdb flag. Default value is true.
+    ## A PDB for Navigator will be created with a `minAvailable: 1` only if the Navigator replica count is greater than 1.  Otherwise, if the replica is 1 the PDB will have `minAvailable: 0`.
+    enable_pdb: true
 
     ## Below are the default ICN Production settings.  Make the necessary changes as you see fit.  Refer to IBM Documentation for details.
     icn_production_setting:

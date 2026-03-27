@@ -11,7 +11,6 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  creationTimestamp: null
   name: ibm-fncm-operator
   labels:
     app.kubernetes.io/instance: ibm-fncm
@@ -69,7 +68,8 @@ rules:
 - apiGroups:
   - fncm.ibm.com
   resources:
-  - '*'
+  - fncmclusters
+  - fncmclusters/status
   verbs:
   - get
   - list
@@ -117,6 +117,7 @@ rules:
   - delete
   - update
   - patch
+  - watch
 
 - apiGroups:
   - batch
@@ -147,6 +148,15 @@ rules:
   - patch
 
 - apiGroups:
+    - operators.coreos.com
+  resources:
+    - clusterserviceversions
+  verbs:
+    - get
+    - list
+    - watch
+
+- apiGroups:
   - extensions
   resources:
   - ingresses
@@ -162,3 +172,16 @@ rules:
   - update
   - patch
 
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  - podsecuritypolicies
+  verbs:
+  - create
+  - list
+  - delete
+  - update
+  - patch
+  - get
+  - watch
