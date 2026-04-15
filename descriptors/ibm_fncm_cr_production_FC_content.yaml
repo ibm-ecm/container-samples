@@ -1869,7 +1869,7 @@ spec:
 
     ## Below are the default IER Production settings.  Make the necessary changes as you see fit.  Refer to IBM Documentation for details.
     ier_production_setting:
-      time_zone: Etc/UTC
+      timezone: Etc/UTC
 
       ## The initial use of available memory.
       jvm_initial_heap_percentage: 40
