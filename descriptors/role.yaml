@@ -90,7 +90,6 @@ rules:
   - delete
   - update
   - patch
-  - watch
 
 - apiGroups:
   - networking.k8s.io
@@ -104,7 +103,6 @@ rules:
   - delete
   - update
   - patch
-  - watch
 
 - apiGroups:
   - rbac.authorization.k8s.io
@@ -148,6 +146,15 @@ rules:
   - watch
   - update
   - patch
+
+- apiGroups:
+    - operators.coreos.com
+  resources:
+    - clusterserviceversions
+  verbs:
+    - get
+    - list
+    - watch
 
 - apiGroups:
   - extensions

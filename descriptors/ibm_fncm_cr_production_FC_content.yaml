@@ -71,6 +71,18 @@ spec:
     ## The deployment type as selected.
     sc_deployment_type: production
 
+    ## Values in this field will be used as annotations in all generated pods, and it must be valid annotation key value pairs.
+    # Example:
+    # customAnnotationKey: customAnnotationValue
+    ## This can be overwritten by component level definition for example ecm_configuration.cpe.custom_annotations.
+    ## To include '{{ }}' in annotation like '{{example}}', add a backward slash before curly brace like '\{\{example\}\}'.
+    custom_annotations: { }
+    ## Values in this field will be used as labels in all generated pods, and it must be valid label key value pairs
+    # Example:
+    # customLabelKey: customLabelValue
+    ## This can be overwritten by component level definition for example ecm_configuration.cpe.custom_labels.
+    custom_labels: { }
+
     ## Optional setting for secure computing mode (seccomp) profile for FNCM containers.  The default seccomp profile is RuntimeDefault on OCP 4.11 (k8s v1.24) or higher. seccomp profile won't be created on OCP 4.10 (k8s v1.23) or lower.
     ## For more information on seccomp please refer to https://kubernetes.io/docs/tutorials/security/seccomp/ and https://docs.openshift.com/container-platform/4.12/security/seccomp-profiles.html
     ## NOTE: Defining a custom, localhost seccomp profile that is stricter than the default RuntimeDefault profile may cause our pods fail to start.  This custom profile should be created at the worker nodes.
@@ -168,7 +180,7 @@ spec:
     images:
       keytool_init_container:
         repository: cp.icr.io/cp/cp4a/common/dba-keytool-initcontainer
-        tag: "24.0.0-IF008"
+        tag: "24.0.0-IF009"
     
     ## This is necessary if you want to use your own JDBC drivers and/or need to provide ICCSAP drivers.  If you are providing multiple JDBC drivers and ICCSAP drivers, 
     ## all the files must be compressed in a single file.
@@ -570,6 +582,7 @@ spec:
       ## GCD configuration above.
     - dc_database_type: "<Required>"
       ## Provide the object store label for the object store.  The default value is "os" or not defined.
+      ## NOTE: dc_os_label is for credential mapping (NOT Display Name) and must NOT contain spaces.
       ## This label must match the OS secret you define in ibm-fncm-secret.
       ## For example, if you define dc_os_label: "abc", then your OS secret must be defined as:
       ## --from-literal=abcDBUsername="<your os db username>" --from-literal=abcDBPassword="<your os db password>"
@@ -769,7 +782,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cpe
-        tag: ga-560-p8cpe-if006
+        tag: ga-560-p8cpe-if007
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -940,7 +953,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/css
-        tag: ga-560-p8css-if006
+        tag: ga-560-p8css-if007
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1053,7 +1066,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/cmis
-        tag: ga-307-cmis-if012
+        tag: ga-307-cmis-la1202
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1218,7 +1231,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/graphql
-        tag: ga-560-p8cgql-if006
+        tag: ga-560-p8cgql-if007
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1343,7 +1356,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/extshare
-        tag: ga-310-es-if008
+        tag: ga-310-es-if009
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1455,7 +1468,7 @@ spec:
       image:
         ## The default repository is the IBM Entitled Registry.
         repository: cp.icr.io/cp/cp4a/fncm/taskmgr
-        tag: ga-310-tm-if008
+        tag: ga-310-tm-if009
 
         ## This will override the image pull policy in the shared_configuration.
         pull_policy: IfNotPresent
@@ -1606,7 +1619,7 @@ spec:
     image:
       ## The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/ban/navigator
-      tag: ga-310-icn-if008
+      tag: ga-310-icn-if009
 
       ## This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
@@ -1810,7 +1823,7 @@ spec:
     image:
       # The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/ier/ier
-      tag: ga-5218-if010-ier-2400-if008
+      tag: ga-5218-if010-ier-2400-if009
 
       # This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
@@ -1869,7 +1882,7 @@ spec:
 
     ## Below are the default IER Production settings.  Make the necessary changes as you see fit.  Refer to IBM Documentation for details.
     ier_production_setting:
-      timezone: Etc/UTC
+      time_zone: Etc/UTC
 
       ## The initial use of available memory.
       jvm_initial_heap_percentage: 40
@@ -1937,7 +1950,7 @@ spec:
     image:
       ## The default repository is the IBM Entitled Registry
       repository: cp.icr.io/cp/cp4a/iccsap/iccsap
-      tag: ga-4004-iccsap-if020h
+      tag: ga-iccsap-4004-if020-2400-if009
 
       ## This will override the image pull policy in the shared_configuration.
       pull_policy: IfNotPresent
