@@ -35,7 +35,7 @@ class Deploy:
 
         self.required_file_paths = {}
         for file in required_files:
-            file_name = file.split("/")[-1]
+            file_name = os.path.basename(file)
             self.required_file_paths[file_name] = file
 
         # Tmp File paths for the resources

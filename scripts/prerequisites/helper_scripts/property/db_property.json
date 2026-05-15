@@ -14,7 +14,7 @@
   "OS_LABEL": {
     "value": "<Required>",
     "comment": [
-      "Label of the Object Store."
+      "Label of the Object Store. Must NOT contain spaces."
     ]
   },
   "DATASOURCE_NAME": {

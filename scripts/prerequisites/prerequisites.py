@@ -60,7 +60,7 @@ from helper_scripts.utilities.prerequisites_utilites import zip_folder, \
 from helper_scripts.utilities.utilities import read_version_toml, prereq_checks
 from helper_scripts.validate import validate as v
 
-__version__ = "7.1.6"
+__version__ = "7.2.0"
 
 app = typer.Typer()
 state = {
@@ -119,14 +119,14 @@ def main(ctx: typer.Context,
         clear(console)
         display_mode_version("Gather",
                              "Gather information required for IBM FileNet Content Manager Deployment")
-        checks = ["connection",]
+        checks = []
         files = []
 
 
     elif ctx.invoked_subcommand == "generate":
         display_mode_version("Generate",
                              "Generate all deployment artifacts for IBM FileNet Content Manager Deployment")
-        checks = ["connection",]
+        checks = []
         files = []
 
     elif ctx.invoked_subcommand == "validate":
@@ -443,11 +443,13 @@ def generate():
     if not state["silent"]:
         # this is the user details object
         deploy1 = g.GatherPrereqOptions(logger=state["logger"], console=console)
+        deploy1._script_type = 'generate'
         deploy1.collect_namespace()
     else:
         deploy1 = sg.SilentGatherPrereqOptions(logger=state["logger"],
                                                envfile_path=os.path.join("silent_config", "silent_install_prerequisites.toml"))
         # Individual components loaded:
+        deploy1._script_type = 'generate'
         deploy1.silent_version(state["version_data"])
         deploy1.silent_namespace()
 
