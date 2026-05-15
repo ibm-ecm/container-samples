@@ -1046,7 +1046,7 @@ class Validate:
                 progress.log()
                 progress.log("Retrieving public key from JWKS Endpoint over SSL...")
                 # Getting the public key
-                jwks = requests.get(jwks_uri, verify=True, timeout=5).json()
+                jwks = requests.get(jwks_uri, verify=cert_path, timeout=5).json()
             else:
                 progress.log()
                 progress.log("Retrieving public key from JWKS Endpoint...")
@@ -1413,7 +1413,7 @@ class Validate:
 
                 self._logger.info(f"Using certificate path: {cert_path}")
 
-                verify_cert = True
+                verify_cert = cert_path
             else:
                 verify_cert = False
 
@@ -1856,7 +1856,7 @@ class Validate:
 
                 self._logger.info(f"SSL cert path: {scim_cert_path}")
 
-                verify_cert = True
+                verify_cert = scim_cert_path
             else:
                 verify_cert = False
 
@@ -1891,7 +1891,7 @@ class Validate:
             # Test reachability of the SCIM server
             if ssl_enabled:
                 server_reachability = self.validate_server(progress=progress, server=scim_server, port=scim_port,
-                                                           ssl_enabled=True, cert_path=scim_cert_path,
+                                                           ssl_enabled=True, cert_path=scim_cert_folder,
                                                            display_rtt=False)
             else:
                 server_reachability = self.validate_server(progress=progress, server=scim_server, port=scim_port,
@@ -2887,34 +2887,38 @@ class Validate:
             # Add LDAP cert into truststore
             self.__add_cert_to_tmp_truststore(cert_path, ldap_id.lower(), progress)
 
-            self._logger.info(
-                f"Checking ldap SSL connection test using LdapTest.jar for the server: {server} using Bind DN :{bind_dn}")
-            ldap_test_cmd = (
-                f"java -Dsemeru.fips={fips_enabled} -Djavax.net.ssl.trustStore={self._truststore_path} "
-                f"-Djavax.net.ssl.trustStorePassword='{self._truststore_pwd}' "
-                f"-Djavax.net.ssl.trustStoreType={self._storetype} "
-                f"-jar {self._LDAP_JAR_PATH} -u 'ldaps://{server}:{port}' "
-                f"-b '{base_dn}' -D '{bind_dn}' -w '{bind_dn_password}' "
-                f"-additionalvalidation -gdn '{group_base_dn}' "
-                f"-upl '{user_password_list}' -gl '{group_list}' "
-                f"-uf '{user_filter}' -gf '{group_filter}'")
+            self._logger.info(f"Checking ldap SSL connection test using LdapTest.jar for the server: {server} using Bind DN :{bind_dn}")
 
-            java_msg = (f"java -Dsemeru.fips={fips_enabled} -Djavax.net.ssl.trustStore={self._truststore_path}"
-                        f" -Djavax.net.ssl.trustStorePassword='{self._truststore_pwd}' -Djavax.net.ssl.trustStoreType={self._storetype}"
-                        f" -jar {self._LDAP_JAR_PATH} -u 'ldaps://{server}:{port}' -b '{base_dn}' -D '{bind_dn}' -w '*****'")
+            ldap_test_cmd = (f"java -D\"semeru.fips={self._fips_enabled}\" "
+                            + f"-D\"javax.net.ssl.trustStoreType={self._storetype}\" "
+                            + f"-D\"javax.net.ssl.trustStore={self._truststore_path}\" "
+                            + f"-Djavax.net.ssl.trustStorePassword='{self._truststore_pwd}' "
+                            + f"-jar \"{self._LDAP_JAR_PATH}\" -u 'ldaps://{server}:{port}' "
+                            + f"-b '{base_dn}' -D '{bind_dn}' -w '{bind_dn_password}' "
+                            + f"-additionalvalidation -gdn '{group_base_dn}' "
+                            + f"-upl '{user_password_list}' -gl '{group_list}' "
+                            + f"-uf '{user_filter}' -gf '{group_filter}'")
+
+            java_msg = (f"java -D\"semeru.fips={self._fips_enabled}\" "
+                        + f"-D\"javax.net.ssl.trustStoreType={self._storetype}\" "
+                        + f"-D\"javax.net.ssl.trustStore={self._truststore_path}\" "
+                        + f"-Djavax.net.ssl.trustStorePassword='{self._truststore_pwd}' "
+                        + f"-jar \"{self._LDAP_JAR_PATH}\" -u 'ldaps://{server}:{port}' "
+                        + f"-b '{base_dn}' -D '{bind_dn}' -w '*****' ")
 
         else:
-            self._logger.info(
-                f"Checking ldap non-SSL connection test using LdapTest.jar for the server: {server} using Bind DN :{bind_dn}")
-            ldap_test_cmd = (
-                f"java -Dsemeru.fips={fips_enabled} -jar {self._LDAP_JAR_PATH} "
-                f"-u 'ldap://{server}:{port}' -b '{base_dn}' "
-                f"-D '{bind_dn}' -w '{bind_dn_password}' "
-                f"-additionalvalidation -gdn '{group_base_dn}' "
-                f"-upl '{user_password_list}' -gl '{group_list}' "
-                f"-uf '{user_filter}' -gf '{group_filter}'")
+            self._logger.info(f"Checking ldap non-SSL connection test using LdapTest.jar for the server: {server} using Bind DN :{bind_dn}")
 
-            java_msg = f"java -Dsemeru.fips={fips_enabled} -jar {self._LDAP_JAR_PATH} -u 'ldap://{server}:{port}' -b '{base_dn}' -D '{bind_dn}' -w '*****'"
+            ldap_test_cmd = (f"java -D\"semeru.fips={fips_enabled}\" -jar \"{self._LDAP_JAR_PATH}\" "
+                             + f"-u 'ldap://{server}:{port}' -b '{base_dn}' "
+                             + f"-D '{bind_dn}' -w '{bind_dn_password}' "
+                             + f"-additionalvalidation -gdn '{group_base_dn}' "
+                             + f"-upl '{user_password_list}' -gl '{group_list}' "
+                             + f"-uf '{user_filter}' -gf '{group_filter}'")
+
+            java_msg = (f"java -D\"semeru.fips={self._fips_enabled}\" "
+                        + f"-jar \"{self._LDAP_JAR_PATH}\" -u 'ldap://{server}:{port}' "
+                        + f"-b '{base_dn}' -D '{bind_dn}' -w '*****' ")
 
         # Running java command for ldap binding using LdapTest.jar
         self._logger.info(f"Java command for ldap binding using LdapTest.jar : {ldap_test_cmd}")

@@ -40,7 +40,7 @@ from helper_scripts.utilities.interface import (
     display_prereq_passed, mustgather_details, mustgather_network_results)
 from helper_scripts.utilities.utilities import prereq_checks
 
-__version__ = "7.1.6"
+__version__ = "7.2.0"
 
 app = typer.Typer()
 
