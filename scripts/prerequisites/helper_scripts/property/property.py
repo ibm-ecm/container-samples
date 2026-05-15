@@ -212,7 +212,8 @@ class Property:
                 # Create a directory if it does not exist
                 if not os.path.exists(os.path.join(self._ssl_directory_folder, directory)):
                     os.makedirs(os.path.join(self._ssl_directory_folder, directory))
-                if "ldap" not in directory:
+                excluded_folders = ("ldap", "idp", "scim")
+                if not any(name in directory for name in excluded_folders):
                     if self._gather.db_type == "postgresql":
                         os.makedirs(os.path.join(self._ssl_directory_folder, directory, 'serverca'))
                         os.makedirs(os.path.join(self._ssl_directory_folder, directory, 'clientcert'))

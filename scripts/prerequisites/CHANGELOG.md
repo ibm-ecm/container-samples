@@ -1,3 +1,11 @@
+## 7.2.0 (2026-05-15)
+
+### Fix
+
+- skip namespace validation for gather and generate modes without K8s connection
+- updated requirements.txt with latest packages 
+- updated postgresql jdbc driver to 42.7.11
+
 ## 7.1.6 (2026-02-05)
 
 ### Fix
