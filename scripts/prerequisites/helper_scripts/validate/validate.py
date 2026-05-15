@@ -1046,7 +1046,7 @@ class Validate:
                 progress.log()
                 progress.log("Retrieving public key from JWKS Endpoint over SSL...")
                 # Getting the public key
-                jwks = requests.get(jwks_uri, verify=True, timeout=5).json()
+                jwks = requests.get(jwks_uri, verify=cert_path, timeout=5).json()
             else:
                 progress.log()
                 progress.log("Retrieving public key from JWKS Endpoint...")
@@ -1413,7 +1413,7 @@ class Validate:
 
                 self._logger.info(f"Using certificate path: {cert_path}")
 
-                verify_cert = True
+                verify_cert = cert_path
             else:
                 verify_cert = False
 
@@ -1856,7 +1856,7 @@ class Validate:
 
                 self._logger.info(f"SSL cert path: {scim_cert_path}")
 
-                verify_cert = True
+                verify_cert = scim_cert_path
             else:
                 verify_cert = False
 
@@ -1891,7 +1891,7 @@ class Validate:
             # Test reachability of the SCIM server
             if ssl_enabled:
                 server_reachability = self.validate_server(progress=progress, server=scim_server, port=scim_port,
-                                                           ssl_enabled=True, cert_path=scim_cert_path,
+                                                           ssl_enabled=True, cert_path=scim_cert_folder,
                                                            display_rtt=False)
             else:
                 server_reachability = self.validate_server(progress=progress, server=scim_server, port=scim_port,

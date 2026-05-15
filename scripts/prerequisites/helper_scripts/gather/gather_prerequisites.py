@@ -428,26 +428,34 @@ class GatherPrereqOptions:
             while True:
                 if namespace is None:
                     answer = Prompt.ask("Enter your namespace", default=self._current_namespace)
-                    if self._script_type != "deploy":
-                        namespace_exists = self._k.check_namespace_exists(namespace=answer)
-                        if not namespace_exists:
-                            print()
-                            print(Panel.fit(f"Namespace '{answer}' does not exist.\n"
-                                            f"Enter a valid namespace for script to proceed.", style="bold red"))
-                            print()
-                            continue
+                    if self._script_type not in ["deploy", "gather", "generate"]:
+                        try:
+                            namespace_exists = self._k.check_namespace_exists(namespace=answer)
+                            if not namespace_exists:
+                                print()
+                                print(Panel.fit(f"Namespace '{answer}' does not exist.\n"
+                                                f"Enter a valid namespace for script to proceed.", style="bold red"))
+                                print()
+                                continue
+                        except Exception as e:
+                            self._logger.debug(f"Could not verify namespace existence (no K8s connection): {str(e)}")
+                            # Continue without verification for gather/generate modes
                 else:
                     # silent install check for namespace will not loop more than once if invalid namespace is provided
-                    if self._script_type != "deploy":
-                        self._logger.info(f"Checking if namespace: {namespace} exists.")
-                        namespace_exists = self._k.check_namespace_exists(namespace=namespace)
-                        if not namespace_exists:
-                            self._logger.debug(f"Namespace '{namespace}' does not exist.")
-                            print()
-                            print(Panel.fit(f"Namespace '{namespace}' does not exist.\n"
-                                            f"Enter a valid namespace for script to proceed.", style="bold red"))
-                            print()
-                            exit(1)
+                    if self._script_type not in ["deploy", "gather", "generate"]:
+                        try:
+                            self._logger.info(f"Checking if namespace: {namespace} exists.")
+                            namespace_exists = self._k.check_namespace_exists(namespace=namespace)
+                            if not namespace_exists:
+                                self._logger.debug(f"Namespace '{namespace}' does not exist.")
+                                print()
+                                print(Panel.fit(f"Namespace '{namespace}' does not exist.\n"
+                                                f"Enter a valid namespace for script to proceed.", style="bold red"))
+                                print()
+                                exit(1)
+                        except Exception as e:
+                            self._logger.debug(f"Could not verify namespace existence (no K8s connection): {str(e)}")
+                            # Continue without verification for gather/generate modes
                     answer = namespace
 
                 answer = answer.strip()
