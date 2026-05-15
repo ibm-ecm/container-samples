@@ -39,7 +39,7 @@ from helper_scripts.utilities.interface import clear, display_issues, display_pr
 from helper_scripts.utilities.utilities import validate_image_details_file, prereq_checks, read_version_toml, \
     validate_airgap_details_file
 
-__version__ = "7.1.6"
+__version__ = "7.2.0"
 
 app = typer.Typer()
 
