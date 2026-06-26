@@ -10,17 +10,17 @@
 ###############################################################################
 
 # Release Details
-DATE = "2026-03-25"
-RELEASE = "IBM FileNet Content Manager 5.5.12-IF007"
+DATE = "2026-06-26"
+RELEASE = "IBM FileNet Content Manager 5.5.12-IF008"
 
 # Repository Details
-VERSION = "5.5.12-IF007"
+VERSION = "5.5.12-IF008"
 APP_VERSION = "23.0.2"
 
 # OLM Version Details
 CHANNEL = "v23.2"
-CSV = "v55.12.7"
+CSV = "v55.12.8"
 
 # Airgap Details
-CASE_VERSION = "1.8.9"
+CASE_VERSION = "1.8.10"
 CASE_NAME = "ibm-cp-fncm-case"
