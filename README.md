@@ -1,4 +1,4 @@
-# IBM FileNet Content Manager 5.7.0 on Container
+# IBM FileNet Content Manager 5.7.0 on Container Samples
 
 > [!IMPORTANT]
 > **Content Cortex is now available!** IBM Content Cortex is the next-generation content management platform built on containers. A dedicated GitHub repository is available at [ibm-ecm/ibm-content-cortex-containers](https://github.com/ibm-ecm/ibm-content-cortex-containers) with resources, operators, and installation guidance for the new product release.
@@ -8,7 +8,8 @@ Installation of the capabilities is done with the operator.
 
 |    Release     |   Tag   | CASE Version |      Date      |
 |:--------------:|:-------:|:------------:|:--------------:|
-| FNCM 5.7.0-IF4 | v57.0.4 |    5.7.4     | 05 / 28 / 2026 |
+| FNCM 5.7.0-IF5 | v57.0.5 |    5.7.5     | 07 / 29 / 2026 |
+| FNCM 5.7.0-IF4 | v57.0.4 |    5.7.4     | 05 / 27 / 2026 |
 | FNCM 5.7.0-IF3 | v57.0.3 |    5.7.3     | 02 / 25 / 2026 |
 | FNCM 5.7.0-IF2 | v57.0.2 |    5.7.2     | 12 / 17 / 2025 |
 | FNCM 5.7.0-IF1 | v57.0.1 |    5.7.1     | 09 / 30 / 2025 |
