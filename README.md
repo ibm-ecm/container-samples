@@ -8,6 +8,7 @@ Installation of the capabilities is done with the operator.
 
 |    Release     |    Tag    | CASE Version |      Date      |
 |:--------------:|:---------:|:------------:|:--------------:|
+| FNCM 5.6.0-IF8 |  v56.0.8  |    5.6.10    | 29 / 07 / 2026 |
 | FNCM 5.6.0-IF7 |  v56.0.7  |    5.6.9     | 29 / 04 / 2026 |
 | FNCM 5.6.0-IF6 |  v56.0.6  |    5.6.8     | 28 / 01 / 2026 |
 | FNCM 5.6.0-IF5 |  v56.0.5  |    5.6.7     | 10 / 29 / 2025 |

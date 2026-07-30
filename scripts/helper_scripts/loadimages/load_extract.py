@@ -444,26 +444,40 @@ class LoadExtract:
             image_doc.add(comment("##  IBM FileNet Content Manager Component Image Details ##"))
             image_doc.add(comment("##########################################################"))
 
+            seen_component_images = set()
             for component in self._repo_tag_list:
+                component_name = component.get("components", '').upper()
+                repository = component.get("repository", '')
+                digest = component.get("digest")
+                tag = component.get("tag", '')
+                image_identity = (component_name, repository, digest if digest else tag)
+
+                if image_identity in seen_component_images:
+                    self._logger.warning(
+                        f"Skipping duplicate image details entry for component={component_name}, "
+                        f"repository={repository}, reference={digest if digest else tag}"
+                    )
+                    continue
+
+                seen_component_images.add(image_identity)
                 component_section = table()
 
                 self.__write_property_table(section=component_section,
                                             key="REPOSITORY",
-                                            value=component.get("repository", ''),
+                                            value=repository,
                                             note='')
 
-                if 'digest' in component:
+                if digest:
                     self.__write_property_table(section=component_section,
                                                 key="DIGEST",
-                                                value=component.get("digest", ''),
+                                                value=digest,
                                                 note='')
                 else:
                     self.__write_property_table(section=component_section,
                                                 key="TAG",
-                                                value=component.get("tag", ''),
+                                                value=tag,
                                                 note='')
 
-                component_name = component.get("components", '').upper()
                 image_doc.add(f"{component_name}", component_section)
                 image_doc.add(nl())
 
