@@ -22,7 +22,7 @@ CHANNEL = "v24.0"
 CSV = "v56.0.8"
 
 # Airgap Details
-CASE_VERSION = "5.6.10"
+CASE_VERSION = "5.6.11"
 CASE_NAME = "ibm-cp-fncm-case"
 
 
